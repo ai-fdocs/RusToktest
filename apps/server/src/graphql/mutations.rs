@@ -29,14 +29,9 @@ impl RootMutation {
 
         let app_ctx = ctx.data::<loco_rs::prelude::AppContext>()?;
         let tenant = ctx.data::<TenantContext>()?;
-        let module = tenant_modules::Entity::toggle(
-            &app_ctx.db,
-            tenant.id,
-            &module_slug,
-            enabled,
-        )
-        .await
-        .map_err(|err| GraphQLError::internal_error(&err.to_string()))?;
+        let module = tenant_modules::Entity::toggle(&app_ctx.db, tenant.id, &module_slug, enabled)
+            .await
+            .map_err(|err| GraphQLError::internal_error(&err.to_string()))?;
 
         Ok(TenantModule {
             module_slug: module.module_slug,

@@ -121,7 +121,8 @@ impl RootQuery {
             .clone()
             .count(&app_ctx.db)
             .await
-            .map_err(|err| GraphQLError::internal_error(&err.to_string()))? as i64;
+            .map_err(|err| GraphQLError::internal_error(&err.to_string()))?
+            as i64;
         let users = query
             .offset(offset as u64)
             .limit(limit as u64)
