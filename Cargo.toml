@@ -20,7 +20,6 @@ loco-rs = "0.12"
 
 # Async Runtime
 tokio = { version = "1.40", features = ["full"] }
-futures = "0.3"
 
 # Web
 axum = "0.7"

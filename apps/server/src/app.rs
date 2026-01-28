@@ -2,7 +2,6 @@ use async_trait::async_trait;
 use loco_rs::{
     app::{AppContext, Hooks, Initializer},
     boot::{create_app, BootResult, StartMode},
-    controller::middleware::MiddlewareLayer,
     controller::AppRoutes,
     environment::Environment,
     task::Tasks,
@@ -11,7 +10,8 @@ use loco_rs::{
 use sea_orm::DatabaseConnection;
 use std::path::Path;
 
-use crate::{controllers, middleware::tenant::TenantMiddleware};
+use axum::middleware as axum_middleware;
+use crate::{common, controllers};
 use loco_rs::prelude::Queue;
 use migration::Migrator;
 
@@ -43,10 +43,14 @@ impl Hooks for App {
             .add_route(controllers::graphql::routes())
     }
 
-    fn middlewares(ctx: &AppContext) -> Vec<Box<dyn MiddlewareLayer>> {
-        let mut stack = loco_rs::controller::middleware::default_middleware_stack(ctx);
-        stack.insert(0, Box::new(TenantMiddleware::new()));
-        stack
+    async fn after_routes(
+        router: axum::Router,
+        ctx: &AppContext,
+    ) -> Result<axum::Router> {
+        Ok(router.layer(axum_middleware::from_fn_with_state(
+            ctx.clone(),
+            common::middleware::tenant::resolve,
+        )))
     }
 
     async fn truncate(_db: &DatabaseConnection) -> Result<()> {

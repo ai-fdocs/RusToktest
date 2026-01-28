@@ -2,7 +2,7 @@ use async_graphql::{EmptyMutation, EmptySubscription, Object, Schema};
 use axum::{extract::State, routing::get, Extension, Json};
 use loco_rs::prelude::*;
 
-use crate::tenant::TenantContext;
+use rustok_core::context::TenantContext;
 
 #[derive(Default)]
 pub struct Query;

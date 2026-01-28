@@ -2,6 +2,7 @@ pub mod error;
 pub mod id;
 pub mod module;
 pub mod types;
+pub mod context;
 
 pub use error::{Error, Result};
 pub use id::generate_id;

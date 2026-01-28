@@ -1,7 +1,6 @@
 pub mod app;
+pub mod common;
 pub mod controllers;
 pub mod graphql;
-pub mod middleware;
 pub mod models;
-pub mod tenant;
 pub mod views;
