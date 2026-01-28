@@ -4,6 +4,7 @@ use loco_rs::prelude::*;
 use crate::context::{AuthContext, TenantContext};
 use crate::extractors::auth::OptionalCurrentUser;
 use crate::graphql::{build_schema, AppSchema};
+use crate::modules::ModuleRegistry;
 
 async fn graphql_handler(
     State(ctx): State<AppContext>,
@@ -12,7 +13,10 @@ async fn graphql_handler(
     OptionalCurrentUser(current_user): OptionalCurrentUser,
     Json(req): Json<async_graphql::Request>,
 ) -> Json<async_graphql::Response> {
-    let mut request = req.data(ctx).data(tenant_ctx);
+    let mut request = req
+        .data(ctx)
+        .data(tenant_ctx)
+        .data(ModuleRegistry::new());
 
     if let Some(current_user) = current_user {
         let auth_ctx = AuthContext {

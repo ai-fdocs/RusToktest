@@ -5,6 +5,7 @@ pub mod controllers;
 pub mod extractors;
 pub mod graphql;
 pub mod middleware;
+pub mod modules;
 pub mod models;
 pub mod services;
 pub mod views;

@@ -3,6 +3,7 @@ use async_graphql::{Context, FieldError, Object, Result};
 use crate::context::{AuthContext, TenantContext};
 use crate::graphql::errors::GraphQLError;
 use crate::graphql::types::TenantModule;
+use crate::modules::ModuleRegistry;
 use crate::models::_entities::tenant_modules::Entity as TenantModulesEntity;
 
 #[derive(Default)]
@@ -29,6 +30,11 @@ impl RootMutation {
 
         let app_ctx = ctx.data::<loco_rs::prelude::AppContext>()?;
         let tenant = ctx.data::<TenantContext>()?;
+        let registry = ctx.data::<ModuleRegistry>()?;
+
+        if !registry.contains(&module_slug) {
+            return Err(FieldError::new("Unknown module"));
+        }
         let module = TenantModulesEntity::toggle(&app_ctx.db, tenant.id, &module_slug, enabled)
             .await
             .map_err(|err| <FieldError as GraphQLError>::internal_error(&err.to_string()))?;
