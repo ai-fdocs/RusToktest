@@ -3,6 +3,7 @@ use crate::models::{
     sessions::Entity as Sessions,
     users::{self, Entity as Users},
 };
+use crate::services::auth::AuthService;
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts},
@@ -13,10 +14,12 @@ use axum_extra::{
     TypedHeader,
 };
 use loco_rs::prelude::*;
+use rustok_core::PermissionKey;
 
 // Структура, которую мы будем просить в контроллерах
 pub struct CurrentUser {
     pub user: users::Model,
+    pub permissions: Vec<PermissionKey>,
 }
 
 #[async_trait]
@@ -83,6 +86,10 @@ where
             return Err((StatusCode::FORBIDDEN, "User is inactive"));
         }
 
-        Ok(CurrentUser { user })
+        let permissions = AuthService::get_user_permissions(&ctx.db, &user.id)
+            .await
+            .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Failed to load permissions"))?;
+
+        Ok(CurrentUser { user, permissions })
     }
 }

@@ -6,5 +6,5 @@ pub mod extractors;
 pub mod graphql;
 pub mod middleware;
 pub mod models;
-pub mod rbac;
+pub mod services;
 pub mod views;
