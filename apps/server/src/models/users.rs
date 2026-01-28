@@ -1,37 +1,74 @@
-use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
+use sea_orm::prelude::*;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "users")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: Uuid,
-    pub tenant_id: Uuid,
-    pub pid: Uuid,
-    pub email: String,
-    pub password: String,
-    pub name: String,
-    pub role: String,
-    pub email_verified_at: Option<DateTimeWithTimeZone>,
-    pub remember_token: Option<String>,
-    pub created_at: DateTimeWithTimeZone,
-    pub updated_at: DateTimeWithTimeZone,
-}
+use rustok_core::{generate_id, UserRole, UserStatus};
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(
-        belongs_to = "super::tenants::Entity",
-        from = "Column::TenantId",
-        to = "super::tenants::Column::Id"
-    )]
-    Tenants,
-}
+use super::_entities::users::{self, ActiveModel, Entity, Model};
 
-impl Related<super::tenants::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Tenants.def()
+impl Model {
+    pub fn is_active(&self) -> bool {
+        self.status == UserStatus::Active
+    }
+
+    pub fn is_admin(&self) -> bool {
+        matches!(self.role, UserRole::Admin | UserRole::SuperAdmin)
+    }
+
+    pub fn is_email_verified(&self) -> bool {
+        self.email_verified_at.is_some()
     }
 }
 
-impl ActiveModelBehavior for ActiveModel {}
+impl ActiveModel {
+    pub fn new(tenant_id: Uuid, email: &str, password_hash: &str) -> Self {
+        Self {
+            id: sea_orm::ActiveValue::Set(generate_id()),
+            tenant_id: sea_orm::ActiveValue::Set(tenant_id),
+            email: sea_orm::ActiveValue::Set(email.to_lowercase()),
+            password_hash: sea_orm::ActiveValue::Set(password_hash.to_string()),
+            name: sea_orm::ActiveValue::NotSet,
+            role: sea_orm::ActiveValue::Set(UserRole::Customer),
+            status: sea_orm::ActiveValue::Set(UserStatus::Active),
+            email_verified_at: sea_orm::ActiveValue::NotSet,
+            last_login_at: sea_orm::ActiveValue::NotSet,
+            metadata: sea_orm::ActiveValue::Set(serde_json::json!({})),
+            created_at: sea_orm::ActiveValue::NotSet,
+            updated_at: sea_orm::ActiveValue::NotSet,
+        }
+    }
+
+    pub fn new_admin(tenant_id: Uuid, email: &str, password_hash: &str) -> Self {
+        let mut model = Self::new(tenant_id, email, password_hash);
+        model.role = sea_orm::ActiveValue::Set(UserRole::Admin);
+        model
+    }
+}
+
+impl Entity {
+    pub async fn find_by_email(
+        db: &DatabaseConnection,
+        tenant_id: Uuid,
+        email: &str,
+    ) -> Result<Option<Model>, DbErr> {
+        Self::find()
+            .filter(users::Column::TenantId.eq(tenant_id))
+            .filter(users::Column::Email.eq(email.to_lowercase()))
+            .one(db)
+            .await
+    }
+
+    pub async fn find_admins(
+        db: &DatabaseConnection,
+        tenant_id: Uuid,
+    ) -> Result<Vec<Model>, DbErr> {
+        Self::find()
+            .filter(users::Column::TenantId.eq(tenant_id))
+            .filter(
+                users::Column::Role.is_in([
+                    UserRole::Admin.to_string(),
+                    UserRole::SuperAdmin.to_string(),
+                ]),
+            )
+            .all(db)
+            .await
+    }
+}

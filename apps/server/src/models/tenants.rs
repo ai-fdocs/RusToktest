@@ -1,35 +1,55 @@
-use sea_orm::entity::prelude::*;
-use serde::{Deserialize, Serialize};
+use sea_orm::prelude::*;
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
-#[sea_orm(table_name = "tenants")]
-pub struct Model {
-    #[sea_orm(primary_key)]
-    pub id: Uuid,
-    pub name: String,
-    pub slug: String,
-    pub created_at: DateTimeWithTimeZone,
-    pub updated_at: DateTimeWithTimeZone,
-}
+use rustok_core::generate_id;
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
-pub enum Relation {
-    #[sea_orm(has_many = "super::users::Entity")]
-    Users,
-    #[sea_orm(has_many = "super::tenant_modules::Entity")]
-    TenantModules,
-}
+use super::_entities::tenants::{self, ActiveModel, Entity, Model};
 
-impl Related<super::users::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::Users.def()
+impl Model {
+    pub fn is_enabled(&self) -> bool {
+        self.is_active
     }
 }
 
-impl Related<super::tenant_modules::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::TenantModules.def()
+impl ActiveModel {
+    pub fn new(name: &str, slug: &str) -> Self {
+        Self {
+            id: sea_orm::ActiveValue::Set(generate_id()),
+            name: sea_orm::ActiveValue::Set(name.to_string()),
+            slug: sea_orm::ActiveValue::Set(slug.to_string()),
+            domain: sea_orm::ActiveValue::NotSet,
+            settings: sea_orm::ActiveValue::Set(serde_json::json!({})),
+            is_active: sea_orm::ActiveValue::Set(true),
+            created_at: sea_orm::ActiveValue::NotSet,
+            updated_at: sea_orm::ActiveValue::NotSet,
+        }
     }
 }
 
-impl ActiveModelBehavior for ActiveModel {}
+impl Entity {
+    pub async fn find_by_slug(
+        db: &DatabaseConnection,
+        slug: &str,
+    ) -> Result<Option<Model>, DbErr> {
+        Self::find()
+            .filter(tenants::Column::Slug.eq(slug))
+            .one(db)
+            .await
+    }
+
+    pub async fn find_by_domain(
+        db: &DatabaseConnection,
+        domain: &str,
+    ) -> Result<Option<Model>, DbErr> {
+        Self::find()
+            .filter(tenants::Column::Domain.eq(domain))
+            .one(db)
+            .await
+    }
+
+    pub async fn find_active(db: &DatabaseConnection) -> Result<Vec<Model>, DbErr> {
+        Self::find()
+            .filter(tenants::Column::IsActive.eq(true))
+            .all(db)
+            .await
+    }
+}
