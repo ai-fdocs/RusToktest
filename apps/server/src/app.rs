@@ -2,6 +2,7 @@ use async_trait::async_trait;
 use loco_rs::{
     app::{AppContext, Hooks, Initializer},
     boot::{create_app, BootResult, StartMode},
+    controller::middleware::MiddlewareLayer,
     controller::AppRoutes,
     environment::Environment,
     task::Tasks,
@@ -10,7 +11,7 @@ use loco_rs::{
 use sea_orm::DatabaseConnection;
 use std::path::Path;
 
-use crate::controllers;
+use crate::{controllers, middleware::tenant::TenantMiddleware};
 use loco_rs::prelude::Queue;
 use migration::Migrator;
 
@@ -40,6 +41,12 @@ impl Hooks for App {
         AppRoutes::with_default_routes()
             .add_route(controllers::health::routes())
             .add_route(controllers::graphql::routes())
+    }
+
+    fn middlewares(ctx: &AppContext) -> Vec<Box<dyn MiddlewareLayer>> {
+        let mut stack = loco_rs::controller::middleware::default_middleware_stack(ctx);
+        stack.insert(0, Box::new(TenantMiddleware::new()));
+        stack
     }
 
     async fn truncate(_db: &DatabaseConnection) -> Result<()> {
