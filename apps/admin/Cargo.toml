@@ -4,5 +4,5 @@ version.workspace = true
 edition.workspace = true
 
 [dependencies]
-leptos.workspace = true
-leptos_router.workspace = true
+leptos = { workspace = true, features = ["csr"] }
+leptos_router = { workspace = true, features = ["csr"] }
