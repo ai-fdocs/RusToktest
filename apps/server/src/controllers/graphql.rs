@@ -1,7 +1,7 @@
 use axum::{extract::State, routing::get, Extension, Json};
 use loco_rs::prelude::*;
 
-use crate::context::TenantContext;
+use crate::context::{AuthContext, TenantContext};
 use crate::extractors::auth::OptionalCurrentUser;
 use crate::graphql::{build_schema, AppSchema};
 
@@ -12,7 +12,18 @@ async fn graphql_handler(
     OptionalCurrentUser(current_user): OptionalCurrentUser,
     Json(req): Json<async_graphql::Request>,
 ) -> Json<async_graphql::Response> {
-    let request = req.data(ctx).data(tenant_ctx).data(current_user);
+    let mut request = req.data(ctx).data(tenant_ctx);
+
+    if let Some(current_user) = current_user {
+        let auth_ctx = AuthContext {
+            user_id: current_user.user.id,
+            tenant_id: current_user.user.tenant_id,
+            role: current_user.user.role.clone(),
+            permissions: current_user.permissions,
+        };
+        request = request.data(auth_ctx);
+    }
+
     Json(schema.execute(request).await)
 }
 
