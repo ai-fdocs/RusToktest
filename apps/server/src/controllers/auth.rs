@@ -178,7 +178,8 @@ async fn login(
 
     // 4. Генерируем токен
     let jwt_config = jwt_config_from_ctx(&ctx)?;
-    let token = jwt::encode_token(&user.id, &tenant.id, &user.role.to_string(), &jwt_config)?;
+    let token = jwt::encode_token(&user.id, &tenant.id, &user.role.to_string(), &jwt_config)
+        .map_err(|_| Error::InternalServerError)?;
 
     Ok(Json(AuthResponse {
         token,
@@ -204,7 +205,8 @@ pub async fn login(
 
     // 3. Генерируем токен
     let jwt_config = jwt_config_from_ctx(&ctx)?;
-    let token = jwt::encode_token(&user.id, &tenant.id, &user.role.to_string(), &jwt_config)?;
+    let token = jwt::encode_token(&user.id, &tenant.id, &user.role.to_string(), &jwt_config)
+        .map_err(|_| Error::InternalServerError)?;
 
     Ok(Json(AuthResponse {
         token,
