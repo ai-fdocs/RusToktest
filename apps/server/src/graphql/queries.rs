@@ -1,8 +1,10 @@
 use async_graphql::{Context, Object, Result};
-use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
+use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter};
 
 use crate::context::{AuthContext, TenantContext};
-use crate::graphql::types::{Tenant, TenantModule, User};
+use crate::graphql::common::{encode_cursor, PageInfo, PaginationInput};
+use crate::graphql::errors::GraphQLError;
+use crate::graphql::types::{Tenant, TenantModule, User, UserConnection, UserEdge};
 use crate::models::{tenant_modules, users};
 
 #[derive(Default)]
@@ -74,21 +76,71 @@ impl RootQuery {
         Ok(user.as_ref().map(User::from))
     }
 
-    async fn users(&self, ctx: &Context<'_>) -> Result<Vec<User>> {
-        let auth = ctx.data::<AuthContext>().map_err(|_| "Unauthorized")?;
+    async fn user(&self, ctx: &Context<'_>, id: uuid::Uuid) -> Result<Option<User>> {
+        let auth = ctx
+            .data::<AuthContext>()
+            .map_err(|_| GraphQLError::unauthenticated())?;
+        let tenant = ctx.data::<TenantContext>()?;
+        let app_ctx = ctx.data::<loco_rs::prelude::AppContext>()?;
+
+        if !rustok_core::Rbac::has_permission(&auth.role, &rustok_core::Permission::USERS_READ) {
+            return Err(GraphQLError::permission_denied(
+                "Permission denied: users:read required",
+            ));
+        }
+
+        let user = users::Entity::find_by_id(id)
+            .filter(users::Column::TenantId.eq(tenant.id))
+            .one(&app_ctx.db)
+            .await
+            .map_err(|err| GraphQLError::internal_error(&err.to_string()))?;
+
+        Ok(user.as_ref().map(User::from))
+    }
+
+    async fn users(
+        &self,
+        ctx: &Context<'_>,
+        #[graphql(default)] pagination: PaginationInput,
+    ) -> Result<UserConnection> {
+        let auth = ctx
+            .data::<AuthContext>()
+            .map_err(|_| GraphQLError::unauthenticated())?;
         let tenant = ctx.data::<TenantContext>()?;
         let app_ctx = ctx.data::<loco_rs::prelude::AppContext>()?;
 
         if !rustok_core::Rbac::has_permission(&auth.role, &rustok_core::Permission::USERS_LIST) {
-            return Err("Permission denied: users:list required".into());
+            return Err(GraphQLError::permission_denied(
+                "Permission denied: users:list required",
+            ));
         }
 
-        let users = users::Entity::find()
-            .filter(users::Column::TenantId.eq(tenant.id))
+        let (offset, limit) = pagination.normalize();
+        let query = users::Entity::find().filter(users::Column::TenantId.eq(tenant.id));
+        let total = query
+            .clone()
+            .count(&app_ctx.db)
+            .await
+            .map_err(|err| GraphQLError::internal_error(&err.to_string()))? as i64;
+        let users = query
+            .offset(offset as u64)
+            .limit(limit as u64)
             .all(&app_ctx.db)
             .await
-            .map_err(|err| err.to_string())?;
+            .map_err(|err| GraphQLError::internal_error(&err.to_string()))?;
 
-        Ok(users.iter().map(User::from).collect())
+        let edges = users
+            .iter()
+            .enumerate()
+            .map(|(index, user)| UserEdge {
+                node: User::from(user),
+                cursor: encode_cursor(offset + index as i64),
+            })
+            .collect();
+
+        Ok(UserConnection {
+            edges,
+            page_info: PageInfo::new(total, offset, limit),
+        })
     }
 }

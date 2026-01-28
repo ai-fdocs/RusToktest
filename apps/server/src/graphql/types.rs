@@ -3,6 +3,7 @@ use rustok_core::{Permission, Rbac, UserRole};
 use std::str::FromStr;
 use uuid::Uuid;
 
+use crate::graphql::common::PageInfo;
 use crate::models::users;
 
 #[derive(SimpleObject, Clone)]
@@ -54,4 +55,16 @@ pub struct TenantModule {
     pub module_slug: String,
     pub enabled: bool,
     pub settings: String,
+}
+
+#[derive(SimpleObject, Debug, Clone)]
+pub struct UserEdge {
+    pub node: User,
+    pub cursor: String,
+}
+
+#[derive(SimpleObject, Debug, Clone)]
+pub struct UserConnection {
+    pub edges: Vec<UserEdge>,
+    pub page_info: PageInfo,
 }

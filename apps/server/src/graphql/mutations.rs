@@ -1,6 +1,7 @@
 use async_graphql::{Context, Object, Result};
 
 use crate::context::{AuthContext, TenantContext};
+use crate::graphql::errors::GraphQLError;
 use crate::graphql::types::TenantModule;
 use crate::models::tenant_modules;
 
@@ -15,13 +16,15 @@ impl RootMutation {
         module_slug: String,
         enabled: bool,
     ) -> Result<TenantModule> {
-        let auth = ctx.data::<AuthContext>().map_err(|_| "Unauthorized")?;
+        let auth = ctx
+            .data::<AuthContext>()
+            .map_err(|_| GraphQLError::unauthenticated())?;
 
         if !matches!(
             auth.role,
             rustok_core::UserRole::Admin | rustok_core::UserRole::SuperAdmin
         ) {
-            return Err("Forbidden".into());
+            return Err(GraphQLError::permission_denied("Forbidden"));
         }
 
         let app_ctx = ctx.data::<loco_rs::prelude::AppContext>()?;
@@ -33,7 +36,7 @@ impl RootMutation {
             enabled,
         )
         .await
-        .map_err(|err| err.to_string())?;
+        .map_err(|err| GraphQLError::internal_error(&err.to_string()))?;
 
         Ok(TenantModule {
             module_slug: module.module_slug,

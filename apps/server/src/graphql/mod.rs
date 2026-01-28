@@ -1,3 +1,5 @@
+pub mod common;
+pub mod errors;
 pub mod mutations;
 pub mod queries;
 pub mod types;
