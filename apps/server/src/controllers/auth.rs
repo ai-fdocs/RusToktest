@@ -105,7 +105,8 @@ async fn register(
 
     let user = user.insert(&ctx.db).await?;
 
-    AuthService::assign_role_permissions(&ctx.db, &user.id, &tenant.id, user.role).await?;
+    let user_role = user.role.clone();
+    AuthService::assign_role_permissions(&ctx.db, &user.id, &tenant.id, user_role.clone()).await?;
 
     // 4. Создаем сессию и токены
     let now = Utc::now();
@@ -118,7 +119,7 @@ async fn register(
             .insert(&ctx.db)
             .await?;
 
-    let access_token = encode_access_token(&config, user.id, tenant.id, user.role, session.id)?;
+    let access_token = encode_access_token(&config, user.id, tenant.id, user_role.clone(), session.id)?;
 
     let response = AuthResponse {
         access_token,
@@ -129,7 +130,7 @@ async fn register(
             id: user.id,
             email: user.email,
             name: user.name,
-            role: user.role,
+            role: user_role,
             status: user.status,
         },
     };
@@ -177,7 +178,8 @@ async fn login(
     .insert(&ctx.db)
     .await?;
 
-    let access_token = encode_access_token(&config, user.id, tenant.id, user.role, session.id)?;
+    let user_role = user.role.clone();
+    let access_token = encode_access_token(&config, user.id, tenant.id, user_role.clone(), session.id)?;
 
     let response = AuthResponse {
         access_token,
@@ -188,7 +190,7 @@ async fn login(
             id: user.id,
             email: user.email,
             name: user.name,
-            role: user.role,
+            role: user_role,
             status: user.status,
         },
     };
@@ -219,7 +221,7 @@ async fn refresh(
         .ok_or_else(|| Error::Unauthorized("User not found".into()))?;
 
     if !user.is_active() {
-        return Err(Error::Forbidden("User is inactive".into()));
+        return Err(Error::Unauthorized("User is inactive".into()));
     }
 
     let now = Utc::now();
@@ -230,11 +232,12 @@ async fn refresh(
     let session_id = session.id;
     let mut session_model: sessions::ActiveModel = session.into();
     session_model.token_hash = Set(new_token_hash);
-    session_model.expires_at = Set(expires_at);
+    session_model.expires_at = Set(expires_at.into());
     session_model.last_used_at = Set(Some(now.into()));
     session_model.update(&ctx.db).await?;
 
-    let access_token = encode_access_token(&config, user.id, tenant.id, user.role, session_id)?;
+    let user_role = user.role.clone();
+    let access_token = encode_access_token(&config, user.id, tenant.id, user_role.clone(), session_id)?;
 
     let response = AuthResponse {
         access_token,
@@ -245,7 +248,7 @@ async fn refresh(
             id: user.id,
             email: user.email,
             name: user.name,
-            role: user.role,
+            role: user_role,
             status: user.status,
         },
     };

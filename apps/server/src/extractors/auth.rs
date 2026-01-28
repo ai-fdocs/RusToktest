@@ -36,9 +36,10 @@ where
         let ctx = AppContext::from_ref(state);
 
         // 2. Достаем TenantContext (он ОБЯЗАН быть, так как Auth идет ПОСЛЕ TenantMiddleware)
-        let tenant_ctx = parts
+        let tenant_id = parts
             .tenant_context()
-            .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "Tenant context missing"))?;
+            .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "Tenant context missing"))?
+            .id;
 
         // 3. Достаем Bearer token
         let TypedHeader(Authorization(bearer)) =
@@ -60,7 +61,7 @@ where
 
         // 6. ПРОВЕРКА МУЛЬТИТЕНАНТНОСТИ
         // Если токен выдан для магазина А, а запрос пришел в магазин Б - отлуп.
-        if claims.tenant_id != tenant_ctx.id {
+        if claims.tenant_id != tenant_id {
             return Err((StatusCode::FORBIDDEN, "Token belongs to another tenant"));
         }
 
@@ -71,7 +72,7 @@ where
             .map_err(|_| (StatusCode::INTERNAL_SERVER_ERROR, "Database error"))?
             .ok_or((StatusCode::UNAUTHORIZED, "Session not found"))?;
 
-        if session.tenant_id != tenant_ctx.id || !session.is_active() {
+        if session.tenant_id != tenant_id || !session.is_active() {
             return Err((StatusCode::UNAUTHORIZED, "Session expired"));
         }
 
