@@ -24,7 +24,7 @@ impl AuthService {
         user_id: &uuid::Uuid,
     ) -> Result<Vec<Permission>> {
         let user_role_models = user_roles::Entity::find()
-            .filter(user_roles::Column::UserId.eq(user_id))
+            .filter(user_roles::Column::UserId.eq(*user_id))
             .all(db)
             .await?;
 
@@ -110,7 +110,7 @@ impl AuthService {
     ) -> Result<roles::Model> {
         let role_slug = role.to_string();
         if let Some(existing) = roles::Entity::find()
-            .filter(roles::Column::TenantId.eq(tenant_id))
+            .filter(roles::Column::TenantId.eq(*tenant_id))
             .filter(roles::Column::Slug.eq(&role_slug))
             .one(db)
             .await?
@@ -118,7 +118,7 @@ impl AuthService {
             return Ok(existing);
         }
 
-        roles::ActiveModel {
+        let role = roles::ActiveModel {
             id: ActiveValue::Set(rustok_core::generate_id()),
             tenant_id: ActiveValue::Set(*tenant_id),
             name: ActiveValue::Set(role_slug.clone()),
@@ -129,7 +129,9 @@ impl AuthService {
             updated_at: ActiveValue::NotSet,
         }
         .insert(db)
-        .await
+        .await?;
+
+        Ok(role)
     }
 
     async fn get_or_create_permission(
@@ -141,7 +143,7 @@ impl AuthService {
         let action_str = permission.action.to_string();
 
         if let Some(existing) = permissions::Entity::find()
-            .filter(permissions::Column::TenantId.eq(tenant_id))
+            .filter(permissions::Column::TenantId.eq(*tenant_id))
             .filter(permissions::Column::Resource.eq(&resource_str))
             .filter(permissions::Column::Action.eq(&action_str))
             .one(db)

@@ -1,9 +1,4 @@
-use axum::{
-    extract::ConnectInfo,
-    http::header::USER_AGENT,
-    routing::{get, post},
-    Json,
-};
+use axum::{extract::ConnectInfo, http::header::USER_AGENT, routing::{get, post}, Json};
 use chrono::{Duration, Utc};
 use loco_rs::prelude::*;
 use sea_orm::{ActiveModelTrait, Set};
@@ -49,14 +44,6 @@ pub struct UserResponse {
     pub role: String,
 }
 
-#[derive(Serialize)]
-pub struct UserResponse {
-    pub id: uuid::Uuid,
-    pub email: String,
-    pub name: Option<String>,
-    pub role: String,
-}
-
 impl From<users::Model> for UserResponse {
     fn from(m: users::Model) -> Self {
         Self {
@@ -78,19 +65,17 @@ struct UserInfo {
 }
 
 #[derive(Debug, Serialize)]
-struct LogoutResponse {
-    status: &'static str,
+struct AuthResponse {
+    access_token: String,
+    refresh_token: String,
+    token_type: &'static str,
+    expires_in: u64,
+    user: UserInfo,
 }
 
-impl From<users::Model> for UserResponse {
-    fn from(m: users::Model) -> Self {
-        Self {
-            id: m.id,
-            email: m.email,
-            name: m.name,
-            role: m.role.to_string(),
-        }
-    }
+#[derive(Debug, Serialize)]
+struct LogoutResponse {
+    status: &'static str,
 }
 
 // --- Handlers ---
@@ -158,43 +143,10 @@ async fn login(
     CurrentTenant(tenant): CurrentTenant,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     headers: axum::http::HeaderMap,
-    Json(payload): Json<LoginParams>,
+    Json(params): Json<LoginParams>,
 ) -> Result<Response> {
     let config = AuthConfig::from_ctx(&ctx)?;
 
-    // 1. Ищем юзера
-    let user = Users::find_by_email(&ctx.db, tenant.id, &payload.email)
-        .await?
-        .ok_or_else(|| Error::Unauthorized("Invalid credentials".into()))?;
-
-    // 2. Проверяем пароль
-    if !verify_password(&payload.password, &user.password_hash)? {
-        return Err(Error::Unauthorized("Invalid credentials".into()));
-    }
-
-    // 3. Создаем юзера
-    let mut user = UserActiveModel::new(tenant.id, &params.email, &password_hash);
-    user.name = Set(params.name);
-
-    let user = user.insert(&ctx.db).await?;
-
-    // 4. Генерируем токен
-    let jwt_config = jwt_config_from_ctx(&ctx)?;
-    let token = jwt::encode_token(&user.id, &tenant.id, &user.role.to_string(), &jwt_config)
-        .map_err(|_| Error::InternalServerError)?;
-
-    Ok(Json(AuthResponse {
-        token,
-        user: user.into(),
-    }))
-}
-
-/// POST /api/auth/login
-pub async fn login(
-    State(ctx): State<AppContext>,
-    CurrentTenant(tenant): CurrentTenant,
-    Json(params): Json<LoginParams>,
-) -> Result<Json<AuthResponse>> {
     // 1. Ищем юзера
     let user = Users::find_by_email(&ctx.db, tenant.id, &params.email)
         .await?
@@ -205,27 +157,126 @@ pub async fn login(
         return Err(Error::Unauthorized("Invalid credentials".into()));
     }
 
-    // 3. Генерируем токен
-    let jwt_config = jwt_config_from_ctx(&ctx)?;
-    let token = jwt::encode_token(&user.id, &tenant.id, &user.role.to_string(), &jwt_config)
-        .map_err(|_| Error::InternalServerError)?;
+    // 3. Создаем сессию и токены
+    let now = Utc::now();
+    let refresh_token = generate_refresh_token();
+    let token_hash = hash_refresh_token(&refresh_token);
+    let expires_at = now + Duration::seconds(config.refresh_expiration as i64);
+    let user_agent = headers
+        .get(USER_AGENT)
+        .and_then(|value| value.to_str().ok())
+        .map(|value| value.to_string());
+    let session = sessions::ActiveModel::new(
+        tenant.id,
+        user.id,
+        token_hash,
+        expires_at,
+        Some(addr.ip().to_string()),
+        user_agent,
+    )
+    .insert(&ctx.db)
+    .await?;
 
-    Ok(Json(AuthResponse {
-        token,
-        user: user.into(),
-    }))
+    let access_token = encode_access_token(&config, user.id, tenant.id, user.role, session.id)?;
+
+    let response = AuthResponse {
+        access_token,
+        refresh_token,
+        token_type: "Bearer",
+        expires_in: config.access_expiration,
+        user: UserInfo {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            status: user.status,
+        },
+    };
+
+    format::json(response)
+}
+
+/// POST /api/auth/refresh
+async fn refresh(
+    State(ctx): State<AppContext>,
+    CurrentTenant(tenant): CurrentTenant,
+    Json(params): Json<RefreshRequest>,
+) -> Result<Response> {
+    let config = AuthConfig::from_ctx(&ctx)?;
+    let token_hash = hash_refresh_token(&params.refresh_token);
+
+    let session = sessions::Entity::find_by_token_hash(&ctx.db, tenant.id, &token_hash)
+        .await?
+        .ok_or_else(|| Error::Unauthorized("Invalid refresh token".into()))?;
+
+    if !session.is_active() {
+        return Err(Error::Unauthorized("Session expired".into()));
+    }
+
+    let user = Users::find_by_id(session.user_id)
+        .one(&ctx.db)
+        .await?
+        .ok_or_else(|| Error::Unauthorized("User not found".into()))?;
+
+    if !user.is_active() {
+        return Err(Error::Forbidden("User is inactive".into()));
+    }
+
+    let now = Utc::now();
+    let new_refresh_token = generate_refresh_token();
+    let new_token_hash = hash_refresh_token(&new_refresh_token);
+    let expires_at = now + Duration::seconds(config.refresh_expiration as i64);
+
+    let session_id = session.id;
+    let mut session_model: sessions::ActiveModel = session.into();
+    session_model.token_hash = Set(new_token_hash);
+    session_model.expires_at = Set(expires_at);
+    session_model.last_used_at = Set(Some(now.into()));
+    session_model.update(&ctx.db).await?;
+
+    let access_token = encode_access_token(&config, user.id, tenant.id, user.role, session_id)?;
+
+    let response = AuthResponse {
+        access_token,
+        refresh_token: new_refresh_token,
+        token_type: "Bearer",
+        expires_in: config.access_expiration,
+        user: UserInfo {
+            id: user.id,
+            email: user.email,
+            name: user.name,
+            role: user.role,
+            status: user.status,
+        },
+    };
+
+    format::json(response)
+}
+
+/// POST /api/auth/logout
+async fn logout(
+    State(ctx): State<AppContext>,
+    CurrentTenant(tenant): CurrentTenant,
+    Json(params): Json<RefreshRequest>,
+) -> Result<Response> {
+    let token_hash = hash_refresh_token(&params.refresh_token);
+    let session = sessions::Entity::find_by_token_hash(&ctx.db, tenant.id, &token_hash)
+        .await?
+        .ok_or_else(|| Error::Unauthorized("Invalid refresh token".into()))?;
+
+    if session.revoked_at.is_none() {
+        let mut session_model: sessions::ActiveModel = session.into();
+        session_model.revoked_at = Set(Some(Utc::now().into()));
+        session_model.update(&ctx.db).await?;
+    }
+
+    format::json(LogoutResponse { status: "ok" })
 }
 
 /// GET /api/auth/me
 /// Требует авторизации через заголовок
-pub async fn me(CurrentUser { user, .. }: CurrentUser) -> Result<Json<UserResponse>> {
-    Ok(Json(user.into()))
-}
-
-/// GET /api/auth/me
-/// Требует авторизации через заголовок
-async fn me(CurrentUser { user, .. }: CurrentUser) -> Result<Json<UserResponse>> {
-    Ok(Json(user.into()))
+async fn me(CurrentUser { user, .. }: CurrentUser) -> Result<Response> {
+    format::json(UserResponse::from(user))
 }
 
 pub fn routes() -> Routes {
@@ -233,7 +284,6 @@ pub fn routes() -> Routes {
         .prefix("api/auth")
         .add("/register", post(register))
         .add("/login", post(login))
-        .add("/register", post(register))
         .add("/refresh", post(refresh))
         .add("/logout", post(logout))
         .add("/me", get(me))
