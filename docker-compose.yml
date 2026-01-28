@@ -3,13 +3,18 @@ services:
     image: postgres:16-alpine
     container_name: rustok_db
     environment:
-      POSTGRES_DB: rustok_app
-      POSTGRES_USER: loco
-      POSTGRES_PASSWORD: loco
+      POSTGRES_DB: rustok_dev
+      POSTGRES_USER: rustok
+      POSTGRES_PASSWORD: rustok
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rustok -d rustok_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:

@@ -9,12 +9,13 @@ server:
   port: 3000
 
 database:
-  uri: postgres://loco:loco@localhost:5432/rustok_app
+  uri: postgres://rustok:rustok@localhost:5432/rustok_dev
   enable_logging: true
   min_connections: 1
-  max_connections: 5
+  max_connections: 10
+  auto_migrate: true
 
 auth:
   jwt:
-    secret: change-this-in-production
+    secret: dev-secret-change-in-production-min-32-chars!!
     expiration: 604800
