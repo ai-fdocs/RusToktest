@@ -18,3 +18,7 @@ auth:
   jwt:
     secret: test-secret
     expiration: 3600
+
+settings:
+  auth:
+    refresh_expiration: 86400
