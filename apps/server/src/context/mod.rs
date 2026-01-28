@@ -1,3 +1,5 @@
 pub mod tenant;
 
-pub use tenant::{OptionalTenant, TenantContext, TenantContextExt, TenantError};
+pub use tenant::{
+    OptionalTenant, TenantContext, TenantContextExt, TenantContextExtension, TenantError,
+};
