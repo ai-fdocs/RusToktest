@@ -1,7 +1,7 @@
 pub mod _entities;
 
-pub use _entities::*;
+pub use _entities::{TenantModules, Tenants, Users};
 
-mod tenant_modules;
-mod tenants;
-mod users;
+pub mod tenant_modules;
+pub mod tenants;
+pub mod users;
