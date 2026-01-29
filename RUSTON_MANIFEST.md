@@ -1,8 +1,9 @@
 # RusToK — System Architecture Manifest v4.0
 
-**Target:** AI Assistants (Cursor, Windsurf, Copilot, Claude)
-**Role:** Senior Rust Architect
-**Philosophy:** "Rust is ON. WordPress is OFF."
+**Codename:** "The Highload Tank"  \
+**Target:** AI Assistants (Cursor, Windsurf, Copilot, Claude)  \
+**Role:** Senior Rust Architect & System Designer  \
+**Philosophy:** "Write Optimized vs Read Optimized" / "Rust is ON. WordPress is OFF."
 
 ---
 
@@ -22,10 +23,11 @@
 | Property | Value |
 |----------|-------|
 | **Name** | RusToK |
-| **Type** | Enterprise Modular Headless Platform |
+| **Type** | Event-Driven Enterprise Headless Platform |
+| **Architecture** | Modular Monolith with CQRS & Event Sourcing elements |
 | **Language** | Rust 100% |
 | **License** | AGPL-3.0 (core) + MIT (modules) |
-| **Version** | 1.0 (The Tank) |
+| **Version** | 4.0 (The Highload Tank) |
 | **Repository** | https://github.com/RustokCMS/RusToK |
 
 ---
@@ -38,17 +40,22 @@
 - **Compile-Time Safety:** Если компилируется — работает.
 - **Monorepo:** Backend, Admin и Storefront живут вместе.
 
-### 2.2 WordPress Simplicity, Highload Performance
+### 2.2 Universal Core, Specific Modules
 
-- **Unified Core:** Базовые сущности в ядре, не раздутые.
-- **Specialized Modules:** Товары ≠ статьи, разные таблицы.
+- **Unified Core:** Ядро содержит только то, что нужно всем (SEO, Tags, Users, Basic Nodes).
+- **Specialized Modules:** Товары ≠ статьи, у каждого модуля своя бизнес-логика и таблицы.
 - **Empty Tables Cost Zero:** Неиспользуемые таблицы не мешают.
 
-### 2.3 CQRS-Lite
+### 2.3 CQRS (Write vs Read)
 
-- **Write Path:** Нормализованные таблицы, быстрая запись.
-- **Read Path:** Денормализованные индексы, быстрое чтение.
-- **Event-Driven Sync:** Изменения propagate через события.
+- **Write Model (Modules):** строгие реляционные таблицы (3NF), транзакции, валидация.
+- **Read Model (Index/Catalog):** денормализованный JSONB/индексы, GIN, быстрый поиск.
+- **Event-Driven Sync:** изменения propagate через события.
+
+### 2.4 Highload by Default
+
+- **Event-Driven Glue:** модули не знают друг о друге напрямую. Они общаются через EventBus.
+- **No Heavy JOINs on Storefront:** данные "склеиваются" при записи, а не при чтении.
 
 ---
 
@@ -70,7 +77,7 @@
 
 ---
 
-## 4. PROJECT STRUCTURE
+## 4. PROJECT STRUCTURE (Workspace)
 
 ```text
 rustok/
@@ -88,6 +95,7 @@ rustok/
 │   │   │   ├── lib.rs
 │   │   │   ├── id.rs               # ULID → UUID
 │   │   │   ├── error.rs
+│   │   │   ├── traits.rs           # Universal traits
 │   │   │   ├── events/             # Event Bus
 │   │   │   ├── entities/
 │   │   │   │   ├── mod.rs
@@ -148,7 +156,7 @@ rustok/
 
 ## 5. DATABASE ARCHITECTURE
 
-### 5.1 ID Generation (unchanged)
+### 5.1 ID Generation (ULID → UUID)
 
 ```rust
 // crates/rustok-core/src/id.rs
@@ -167,7 +175,7 @@ pub fn parse_id(s: &str) -> Result<Uuid, IdError> {
 }
 ```
 
-### 5.2 Core Tables (Unified Foundation)
+### 5.2 RusToK Core (Unified Foundation)
 
 ```sql
 -- =============================================
@@ -194,7 +202,6 @@ CREATE TABLE users (
     metadata        JSONB NOT NULL DEFAULT '{}',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
     UNIQUE (tenant_id, email)
 );
 
@@ -207,25 +214,19 @@ CREATE TABLE nodes (
     tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     parent_id       UUID REFERENCES nodes(id) ON DELETE CASCADE,
     author_id       UUID REFERENCES users(id) ON DELETE SET NULL,
-
     kind            VARCHAR(32) NOT NULL,       -- 'page', 'post', 'comment'
     title           VARCHAR(255),
     slug            VARCHAR(255),
     excerpt         TEXT,
-
     category_id     UUID REFERENCES categories(id) ON DELETE SET NULL,
     status          VARCHAR(32) NOT NULL DEFAULT 'draft',
-
-    position        INT DEFAULT 0,              -- Сортировка
-    depth           INT DEFAULT 0,              -- Уровень вложенности
-    reply_count     INT DEFAULT 0,              -- Денормализация для скорости
-
+    position        INT DEFAULT 0,
+    depth           INT DEFAULT 0,
+    reply_count     INT DEFAULT 0,
     metadata        JSONB NOT NULL DEFAULT '{}',
-
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     published_at    TIMESTAMPTZ,
-
     UNIQUE (tenant_id, kind, slug) WHERE slug IS NOT NULL
 );
 
@@ -244,7 +245,6 @@ CREATE TABLE bodies (
     body            TEXT,
     format          VARCHAR(16) NOT NULL DEFAULT 'markdown',
     search_vector   TSVECTOR,
-
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -257,19 +257,14 @@ CREATE TABLE categories (
     id              UUID PRIMARY KEY,
     tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     parent_id       UUID REFERENCES categories(id) ON DELETE CASCADE,
-
     name            VARCHAR(255) NOT NULL,
     slug            VARCHAR(255) NOT NULL,
     description     TEXT,
-
     position        INT NOT NULL DEFAULT 0,
     depth           INT NOT NULL DEFAULT 0,
-    node_count      INT NOT NULL DEFAULT 0,     -- Денормализация
-
-    settings        JSONB NOT NULL DEFAULT '{}', -- Права, модерация, иконка
-
+    node_count      INT NOT NULL DEFAULT 0,
+    settings        JSONB NOT NULL DEFAULT '{}',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
     UNIQUE (tenant_id, slug)
 );
 
@@ -282,14 +277,10 @@ CREATE INDEX idx_categories_parent ON categories(parent_id);
 CREATE TABLE tags (
     id              UUID PRIMARY KEY,
     tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-
     name            VARCHAR(100) NOT NULL,
     slug            VARCHAR(100) NOT NULL,
-
-    use_count       INT NOT NULL DEFAULT 0,     -- Популярность
-
+    use_count       INT NOT NULL DEFAULT 0,
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
     UNIQUE (tenant_id, slug)
 );
 
@@ -303,9 +294,7 @@ CREATE TABLE taggables (
     tag_id          UUID NOT NULL REFERENCES tags(id) ON DELETE CASCADE,
     target_type     VARCHAR(32) NOT NULL,       -- 'node', 'product'
     target_id       UUID NOT NULL,
-
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
     PRIMARY KEY (tag_id, target_type, target_id)
 );
 
@@ -317,32 +306,20 @@ CREATE INDEX idx_taggables_target ON taggables(target_type, target_id);
 CREATE TABLE meta (
     id              UUID PRIMARY KEY,
     tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-
     target_type     VARCHAR(32) NOT NULL,       -- 'node', 'product', 'category'
     target_id       UUID NOT NULL,
-
-    -- Basic SEO
     title           VARCHAR(255),
     description     VARCHAR(500),
     keywords        VARCHAR(255),
-
-    -- Open Graph
     og_title        VARCHAR(255),
     og_description  VARCHAR(500),
     og_image        VARCHAR(500),
     og_type         VARCHAR(32),
-
-    -- Twitter
     twitter_card    VARCHAR(32),
-
-    -- Robots
     no_index        BOOLEAN NOT NULL DEFAULT false,
     no_follow       BOOLEAN NOT NULL DEFAULT false,
     canonical_url   VARCHAR(500),
-
-    -- Structured Data (JSON-LD)
     structured_data JSONB,
-
     UNIQUE (target_type, target_id)
 );
 
@@ -355,22 +332,16 @@ CREATE TABLE media (
     id              UUID PRIMARY KEY,
     tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     uploaded_by     UUID REFERENCES users(id) ON DELETE SET NULL,
-
     filename        VARCHAR(255) NOT NULL,
     original_name   VARCHAR(255) NOT NULL,
     mime_type       VARCHAR(100) NOT NULL,
     size            BIGINT NOT NULL,
-
-    storage_path    VARCHAR(500) NOT NULL,      -- S3 path или local
+    storage_path    VARCHAR(500) NOT NULL,
     storage_driver  VARCHAR(32) NOT NULL DEFAULT 'local',
-
-    -- Image specific
     width           INT,
     height          INT,
-
     alt_text        VARCHAR(255),
     metadata        JSONB NOT NULL DEFAULT '{}',
-
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -386,12 +357,11 @@ CREATE TABLE tenant_modules (
     enabled         BOOLEAN NOT NULL DEFAULT true,
     settings        JSONB NOT NULL DEFAULT '{}',
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
     UNIQUE (tenant_id, module_slug)
 );
 ```
 
-### 5.3 Commerce Tables (Medusa-style)
+### 5.3 RusToK Commerce (Module)
 
 ```sql
 -- =============================================
@@ -400,20 +370,15 @@ CREATE TABLE tenant_modules (
 CREATE TABLE commerce_products (
     id              UUID PRIMARY KEY,
     tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-
     title           VARCHAR(255) NOT NULL,
     subtitle        VARCHAR(255),
     handle          VARCHAR(255) NOT NULL,
     description     TEXT,
-
     status          VARCHAR(32) NOT NULL DEFAULT 'draft',
     discountable    BOOLEAN NOT NULL DEFAULT true,
-
     metadata        JSONB NOT NULL DEFAULT '{}',
-
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
     UNIQUE (tenant_id, handle)
 );
 
@@ -425,22 +390,17 @@ CREATE INDEX idx_commerce_products_tenant ON commerce_products(tenant_id, status
 CREATE TABLE commerce_variants (
     id              UUID PRIMARY KEY,
     product_id      UUID NOT NULL REFERENCES commerce_products(id) ON DELETE CASCADE,
-
     title           VARCHAR(255) NOT NULL,
     sku             VARCHAR(64),
     barcode         VARCHAR(64),
-
     manage_inventory BOOLEAN NOT NULL DEFAULT true,
     allow_backorder  BOOLEAN NOT NULL DEFAULT false,
-
     weight          INT,
     length          INT,
     height          INT,
     width           INT,
-
     position        INT NOT NULL DEFAULT 0,
     metadata        JSONB NOT NULL DEFAULT '{}',
-
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
@@ -476,15 +436,11 @@ CREATE TABLE commerce_variant_options (
 CREATE TABLE commerce_prices (
     id              UUID PRIMARY KEY,
     variant_id      UUID NOT NULL REFERENCES commerce_variants(id) ON DELETE CASCADE,
-
     amount          BIGINT NOT NULL,
     currency_code   CHAR(3) NOT NULL,
-
-    price_list_id   UUID,                       -- Для разных прайсов
+    price_list_id   UUID,
     min_quantity    INT NOT NULL DEFAULT 1,
-
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
     UNIQUE (variant_id, currency_code, price_list_id, min_quantity)
 );
 
@@ -497,17 +453,13 @@ CREATE TABLE commerce_categories (
     id              UUID PRIMARY KEY,
     tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     parent_id       UUID REFERENCES commerce_categories(id) ON DELETE SET NULL,
-
     name            VARCHAR(255) NOT NULL,
     handle          VARCHAR(255) NOT NULL,
     description     TEXT,
-
     is_active       BOOLEAN NOT NULL DEFAULT true,
     is_internal     BOOLEAN NOT NULL DEFAULT false,
     rank            INT NOT NULL DEFAULT 0,
-
     metadata        JSONB NOT NULL DEFAULT '{}',
-
     UNIQUE (tenant_id, handle)
 );
 
@@ -539,11 +491,9 @@ CREATE TABLE commerce_inventory_levels (
     id              UUID PRIMARY KEY,
     inventory_item_id UUID NOT NULL REFERENCES commerce_inventory_items(id) ON DELETE CASCADE,
     location_id     UUID NOT NULL REFERENCES commerce_stock_locations(id) ON DELETE CASCADE,
-
     stocked_quantity  INT NOT NULL DEFAULT 0,
     reserved_quantity INT NOT NULL DEFAULT 0,
     incoming_quantity INT NOT NULL DEFAULT 0,
-
     UNIQUE (inventory_item_id, location_id)
 );
 
@@ -560,24 +510,18 @@ CREATE TABLE commerce_orders (
     id              UUID PRIMARY KEY,
     tenant_id       UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
     customer_id     UUID REFERENCES users(id) ON DELETE SET NULL,
-
-    display_id      SERIAL,                     -- Human-readable #1001
+    display_id      SERIAL,
     status          VARCHAR(32) NOT NULL DEFAULT 'pending',
-
     email           VARCHAR(255),
     currency_code   CHAR(3) NOT NULL,
-
     subtotal        BIGINT NOT NULL,
     tax_total       BIGINT NOT NULL DEFAULT 0,
     shipping_total  BIGINT NOT NULL DEFAULT 0,
     discount_total  BIGINT NOT NULL DEFAULT 0,
     total           BIGINT NOT NULL,
-
     shipping_address JSONB,
     billing_address  JSONB,
-
     metadata        JSONB NOT NULL DEFAULT '{}',
-
     created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -590,20 +534,18 @@ CREATE TABLE commerce_order_items (
     id              UUID PRIMARY KEY,
     order_id        UUID NOT NULL REFERENCES commerce_orders(id) ON DELETE CASCADE,
     variant_id      UUID REFERENCES commerce_variants(id) ON DELETE SET NULL,
-
     title           VARCHAR(255) NOT NULL,
     sku             VARCHAR(64),
     quantity        INT NOT NULL,
     unit_price      BIGINT NOT NULL,
     total           BIGINT NOT NULL,
-
     metadata        JSONB NOT NULL DEFAULT '{}'
 );
 
 CREATE INDEX idx_commerce_order_items_order ON commerce_order_items(order_id);
 ```
 
-### 5.4 Index Tables (CQRS Read Models)
+### 5.4 RusToK Index/Catalog (CQRS Read Model)
 
 ```sql
 -- =============================================
@@ -613,35 +555,22 @@ CREATE TABLE index_products (
     id              UUID PRIMARY KEY,
     tenant_id       UUID NOT NULL,
     product_id      UUID NOT NULL,
-
-    -- Денормализованные данные
     title           VARCHAR(255) NOT NULL,
     subtitle        VARCHAR(255),
     handle          VARCHAR(255) NOT NULL,
     description     TEXT,
     status          VARCHAR(32) NOT NULL,
-
-    -- Агрегированные варианты
     min_price       BIGINT,
     max_price       BIGINT,
     currencies      CHAR(3)[],
     total_stock     INT,
     has_stock       BOOLEAN,
-
-    -- Агрегированные связи
-    categories      JSONB,                      -- [{id, name, handle}]
+    categories      JSONB,
     tags            TEXT[],
-
-    -- SEO
     meta_title      VARCHAR(255),
     meta_description VARCHAR(500),
-
-    -- Поиск
     search_vector   TSVECTOR,
-
-    -- Синхронизация
     indexed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
     UNIQUE (product_id)
 );
 
@@ -657,40 +586,25 @@ CREATE TABLE index_content (
     id              UUID PRIMARY KEY,
     tenant_id       UUID NOT NULL,
     node_id         UUID NOT NULL,
-
-    -- Денормализованные данные
     kind            VARCHAR(32) NOT NULL,
     title           VARCHAR(255),
     slug            VARCHAR(255),
     excerpt         TEXT,
-    body_preview    TEXT,                       -- Первые N символов
+    body_preview    TEXT,
     status          VARCHAR(32) NOT NULL,
-
-    -- Автор
     author_id       UUID,
     author_name     VARCHAR(255),
-
-    -- Категория
     category_id     UUID,
     category_name   VARCHAR(255),
     category_slug   VARCHAR(255),
-
-    -- Связи
     tags            TEXT[],
     parent_id       UUID,
     reply_count     INT,
-
-    -- SEO
     meta_title      VARCHAR(255),
     meta_description VARCHAR(500),
-
-    -- Поиск
     search_vector   TSVECTOR,
-
-    -- Даты
     published_at    TIMESTAMPTZ,
     indexed_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-
     UNIQUE (node_id)
 );
 
@@ -700,23 +614,19 @@ CREATE INDEX idx_index_content_published ON index_content(tenant_id, kind, publi
 CREATE INDEX idx_index_content_category ON index_content(category_id);
 ```
 
-### 5.5 Partitioning Strategy
+### 5.5 Partitioning Strategy (Highload)
 
 ```sql
 -- =============================================
 -- PARTITIONING: Orders по дате (highload)
 -- =============================================
-
--- Основная таблица с партиционированием
 CREATE TABLE commerce_orders_partitioned (
     id              UUID NOT NULL,
     tenant_id       UUID NOT NULL,
     created_at      TIMESTAMPTZ NOT NULL,
-    -- ... остальные поля
     PRIMARY KEY (id, created_at)
 ) PARTITION BY RANGE (created_at);
 
--- Партиции по кварталам
 CREATE TABLE commerce_orders_2025_q1
     PARTITION OF commerce_orders_partitioned
     FOR VALUES FROM ('2025-01-01') TO ('2025-04-01');
@@ -725,7 +635,6 @@ CREATE TABLE commerce_orders_2025_q2
     PARTITION OF commerce_orders_partitioned
     FOR VALUES FROM ('2025-04-01') TO ('2025-07-01');
 
--- Партиция для будущих данных (default)
 CREATE TABLE commerce_orders_future
     PARTITION OF commerce_orders_partitioned
     DEFAULT;
@@ -733,15 +642,12 @@ CREATE TABLE commerce_orders_future
 -- =============================================
 -- PARTITIONING: Nodes по tenant (multi-tenant highload)
 -- =============================================
-
 CREATE TABLE nodes_partitioned (
     id              UUID NOT NULL,
     tenant_id       UUID NOT NULL,
-    -- ... остальные поля
     PRIMARY KEY (id, tenant_id)
 ) PARTITION BY HASH (tenant_id);
 
--- 8 партиций для распределения нагрузки
 CREATE TABLE nodes_p0 PARTITION OF nodes_partitioned FOR VALUES WITH (MODULUS 8, REMAINDER 0);
 CREATE TABLE nodes_p1 PARTITION OF nodes_partitioned FOR VALUES WITH (MODULUS 8, REMAINDER 1);
 CREATE TABLE nodes_p2 PARTITION OF nodes_partitioned FOR VALUES WITH (MODULUS 8, REMAINDER 2);
@@ -754,9 +660,40 @@ CREATE TABLE nodes_p7 PARTITION OF nodes_partitioned FOR VALUES WITH (MODULUS 8,
 
 ---
 
-## 6. EVENT SYSTEM
+## 6. TRAITS & INTERFACES (Rust Code)
 
-### 6.1 Domain Events
+### 6.1 Universal Traits (rustok-core)
+
+```rust
+// crates/rustok-core/src/traits.rs
+
+#[async_trait]
+pub trait RusToKEntity {
+    fn id(&self) -> Uuid;
+    fn tenant_id(&self) -> Uuid;
+    fn entity_type(&self) -> &'static str;
+}
+
+#[async_trait]
+pub trait SeoAware: RusToKEntity {
+    async fn get_seo(&self, db: &DatabaseConnection) -> Result<Option<SeoModel>> {
+        // Default implementation fetches from meta table
+    }
+}
+
+#[async_trait]
+pub trait Taggable: RusToKEntity {
+    async fn sync_tags(&self, db: &DatabaseConnection, tags: Vec<String>) -> Result<()> {
+        // Logic to update taggables
+    }
+}
+```
+
+---
+
+## 7. EVENT SYSTEM
+
+### 7.1 Domain Events
 
 ```rust
 // crates/rustok-core/src/events/types.rs
@@ -777,45 +714,19 @@ pub struct EventEnvelope {
 #[serde(tag = "type")]
 pub enum DomainEvent {
     // ============ Content Events ============
-    NodeCreated {
-        node_id: Uuid,
-        kind: String,
-        author_id: Option<Uuid>,
-    },
-    NodeUpdated {
-        node_id: Uuid,
-    },
-    NodePublished {
-        node_id: Uuid,
-        kind: String,
-    },
-    NodeDeleted {
-        node_id: Uuid,
-        kind: String,
-    },
+    NodeCreated { node_id: Uuid, kind: String, author_id: Option<Uuid> },
+    NodeUpdated { node_id: Uuid },
+    NodePublished { node_id: Uuid, kind: String },
+    NodeDeleted { node_id: Uuid, kind: String },
 
     // ============ Commerce Events ============
-    ProductCreated {
-        product_id: Uuid,
-    },
-    ProductUpdated {
-        product_id: Uuid,
-    },
-    ProductPublished {
-        product_id: Uuid,
-    },
-    ProductDeleted {
-        product_id: Uuid,
-    },
+    ProductCreated { product_id: Uuid },
+    ProductUpdated { product_id: Uuid },
+    ProductPublished { product_id: Uuid },
+    ProductDeleted { product_id: Uuid },
 
-    VariantCreated {
-        variant_id: Uuid,
-        product_id: Uuid,
-    },
-    VariantUpdated {
-        variant_id: Uuid,
-        product_id: Uuid,
-    },
+    VariantCreated { variant_id: Uuid, product_id: Uuid },
+    VariantUpdated { variant_id: Uuid, product_id: Uuid },
 
     InventoryUpdated {
         variant_id: Uuid,
@@ -823,61 +734,27 @@ pub enum DomainEvent {
         old_quantity: i32,
         new_quantity: i32,
     },
-    InventoryLow {
-        variant_id: Uuid,
-        product_id: Uuid,
-        remaining: i32,
-        threshold: i32,
-    },
+    InventoryLow { variant_id: Uuid, product_id: Uuid, remaining: i32, threshold: i32 },
 
-    OrderPlaced {
-        order_id: Uuid,
-        customer_id: Option<Uuid>,
-        total: i64,
-    },
-    OrderStatusChanged {
-        order_id: Uuid,
-        old_status: String,
-        new_status: String,
-    },
-    OrderCompleted {
-        order_id: Uuid,
-    },
-    OrderCancelled {
-        order_id: Uuid,
-        reason: Option<String>,
-    },
+    OrderPlaced { order_id: Uuid, customer_id: Option<Uuid>, total: i64 },
+    OrderStatusChanged { order_id: Uuid, old_status: String, new_status: String },
+    OrderCompleted { order_id: Uuid },
+    OrderCancelled { order_id: Uuid, reason: Option<String> },
 
     // ============ User Events ============
-    UserRegistered {
-        user_id: Uuid,
-        email: String,
-    },
-    UserLoggedIn {
-        user_id: Uuid,
-    },
+    UserRegistered { user_id: Uuid, email: String },
+    UserLoggedIn { user_id: Uuid },
 
     // ============ Tag Events ============
-    TagAttached {
-        tag_id: Uuid,
-        target_type: String,
-        target_id: Uuid,
-    },
-    TagDetached {
-        tag_id: Uuid,
-        target_type: String,
-        target_id: Uuid,
-    },
+    TagAttached { tag_id: Uuid, target_type: String, target_id: Uuid },
+    TagDetached { tag_id: Uuid, target_type: String, target_id: Uuid },
 
     // ============ Index Events ============
-    ReindexRequested {
-        target_type: String,
-        target_id: Option<Uuid>, // None = full reindex
-    },
+    ReindexRequested { target_type: String, target_id: Option<Uuid> },
 }
 ```
 
-### 6.2 Event Bus
+### 7.2 Event Bus
 
 ```rust
 // crates/rustok-core/src/events/bus.rs
@@ -905,7 +782,6 @@ impl EventBus {
             event,
         };
 
-        // Log if no receivers (не критично)
         if self.sender.receiver_count() == 0 {
             tracing::debug!("No event subscribers for {:?}", envelope.event);
         }
@@ -929,7 +805,7 @@ impl Clone for EventBus {
 }
 ```
 
-### 6.3 Event Handlers
+### 7.3 Event Handlers
 
 ```rust
 // crates/rustok-core/src/events/handler.rs
@@ -945,7 +821,6 @@ pub trait EventHandler: Send + Sync {
     async fn handle(&self, envelope: &EventEnvelope) -> Result<()>;
 }
 
-/// Event dispatcher
 pub struct EventDispatcher {
     bus: EventBus,
     handlers: Vec<Arc<dyn EventHandler>>,
@@ -988,9 +863,9 @@ impl EventDispatcher {
 
 ---
 
-## 7. INDEX MODULE (CQRS)
+## 8. INDEX MODULE (CQRS)
 
-### 7.1 Index Configuration
+### 8.1 Index Configuration
 
 ```rust
 // crates/rustok-index/src/config.rs
@@ -1021,7 +896,7 @@ impl Default for IndexConfig {
 }
 ```
 
-### 7.2 Product Indexer
+### 8.2 Product Indexer
 
 ```rust
 // crates/rustok-index/src/indexers/product_indexer.rs
@@ -1194,7 +1069,7 @@ impl EventHandler for ProductIndexer {
 }
 ```
 
-### 7.3 Content Indexer
+### 8.3 Content Indexer
 
 ```rust
 // crates/rustok-index/src/indexers/content_indexer.rs
@@ -1312,9 +1187,21 @@ impl EventHandler for ContentIndexer {
 
 ---
 
-## 8. DEPLOYMENT ARCHITECTURE
+## 9. MODULE REGISTRATION
 
-### 8.1 Monolith (Default)
+```rust
+pub trait RusToKModule {
+    fn name(&self) -> &str;
+    fn migrations(&self) -> Vec<Box<dyn MigrationTrait>>;
+    fn event_listeners(&self) -> Vec<Box<dyn EventListener>>;
+}
+```
+
+---
+
+## 10. DEPLOYMENT ARCHITECTURE
+
+### 10.1 Monolith (Default)
 
 ```yaml
 # docker-compose.yml
@@ -1349,7 +1236,7 @@ volumes:
   redis_data:
 ```
 
-### 8.2 Microservices (Scale)
+### 10.2 Microservices (Scale)
 
 ```yaml
 # docker-compose.scale.yml
@@ -1403,7 +1290,7 @@ volumes:
   meilisearch_data:
 ```
 
-### 8.3 Architecture Diagram
+### 10.3 Architecture Diagram
 
 ```text
                          ┌─────────────────┐
@@ -1441,59 +1328,7 @@ volumes:
 
 ---
 
-## 9. MODULE REGISTRATION (Updated)
-
-```rust
-// apps/server/src/app.rs
-
-use rustok_core::{events::EventBus, RusToKModule};
-use rustok_commerce::CommerceModule;
-use rustok_community::CommunityModule;
-use rustok_index::IndexModule;
-
-pub struct App {
-    event_bus: EventBus,
-    modules: Vec<Box<dyn RusToKModule>>,
-}
-
-impl App {
-    pub fn new() -> Self {
-        let event_bus = EventBus::new(1024);
-
-        Self {
-            event_bus: event_bus.clone(),
-            modules: vec![
-                Box::new(CommerceModule::new(event_bus.clone())),
-                Box::new(CommunityModule::new(event_bus.clone())),
-                Box::new(IndexModule::new(event_bus.clone())), // CQRS sync
-            ],
-        }
-    }
-}
-
-#[async_trait]
-impl Hooks for App {
-    // ... Loco hooks
-
-    async fn after_context(ctx: &AppContext) -> Result<()> {
-        // Start event dispatcher
-        let mut dispatcher = EventDispatcher::new(ctx.event_bus.clone());
-
-        // Register index handlers
-        dispatcher.register(Arc::new(ProductIndexer::new(ctx.db.clone())));
-        dispatcher.register(Arc::new(ContentIndexer::new(ctx.db.clone())));
-
-        // Start background task
-        dispatcher.start();
-
-        Ok(())
-    }
-}
-```
-
----
-
-## 10. SUMMARY: What Lives Where
+## 11. SUMMARY: What Lives Where
 
 | Layer | Tables/Entities | Purpose |
 |-------|----------------|---------|
@@ -1504,7 +1339,7 @@ impl Hooks for App {
 
 ---
 
-## 11. DATA FLOW
+## 12. DATA FLOW
 
 ```text
 ┌──────────────────────────────────────────────────────────────────┐
@@ -1553,22 +1388,31 @@ impl Hooks for App {
 
 ---
 
-## 12. CHECKLIST (Updated)
+## 13. SUMMARY: WHY THIS ROCKS
 
-Before implementing any feature, verify:
-
-- Uses `Uuid` for all IDs (generated from ULID).
-- Includes `tenant_id` for multi-tenant entities.
-- Implements proper error handling with `RusToKError`.
-- Has SeaORM entity with relations.
-- Has service layer (not direct DB access in handlers).
-- Publishes events for state changes.
-- GraphQL resolvers check tenant context.
-- Admin resource registered with proper permissions.
-- Index updated via event handler (if searchable).
-- Core tables used for universal features (tags, meta).
-- Module-specific tables for domain logic.
+1. **Independent Scaling:** Index tables можно вынести отдельно или заменить Elasticsearch.
+2. **Zero-Bloat Core:** Нет ненужных таблиц, если модуль не используется.
+3. **Fast Storefront:** Один запрос к индекс-таблицам вместо тяжёлых JOIN-ов.
+4. **Admin DX:** Админка выглядит монолитной, но под капотом разрозненные сервисы.
 
 ---
 
-**END OF MANIFEST v4.0**
+## 14. CHECKLIST (Updated)
+
+Before implementing any feature, verify:
+
+- Uses Uuid for all IDs (generated from ULID)
+- Includes tenant_id for multi-tenant entities
+- Implements proper error handling with RusToKError
+- Has SeaORM entity with relations
+- Has service layer (not direct DB access in handlers)
+- Publishes events for state changes
+- GraphQL resolvers check tenant context
+- Admin resource registered with proper permissions
+- Index updated via event handler (if searchable)
+- Core tables used for universal features (tags, meta)
+- Module-specific tables for domain logic
+
+---
+
+END OF MANIFEST v4.0
