@@ -1,4 +1,5 @@
 pub mod common;
+pub mod commerce;
 pub mod errors;
 pub mod mutations;
 pub mod queries;
