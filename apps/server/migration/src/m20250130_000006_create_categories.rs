@@ -200,7 +200,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(Iden)]
-pub enum Categories {
+enum Categories {
     Table,
     Id,
     TenantId,

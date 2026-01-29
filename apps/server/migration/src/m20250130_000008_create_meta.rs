@@ -112,7 +112,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(Iden)]
-pub enum Meta {
+enum Meta {
     Table,
     Id,
     TenantId,

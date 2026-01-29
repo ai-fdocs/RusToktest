@@ -132,7 +132,7 @@ impl MigrationTrait for Migration {
 }
 
 #[derive(Iden)]
-pub enum Media {
+enum Media {
     Table,
     Id,
     TenantId,
