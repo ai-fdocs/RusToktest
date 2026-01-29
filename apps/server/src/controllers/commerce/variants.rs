@@ -33,7 +33,10 @@ pub(super) async fn list_variants(
         .ok_or_else(|| {
             ApiErrorResponse::from((
                 StatusCode::NOT_FOUND,
-                Json(ApiResponse::<()>::error("PRODUCT_NOT_FOUND", "Product not found")),
+                Json(ApiResponse::<()>::error(
+                    "PRODUCT_NOT_FOUND",
+                    "Product not found",
+                )),
             ))
         })?;
 
@@ -61,8 +64,7 @@ pub(super) async fn list_variants(
             ))
         })?;
 
-    let mut prices_map: std::collections::HashMap<Uuid, Vec<_>> =
-        std::collections::HashMap::new();
+    let mut prices_map: std::collections::HashMap<Uuid, Vec<_>> = std::collections::HashMap::new();
     for price in prices {
         prices_map.entry(price.variant_id).or_default().push(price);
     }
@@ -106,7 +108,10 @@ pub(super) async fn create_variant(
         .ok_or_else(|| {
             ApiErrorResponse::from((
                 StatusCode::NOT_FOUND,
-                Json(ApiResponse::<()>::error("PRODUCT_NOT_FOUND", "Product not found")),
+                Json(ApiResponse::<()>::error(
+                    "PRODUCT_NOT_FOUND",
+                    "Product not found",
+                )),
             ))
         })?;
 
@@ -223,7 +228,10 @@ pub(super) async fn show_variant(
         .ok_or_else(|| {
             ApiErrorResponse::from((
                 StatusCode::NOT_FOUND,
-                Json(ApiResponse::<()>::error("VARIANT_NOT_FOUND", "Variant not found")),
+                Json(ApiResponse::<()>::error(
+                    "VARIANT_NOT_FOUND",
+                    "Variant not found",
+                )),
             ))
         })?;
 
@@ -268,7 +276,10 @@ pub(super) async fn update_variant(
         .ok_or_else(|| {
             ApiErrorResponse::from((
                 StatusCode::NOT_FOUND,
-                Json(ApiResponse::<()>::error("VARIANT_NOT_FOUND", "Variant not found")),
+                Json(ApiResponse::<()>::error(
+                    "VARIANT_NOT_FOUND",
+                    "Variant not found",
+                )),
             ))
         })?;
 
@@ -305,7 +316,10 @@ pub(super) async fn update_variant(
     let _ = EventBus::default().publish(
         request.tenant_id,
         Some(user_id),
-        DomainEvent::VariantUpdated { variant_id: id, product_id },
+        DomainEvent::VariantUpdated {
+            variant_id: id,
+            product_id,
+        },
     );
 
     let prices = price::Entity::find()
@@ -347,7 +361,10 @@ pub(super) async fn delete_variant(
         .ok_or_else(|| {
             ApiErrorResponse::from((
                 StatusCode::NOT_FOUND,
-                Json(ApiResponse::<()>::error("VARIANT_NOT_FOUND", "Variant not found")),
+                Json(ApiResponse::<()>::error(
+                    "VARIANT_NOT_FOUND",
+                    "Variant not found",
+                )),
             ))
         })?;
 
@@ -362,7 +379,10 @@ pub(super) async fn delete_variant(
     let _ = EventBus::default().publish(
         request.tenant_id,
         Some(user_id),
-        DomainEvent::VariantDeleted { variant_id: id, product_id },
+        DomainEvent::VariantDeleted {
+            variant_id: id,
+            product_id,
+        },
     );
 
     Ok(StatusCode::NO_CONTENT)
@@ -401,7 +421,10 @@ fn build_variant_response(
             currency_code: price.currency_code,
             amount: price.amount,
             compare_at_amount: price.compare_at_amount,
-            on_sale: price.compare_at_amount.map(|value| value > price.amount).unwrap_or(false),
+            on_sale: price
+                .compare_at_amount
+                .map(|value| value > price.amount)
+                .unwrap_or(false),
         })
         .collect();
 

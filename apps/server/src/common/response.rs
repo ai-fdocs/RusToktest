@@ -97,10 +97,9 @@ impl From<rustok_commerce::CommerceError> for ApiErrorResponse {
             rustok_commerce::CommerceError::DuplicateSku(_) => {
                 (StatusCode::CONFLICT, "DUPLICATE_SKU")
             }
-            rustok_commerce::CommerceError::InsufficientInventory { .. } => (
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "INSUFFICIENT_INVENTORY",
-            ),
+            rustok_commerce::CommerceError::InsufficientInventory { .. } => {
+                (StatusCode::UNPROCESSABLE_ENTITY, "INSUFFICIENT_INVENTORY")
+            }
             rustok_commerce::CommerceError::Validation(_) => {
                 (StatusCode::BAD_REQUEST, "VALIDATION_ERROR")
             }
@@ -110,6 +109,9 @@ impl From<rustok_commerce::CommerceError> for ApiErrorResponse {
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_ERROR"),
         };
 
-        Self::new(status, Json(ApiResponse::<()>::error(code, err.to_string())))
+        Self::new(
+            status,
+            Json(ApiResponse::<()>::error(code, err.to_string())),
+        )
     }
 }

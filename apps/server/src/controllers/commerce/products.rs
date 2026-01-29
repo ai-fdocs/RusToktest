@@ -63,16 +63,12 @@ pub(super) async fn list_products(
         query = query.filter(product::Column::Id.is_in(search_ids));
     }
 
-    let total = query
-        .clone()
-        .count(&ctx.db)
-        .await
-        .map_err(|err| {
-            ApiErrorResponse::from((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse::<()>::error("DB_ERROR", err.to_string())),
-            ))
-        })?;
+    let total = query.clone().count(&ctx.db).await.map_err(|err| {
+        ApiErrorResponse::from((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::<()>::error("DB_ERROR", err.to_string())),
+        ))
+    })?;
 
     let products = query
         .order_by_desc(product::Column::CreatedAt)

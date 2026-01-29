@@ -33,7 +33,10 @@ pub(super) async fn get_inventory(
         .ok_or_else(|| {
             ApiErrorResponse::from((
                 StatusCode::NOT_FOUND,
-                Json(ApiResponse::<()>::error("VARIANT_NOT_FOUND", "Variant not found")),
+                Json(ApiResponse::<()>::error(
+                    "VARIANT_NOT_FOUND",
+                    "Variant not found",
+                )),
             ))
         })?;
 

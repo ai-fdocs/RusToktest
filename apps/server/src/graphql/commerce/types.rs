@@ -154,7 +154,11 @@ impl From<dto::ProductResponse> for GqlProduct {
                 .into_iter()
                 .map(GqlProductTranslation::from)
                 .collect(),
-            options: product.options.into_iter().map(GqlProductOption::from).collect(),
+            options: product
+                .options
+                .into_iter()
+                .map(GqlProductOption::from)
+                .collect(),
             variants: product.variants.into_iter().map(GqlVariant::from).collect(),
         }
     }

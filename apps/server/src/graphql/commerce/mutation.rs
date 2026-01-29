@@ -49,14 +49,16 @@ impl CommerceMutation {
             translations: input.translations.map(|translations| {
                 translations
                     .into_iter()
-                    .map(|translation| rustok_commerce::dto::ProductTranslationInput {
-                        locale: translation.locale,
-                        title: translation.title,
-                        handle: translation.handle,
-                        description: translation.description,
-                        meta_title: translation.meta_title,
-                        meta_description: translation.meta_description,
-                    })
+                    .map(
+                        |translation| rustok_commerce::dto::ProductTranslationInput {
+                            locale: translation.locale,
+                            title: translation.title,
+                            handle: translation.handle,
+                            description: translation.description,
+                            meta_title: translation.meta_title,
+                            meta_description: translation.meta_description,
+                        },
+                    )
                     .collect()
             }),
             vendor: input.vendor,
@@ -111,14 +113,16 @@ fn convert_create_product_input(
     let translations = input
         .translations
         .into_iter()
-        .map(|translation| rustok_commerce::dto::ProductTranslationInput {
-            locale: translation.locale,
-            title: translation.title,
-            handle: translation.handle,
-            description: translation.description,
-            meta_title: translation.meta_title,
-            meta_description: translation.meta_description,
-        })
+        .map(
+            |translation| rustok_commerce::dto::ProductTranslationInput {
+                locale: translation.locale,
+                title: translation.title,
+                handle: translation.handle,
+                description: translation.description,
+                meta_title: translation.meta_title,
+                meta_description: translation.meta_description,
+            },
+        )
         .collect();
 
     let options = input
