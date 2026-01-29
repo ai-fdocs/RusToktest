@@ -1,5 +1,5 @@
 use async_graphql::{Context, Object, Result};
-use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
+use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect};
 use uuid::Uuid;
 
 use rustok_commerce::CatalogService;

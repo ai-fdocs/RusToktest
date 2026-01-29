@@ -1,4 +1,8 @@
-use axum::{http::StatusCode, Json};
+use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
+    Json,
+};
 use serde::Serialize;
 
 #[derive(Debug, Serialize)]
@@ -40,7 +44,45 @@ impl<T: Serialize> ApiResponse<T> {
     }
 }
 
-impl From<rustok_commerce::CommerceError> for (StatusCode, Json<ApiResponse<()>>) {
+pub struct ApiErrorResponse {
+    status: StatusCode,
+    body: Json<ApiResponse<()>>,
+}
+
+impl ApiErrorResponse {
+    pub fn new(status: StatusCode, body: Json<ApiResponse<()>>) -> Self {
+        Self { status, body }
+    }
+}
+
+impl IntoResponse for ApiErrorResponse {
+    fn into_response(self) -> Response {
+        (self.status, self.body).into_response()
+    }
+}
+
+impl From<(StatusCode, Json<ApiResponse<()>>)> for ApiErrorResponse {
+    fn from(value: (StatusCode, Json<ApiResponse<()>>)) -> Self {
+        Self::new(value.0, value.1)
+    }
+}
+
+impl From<(StatusCode, &'static str)> for ApiErrorResponse {
+    fn from(value: (StatusCode, &'static str)) -> Self {
+        let (status, message) = value;
+        let code = match status {
+            StatusCode::BAD_REQUEST => "BAD_REQUEST",
+            StatusCode::UNAUTHORIZED => "UNAUTHORIZED",
+            StatusCode::FORBIDDEN => "FORBIDDEN",
+            StatusCode::NOT_FOUND => "NOT_FOUND",
+            _ => "ERROR",
+        };
+
+        Self::new(status, Json(ApiResponse::<()>::error(code, message)))
+    }
+}
+
+impl From<rustok_commerce::CommerceError> for ApiErrorResponse {
     fn from(err: rustok_commerce::CommerceError) -> Self {
         let (status, code) = match &err {
             rustok_commerce::CommerceError::ProductNotFound(_) => {
@@ -55,10 +97,9 @@ impl From<rustok_commerce::CommerceError> for (StatusCode, Json<ApiResponse<()>>
             rustok_commerce::CommerceError::DuplicateSku(_) => {
                 (StatusCode::CONFLICT, "DUPLICATE_SKU")
             }
-            rustok_commerce::CommerceError::InsufficientInventory { .. } => (
-                StatusCode::UNPROCESSABLE_ENTITY,
-                "INSUFFICIENT_INVENTORY",
-            ),
+            rustok_commerce::CommerceError::InsufficientInventory { .. } => {
+                (StatusCode::UNPROCESSABLE_ENTITY, "INSUFFICIENT_INVENTORY")
+            }
             rustok_commerce::CommerceError::Validation(_) => {
                 (StatusCode::BAD_REQUEST, "VALIDATION_ERROR")
             }
@@ -68,6 +109,9 @@ impl From<rustok_commerce::CommerceError> for (StatusCode, Json<ApiResponse<()>>
             _ => (StatusCode::INTERNAL_SERVER_ERROR, "INTERNAL_ERROR"),
         };
 
-        (status, Json(ApiResponse::error(code, err.to_string())))
+        Self::new(
+            status,
+            Json(ApiResponse::<()>::error(code, err.to_string())),
+        )
     }
 }

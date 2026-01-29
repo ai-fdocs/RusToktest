@@ -44,7 +44,7 @@ pub struct PaginationMeta {
 
 impl PaginationMeta {
     pub fn new(page: u64, per_page: u64, total: u64) -> Self {
-        let total_pages = (total + per_page - 1) / per_page;
+        let total_pages = total.div_ceil(per_page);
         Self {
             page,
             per_page,

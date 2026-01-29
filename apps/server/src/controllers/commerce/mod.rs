@@ -32,7 +32,13 @@ pub fn routes() -> Routes {
         )
         .add("/variants/:id/prices", put(variants::update_prices))
         .add("/variants/:id/inventory", get(inventory::get_inventory))
-        .add("/variants/:id/inventory/adjust", post(inventory::adjust_inventory))
-        .add("/variants/:id/inventory/set", post(inventory::set_inventory))
+        .add(
+            "/variants/:id/inventory/adjust",
+            post(inventory::adjust_inventory),
+        )
+        .add(
+            "/variants/:id/inventory/set",
+            post(inventory::set_inventory),
+        )
         .add("/inventory/check", post(inventory::check_availability))
 }

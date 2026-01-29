@@ -9,14 +9,14 @@ use uuid::Uuid;
 use rustok_commerce::InventoryService;
 use rustok_core::EventBus;
 
-use crate::common::{ApiResponse, RequestContext};
-use crate::models::AppContext;
+use crate::common::{ApiErrorResponse, ApiResponse, RequestContext};
+use loco_rs::app::AppContext;
 
 pub(super) async fn get_inventory(
     State(ctx): State<AppContext>,
     request: RequestContext,
     Path(variant_id): Path<Uuid>,
-) -> Result<Json<ApiResponse<InventoryResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+) -> Result<Json<ApiResponse<InventoryResponse>>, ApiErrorResponse> {
     use rustok_commerce::entities::product_variant;
     use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 
@@ -25,16 +25,19 @@ pub(super) async fn get_inventory(
         .one(&ctx.db)
         .await
         .map_err(|err| {
-            (
+            ApiErrorResponse::from((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse::error("DB_ERROR", err.to_string())),
-            )
+                Json(ApiResponse::<()>::error("DB_ERROR", err.to_string())),
+            ))
         })?
         .ok_or_else(|| {
-            (
+            ApiErrorResponse::from((
                 StatusCode::NOT_FOUND,
-                Json(ApiResponse::error("VARIANT_NOT_FOUND", "Variant not found")),
-            )
+                Json(ApiResponse::<()>::error(
+                    "VARIANT_NOT_FOUND",
+                    "Variant not found",
+                )),
+            ))
         })?;
 
     Ok(Json(ApiResponse::success(InventoryResponse {
@@ -50,7 +53,7 @@ pub(super) async fn adjust_inventory(
     request: RequestContext,
     Path(variant_id): Path<Uuid>,
     Json(input): Json<AdjustInput>,
-) -> Result<Json<ApiResponse<InventoryResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+) -> Result<Json<ApiResponse<InventoryResponse>>, ApiErrorResponse> {
     let user_id = request.require_user()?;
 
     let service = InventoryService::new(ctx.db.clone(), EventBus::default());
@@ -72,10 +75,10 @@ pub(super) async fn adjust_inventory(
                 }
                 _ => "INVENTORY_ERROR",
             };
-            (
+            ApiErrorResponse::from((
                 StatusCode::BAD_REQUEST,
-                Json(ApiResponse::error(code, err.to_string())),
-            )
+                Json(ApiResponse::<()>::error(code, err.to_string())),
+            ))
         })?;
 
     get_inventory(State(ctx), request, Path(variant_id)).await
@@ -86,7 +89,7 @@ pub(super) async fn set_inventory(
     request: RequestContext,
     Path(variant_id): Path<Uuid>,
     Json(input): Json<SetInventoryInput>,
-) -> Result<Json<ApiResponse<InventoryResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+) -> Result<Json<ApiResponse<InventoryResponse>>, ApiErrorResponse> {
     let user_id = request.require_user()?;
 
     let service = InventoryService::new(ctx.db.clone(), EventBus::default());
@@ -94,10 +97,10 @@ pub(super) async fn set_inventory(
         .set_inventory(request.tenant_id, user_id, variant_id, input.quantity)
         .await
         .map_err(|err| {
-            (
+            ApiErrorResponse::from((
                 StatusCode::BAD_REQUEST,
-                Json(ApiResponse::error("INVENTORY_ERROR", err.to_string())),
-            )
+                Json(ApiResponse::<()>::error("INVENTORY_ERROR", err.to_string())),
+            ))
         })?;
 
     get_inventory(State(ctx), request, Path(variant_id)).await
@@ -107,7 +110,7 @@ pub(super) async fn check_availability(
     State(ctx): State<AppContext>,
     request: RequestContext,
     Json(input): Json<CheckAvailabilityInput>,
-) -> Result<Json<ApiResponse<Vec<AvailabilityResult>>>, (StatusCode, Json<ApiResponse<()>>)> {
+) -> Result<Json<ApiResponse<Vec<AvailabilityResult>>>, ApiErrorResponse> {
     let service = InventoryService::new(ctx.db.clone(), EventBus::default());
     let mut results = Vec::new();
 

@@ -3,21 +3,24 @@ use axum::{
     http::StatusCode,
     Json,
 };
-use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder};
+use sea_orm::{ColumnTrait, EntityTrait, PaginatorTrait, QueryFilter, QueryOrder, QuerySelect};
 use uuid::Uuid;
 
 use rustok_commerce::dto::{CreateProductInput, ProductResponse, UpdateProductInput};
 use rustok_commerce::CatalogService;
 use rustok_core::EventBus;
 
-use crate::common::{ApiResponse, PaginatedResponse, PaginationMeta, PaginationParams, RequestContext};
-use crate::models::AppContext;
+use crate::common::{
+    ApiErrorResponse, ApiResponse, PaginatedResponse, PaginationMeta, PaginationParams,
+    RequestContext,
+};
+use loco_rs::app::AppContext;
 
 pub(super) async fn list_products(
     State(ctx): State<AppContext>,
     request: RequestContext,
     Query(params): Query<ListProductsParams>,
-) -> Result<Json<PaginatedResponse<ProductListItem>>, (StatusCode, Json<ApiResponse<()>>)> {
+) -> Result<Json<PaginatedResponse<ProductListItem>>, ApiErrorResponse> {
     use rustok_commerce::entities::{product, product_translation};
 
     let pagination = params.pagination.unwrap_or_default();
@@ -41,10 +44,10 @@ pub(super) async fn list_products(
             .all(&ctx.db)
             .await
             .map_err(|err| {
-                (
+                ApiErrorResponse::from((
                     StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ApiResponse::error("DB_ERROR", err.to_string())),
-                )
+                    Json(ApiResponse::<()>::error("DB_ERROR", err.to_string())),
+                ))
             })?
             .into_iter()
             .map(|translation| translation.product_id)
@@ -60,16 +63,12 @@ pub(super) async fn list_products(
         query = query.filter(product::Column::Id.is_in(search_ids));
     }
 
-    let total = query
-        .clone()
-        .count(&ctx.db)
-        .await
-        .map_err(|err| {
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse::error("DB_ERROR", err.to_string())),
-            )
-        })?;
+    let total = query.clone().count(&ctx.db).await.map_err(|err| {
+        ApiErrorResponse::from((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ApiResponse::<()>::error("DB_ERROR", err.to_string())),
+        ))
+    })?;
 
     let products = query
         .order_by_desc(product::Column::CreatedAt)
@@ -78,10 +77,10 @@ pub(super) async fn list_products(
         .all(&ctx.db)
         .await
         .map_err(|err| {
-            (
+            ApiErrorResponse::from((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse::error("DB_ERROR", err.to_string())),
-            )
+                Json(ApiResponse::<()>::error("DB_ERROR", err.to_string())),
+            ))
         })?;
 
     let product_ids: Vec<Uuid> = products.iter().map(|product| product.id).collect();
@@ -91,10 +90,10 @@ pub(super) async fn list_products(
         .all(&ctx.db)
         .await
         .map_err(|err| {
-            (
+            ApiErrorResponse::from((
                 StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ApiResponse::error("DB_ERROR", err.to_string())),
-            )
+                Json(ApiResponse::<()>::error("DB_ERROR", err.to_string())),
+            ))
         })?;
 
     let translation_map: std::collections::HashMap<Uuid, _> = translations
@@ -133,14 +132,14 @@ pub(super) async fn create_product(
     State(ctx): State<AppContext>,
     request: RequestContext,
     Json(input): Json<CreateProductInput>,
-) -> Result<(StatusCode, Json<ApiResponse<ProductResponse>>), (StatusCode, Json<ApiResponse<()>>)> {
+) -> Result<(StatusCode, Json<ApiResponse<ProductResponse>>), ApiErrorResponse> {
     let user_id = request.require_user()?;
 
     let service = CatalogService::new(ctx.db.clone(), EventBus::default());
     let product = service
         .create_product(request.tenant_id, user_id, input)
         .await
-        .map_err(|err| err.into())?;
+        .map_err(ApiErrorResponse::from)?;
 
     Ok((StatusCode::CREATED, Json(ApiResponse::success(product))))
 }
@@ -149,12 +148,12 @@ pub(super) async fn show_product(
     State(ctx): State<AppContext>,
     request: RequestContext,
     Path(id): Path<Uuid>,
-) -> Result<Json<ApiResponse<ProductResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+) -> Result<Json<ApiResponse<ProductResponse>>, ApiErrorResponse> {
     let service = CatalogService::new(ctx.db.clone(), EventBus::default());
     let product = service
         .get_product(request.tenant_id, id)
         .await
-        .map_err(|err| err.into())?;
+        .map_err(ApiErrorResponse::from)?;
 
     Ok(Json(ApiResponse::success(product)))
 }
@@ -164,14 +163,14 @@ pub(super) async fn update_product(
     request: RequestContext,
     Path(id): Path<Uuid>,
     Json(input): Json<UpdateProductInput>,
-) -> Result<Json<ApiResponse<ProductResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+) -> Result<Json<ApiResponse<ProductResponse>>, ApiErrorResponse> {
     let user_id = request.require_user()?;
 
     let service = CatalogService::new(ctx.db.clone(), EventBus::default());
     let product = service
         .update_product(request.tenant_id, user_id, id, input)
         .await
-        .map_err(|err| err.into())?;
+        .map_err(ApiErrorResponse::from)?;
 
     Ok(Json(ApiResponse::success(product)))
 }
@@ -180,14 +179,14 @@ pub(super) async fn delete_product(
     State(ctx): State<AppContext>,
     request: RequestContext,
     Path(id): Path<Uuid>,
-) -> Result<StatusCode, (StatusCode, Json<ApiResponse<()>>)> {
+) -> Result<StatusCode, ApiErrorResponse> {
     let user_id = request.require_user()?;
 
     let service = CatalogService::new(ctx.db.clone(), EventBus::default());
     service
         .delete_product(request.tenant_id, user_id, id)
         .await
-        .map_err(|err| err.into())?;
+        .map_err(ApiErrorResponse::from)?;
 
     Ok(StatusCode::NO_CONTENT)
 }
@@ -196,14 +195,14 @@ pub(super) async fn publish_product(
     State(ctx): State<AppContext>,
     request: RequestContext,
     Path(id): Path<Uuid>,
-) -> Result<Json<ApiResponse<ProductResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+) -> Result<Json<ApiResponse<ProductResponse>>, ApiErrorResponse> {
     let user_id = request.require_user()?;
 
     let service = CatalogService::new(ctx.db.clone(), EventBus::default());
     let product = service
         .publish_product(request.tenant_id, user_id, id)
         .await
-        .map_err(|err| err.into())?;
+        .map_err(ApiErrorResponse::from)?;
 
     Ok(Json(ApiResponse::success(product)))
 }
@@ -212,14 +211,14 @@ pub(super) async fn unpublish_product(
     State(ctx): State<AppContext>,
     request: RequestContext,
     Path(id): Path<Uuid>,
-) -> Result<Json<ApiResponse<ProductResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
+) -> Result<Json<ApiResponse<ProductResponse>>, ApiErrorResponse> {
     let user_id = request.require_user()?;
 
     let service = CatalogService::new(ctx.db.clone(), EventBus::default());
     let product = service
         .unpublish_product(request.tenant_id, user_id, id)
         .await
-        .map_err(|err| err.into())?;
+        .map_err(ApiErrorResponse::from)?;
 
     Ok(Json(ApiResponse::success(product)))
 }
