@@ -13,6 +13,9 @@ pub enum CommerceError {
     #[error("Invalid product state: {0}")]
     InvalidState(String),
 
+    #[error("Database error: {0}")]
+    Database(String),
+
     #[error(transparent)]
     Core(#[from] rustok_core::Error),
 }

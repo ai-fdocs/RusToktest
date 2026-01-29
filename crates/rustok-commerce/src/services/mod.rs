@@ -1,3 +1,6 @@
-mod product_service;
+pub mod catalog;
 
-pub use product_service::{CreateProductInput, ProductService};
+pub use catalog::{
+    CreateProductInput, CreateVariantInput, ProductOptionInput, ProductService,
+    ProductTranslationInput,
+};

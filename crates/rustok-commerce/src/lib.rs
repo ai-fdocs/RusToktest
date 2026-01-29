@@ -6,9 +6,11 @@ pub mod entities;
 pub mod error;
 pub mod services;
 
-pub use entities::{Product, ProductStatus};
 pub use error::{CommerceError, Result};
-pub use services::{CreateProductInput, ProductService};
+pub use services::{
+    CreateProductInput, CreateVariantInput, ProductOptionInput, ProductService,
+    ProductTranslationInput,
+};
 
 pub struct CommerceModule;
 

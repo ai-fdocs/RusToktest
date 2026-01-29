@@ -1,54 +1,47 @@
-use chrono::{DateTime, Utc};
+use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
-use uuid::Uuid;
 
-use crate::error::{CommerceError, Result};
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-pub enum ProductStatus {
-    Draft,
-    Published,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct Product {
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
+#[sea_orm(table_name = "products")]
+pub struct Model {
+    #[sea_orm(primary_key, auto_increment = false)]
     pub id: Uuid,
     pub tenant_id: Uuid,
-    pub title: String,
-    pub slug: String,
-    pub description: Option<String>,
-    pub status: ProductStatus,
-    pub published_at: Option<DateTime<Utc>>,
-    pub created_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
+    pub status: String,
+    pub vendor: Option<String>,
+    pub product_type: Option<String>,
+    pub metadata: Json,
+    pub created_at: DateTimeWithTimeZone,
+    pub updated_at: DateTimeWithTimeZone,
+    pub published_at: Option<DateTimeWithTimeZone>,
 }
 
-impl Product {
-    pub fn new(tenant_id: Uuid, title: String, slug: String, description: Option<String>) -> Self {
-        let now = Utc::now();
-        Self {
-            id: rustok_core::generate_id(),
-            tenant_id,
-            title,
-            slug,
-            description,
-            status: ProductStatus::Draft,
-            published_at: None,
-            created_at: now,
-            updated_at: now,
-        }
-    }
+#[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
+pub enum Relation {
+    #[sea_orm(has_many = "super::product_translation::Entity")]
+    Translations,
+    #[sea_orm(has_many = "super::product_variant::Entity")]
+    Variants,
+    #[sea_orm(has_many = "super::product_option::Entity")]
+    Options,
+}
 
-    pub fn publish(&mut self) -> Result<()> {
-        match self.status {
-            ProductStatus::Draft => {
-                let now = Utc::now();
-                self.status = ProductStatus::Published;
-                self.published_at = Some(now);
-                self.updated_at = now;
-                Ok(())
-            }
-            ProductStatus::Published => Err(CommerceError::AlreadyPublished),
-        }
+impl Related<super::product_translation::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Translations.def()
     }
 }
+
+impl Related<super::product_variant::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Variants.def()
+    }
+}
+
+impl Related<super::product_option::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Options.def()
+    }
+}
+
+impl ActiveModelBehavior for ActiveModel {}
