@@ -1,6 +1,33 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ProductStatus {
+    Draft,
+    Active,
+    Archived,
+}
+
+impl From<ProductStatus> for String {
+    fn from(status: ProductStatus) -> Self {
+        match status {
+            ProductStatus::Draft => "draft".to_string(),
+            ProductStatus::Active => "active".to_string(),
+            ProductStatus::Archived => "archived".to_string(),
+        }
+    }
+}
+
+impl From<String> for ProductStatus {
+    fn from(value: String) -> Self {
+        match value.as_str() {
+            "active" => ProductStatus::Active,
+            "archived" => ProductStatus::Archived,
+            _ => ProductStatus::Draft,
+        }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel, Serialize, Deserialize)]
 #[sea_orm(table_name = "products")]
 pub struct Model {
@@ -24,6 +51,8 @@ pub enum Relation {
     Variants,
     #[sea_orm(has_many = "super::product_option::Entity")]
     Options,
+    #[sea_orm(has_many = "super::product_image::Entity")]
+    Images,
 }
 
 impl Related<super::product_translation::Entity> for Entity {
@@ -41,6 +70,12 @@ impl Related<super::product_variant::Entity> for Entity {
 impl Related<super::product_option::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Options.def()
+    }
+}
+
+impl Related<super::product_image::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Images.def()
     }
 }
 

@@ -14,4 +14,4 @@ uuid.workspace = true
 sea-orm.workspace = true
 serde_json.workspace = true
 rust_decimal = "1.36"
-slug = "0.1"
+tracing.workspace = true
