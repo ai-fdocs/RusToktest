@@ -10,7 +10,7 @@ use std::collections::HashSet;
 use rustok_core::{generate_id, DomainEvent, EventBus};
 
 use crate::dto::*;
-use crate::entities::{self, *};
+use crate::entities;
 use crate::error::{CommerceError, CommerceResult};
 
 pub struct CatalogService {
@@ -230,7 +230,7 @@ impl CatalogService {
                 option3: variant.option3,
                 prices: price_responses,
                 inventory_quantity: variant.inventory_quantity,
-                inventory_policy: variant.inventory_policy,
+                inventory_policy: variant.inventory_policy.clone(),
                 in_stock: variant.inventory_quantity > 0 || variant.inventory_policy == "continue",
                 weight: variant.weight,
                 weight_unit: variant.weight_unit,
