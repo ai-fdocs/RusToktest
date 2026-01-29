@@ -9,7 +9,7 @@ pub mod rbac;
 pub mod registry;
 pub mod types;
 pub use error::{Error, Result};
-pub use events::{DomainEvent, EventBus, EventEnvelope, EventHandler};
+pub use events::{DomainEvent, EventBus, EventDispatcher, EventEnvelope, EventHandler};
 pub use id::generate_id;
 pub use migrations::ModuleMigration;
 pub use module::ModuleContext;
@@ -22,7 +22,7 @@ pub use types::{UserRole, UserStatus};
 
 pub mod prelude {
     pub use crate::error::{Error, Result};
-    pub use crate::events::{DomainEvent, EventBus, EventEnvelope, EventHandler};
+    pub use crate::events::{DomainEvent, EventBus, EventDispatcher, EventEnvelope, EventHandler};
     pub use crate::id::generate_id;
     pub use crate::permissions::{Action, Permission, Resource};
     pub use crate::rbac::{PermissionScope, Rbac};
