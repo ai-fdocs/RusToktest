@@ -2,6 +2,14 @@ use async_trait::async_trait;
 use rustok_core::{MigrationSource, RusToKModule};
 use sea_orm_migration::MigrationTrait;
 
+pub mod entities;
+pub mod error;
+pub mod services;
+
+pub use entities::{Product, ProductStatus};
+pub use error::{CommerceError, Result};
+pub use services::{CreateProductInput, ProductService};
+
 pub struct CommerceModule;
 
 #[async_trait]
