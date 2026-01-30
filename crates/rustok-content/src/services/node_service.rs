@@ -373,10 +373,7 @@ impl NodeService {
     }
 }
 
-fn resolve_slug(
-    slug: Option<String>,
-    title: Option<&String>,
-) -> ContentResult<Option<String>> {
+fn resolve_slug(slug: Option<String>, title: Option<&String>) -> ContentResult<Option<String>> {
     if let Some(slug) = slug {
         return Ok(Some(slug));
     }

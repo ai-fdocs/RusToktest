@@ -97,20 +97,12 @@ impl PostService {
         Ok(())
     }
 
-    pub async fn publish_post(
-        &self,
-        post_id: Uuid,
-        actor_id: Option<Uuid>,
-    ) -> ContentResult<()> {
+    pub async fn publish_post(&self, post_id: Uuid, actor_id: Option<Uuid>) -> ContentResult<()> {
         self.node_service.publish_node(post_id, actor_id).await?;
         Ok(())
     }
 
-    pub async fn unpublish_post(
-        &self,
-        post_id: Uuid,
-        actor_id: Option<Uuid>,
-    ) -> ContentResult<()> {
+    pub async fn unpublish_post(&self, post_id: Uuid, actor_id: Option<Uuid>) -> ContentResult<()> {
         self.node_service.unpublish_node(post_id, actor_id).await?;
         Ok(())
     }
