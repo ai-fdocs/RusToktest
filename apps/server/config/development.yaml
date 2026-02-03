@@ -23,3 +23,12 @@ auth:
 settings:
   auth:
     refresh_expiration: 1209600
+  rustok:
+    tenant:
+      enabled: true
+      resolution: host
+      header_name: X-Tenant-ID
+      default_id: 00000000-0000-0000-0000-000000000001
+    features:
+      registration: true
+      search_indexing: true
