@@ -101,7 +101,7 @@
 | **Events (L1)** | Outbox Pattern | Custom crate `rustok-outbox` |
 | **Events (L2)** | Iggy | Streaming (remote/embedded) |
 | **Cache** | Loco Cache (Redis) | Built-in cache integration |
-| **Search** | Tantivy | Embedded full-text search |
+| **Search** | PostgreSQL FTS (Tantivy optional) | Start with `tsvector`, add Tantivy when needed |
 | **Storage** | object_store | Unified object storage API |
 | **Tracing** | tracing + OpenTelemetry | `tracing`, `tracing-opentelemetry` |
 | **Metrics** | Prometheus | `metrics`, `metrics-exporter-prometheus` |
@@ -116,7 +116,7 @@
 ## 4. API ARCHITECTURE
 
 ### 4.1 REST + GraphQL in Parallel
-RusToK develops REST and GraphQL APIs simultaneously for platform and domain endpoints:
+RusToK develops REST and GraphQL APIs simultaneously for platform and domain endpoints, with **GraphQL as a high-priority surface for frontend clients**:
 - **REST (Axum):** Authentication, Health, Admin endpoints.
 - **GraphQL:** Modular schema (MergedObject) for domain operations.
 
@@ -380,7 +380,9 @@ CREATE TABLE index_content (
 );
 ```
 
-### 6.6 Partitioning Strategy (Highload)
+### 6.6 Partitioning Strategy (Highload, Phase-in)
+
+**Recommendation:** start with regular tables + indexes on `tenant_id`, then enable partitioning when tenants grow (e.g., **> 1000** tenants or clear hot-spotting).
 
 ```sql
 -- PARTITIONING: Orders по дате
@@ -845,11 +847,11 @@ impl RusToKModule for MyModule {
 | Loco RS foundation | ✅ |
 | Loco YAML config | ✅ |
 | Axum + utoipa (via Loco) | ✅ |
-| Tantivy embedded | ✅ |
+| PostgreSQL FTS first (Tantivy optional) | ✅ |
 | Loco Storage (object_store) | ✅ |
 | Loco Cache (Redis) | ✅ |
 | tracing + metrics | ✅ |
-| GraphQL in backlog | ✅ |
+| GraphQL high priority | ✅ |
 
 ## 23. MASTER PLAN v4.1 (Implementation Order)
 
@@ -866,7 +868,7 @@ PHASE 2: Event System (Week 2-3)
 □ 2.4 apps/server (sys_events migration)
 
 PHASE 3: Infrastructure (Week 3-4)
-□ 3.1 rustok-index (tantivy backend)
+□ 3.1 rustok-index (PostgreSQL FTS, Tantivy optional)
 □ 3.2 Loco storage/cache integrations (via apps/server)
 
 PHASE 4: Iggy Integration (Week 4-5)
