@@ -19,3 +19,6 @@ jsonwebtoken = "9"
 once_cell = "1.19"
 sea-orm-migration.workspace = true
 rustok-telemetry.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
