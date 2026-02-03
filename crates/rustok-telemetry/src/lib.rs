@@ -45,11 +45,9 @@ pub fn init(config: TelemetryConfig) -> Result<TelemetryHandles, TelemetryError>
         EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     let fmt_layer = match config.log_format {
         LogFormat::Json => fmt::layer()
-            .with_current_span(true)
             .with_span_events(fmt::format::FmtSpan::CLOSE)
             .json(),
         LogFormat::Pretty => fmt::layer()
-            .with_current_span(true)
             .with_span_events(fmt::format::FmtSpan::CLOSE)
             .pretty(),
     };
