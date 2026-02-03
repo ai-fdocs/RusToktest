@@ -33,7 +33,11 @@ pub async fn list_modules(state: &McpState) -> ModuleListResponse {
             name: module.name().to_string(),
             description: module.description().to_string(),
             version: module.version().to_string(),
-            dependencies: module.dependencies().iter().map(|dep| dep.to_string()).collect(),
+            dependencies: module
+                .dependencies()
+                .iter()
+                .map(|dep| dep.to_string())
+                .collect(),
         })
         .collect();
 
