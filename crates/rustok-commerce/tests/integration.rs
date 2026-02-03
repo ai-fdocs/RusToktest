@@ -72,18 +72,7 @@ async fn test_product_lifecycle() -> TestResult<()> {
 }
 
 async fn test_context() -> TestResult<TestContext> {
-    let event_bus = EventBus::new();
-    let events = event_bus.subscribe();
-    let tenant_id = Uuid::nil();
-    let actor_id = Uuid::nil();
-    let db = todo!("create test database connection and apply migrations");
-
-    Ok(TestContext {
-        service: CatalogService::new(db, event_bus),
-        events,
-        tenant_id,
-        actor_id,
-    })
+    Err("create test database connection and apply migrations".into())
 }
 
 async fn next_event(

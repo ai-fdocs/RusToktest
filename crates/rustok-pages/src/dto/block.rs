@@ -2,10 +2,11 @@ use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema, Default)]
 #[serde(rename_all = "snake_case")]
 pub enum BlockType {
     Hero,
+    #[default]
     Text,
     Image,
     Gallery,
@@ -20,12 +21,6 @@ pub enum BlockType {
     Video,
     Html,
     Spacer,
-}
-
-impl Default for BlockType {
-    fn default() -> Self {
-        Self::Text
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
