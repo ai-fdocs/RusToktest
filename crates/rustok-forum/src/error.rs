@@ -1,0 +1,28 @@
+use thiserror::Error;
+use uuid::Uuid;
+
+#[derive(Debug, Error)]
+pub enum ForumError {
+    #[error("Content error: {0}")]
+    Content(#[from] rustok_content::ContentError),
+
+    #[error("Category not found: {0}")]
+    CategoryNotFound(Uuid),
+
+    #[error("Topic not found: {0}")]
+    TopicNotFound(Uuid),
+
+    #[error("Reply not found: {0}")]
+    ReplyNotFound(Uuid),
+
+    #[error("Topic is closed")]
+    TopicClosed,
+
+    #[error("Topic is archived")]
+    TopicArchived,
+
+    #[error("Validation error: {0}")]
+    Validation(String),
+}
+
+pub type ForumResult<T> = Result<T, ForumError>;

@@ -27,6 +27,22 @@ use utoipa::OpenApi;
         crate::controllers::blog::posts::create_post,
         crate::controllers::blog::posts::update_post,
         crate::controllers::blog::posts::delete_post,
+        // Forum
+        crate::controllers::forum::categories::list_categories,
+        crate::controllers::forum::categories::get_category,
+        crate::controllers::forum::categories::create_category,
+        crate::controllers::forum::categories::update_category,
+        crate::controllers::forum::categories::delete_category,
+        crate::controllers::forum::topics::list_topics,
+        crate::controllers::forum::topics::get_topic,
+        crate::controllers::forum::topics::create_topic,
+        crate::controllers::forum::topics::update_topic,
+        crate::controllers::forum::topics::delete_topic,
+        crate::controllers::forum::replies::list_replies,
+        crate::controllers::forum::replies::get_reply,
+        crate::controllers::forum::replies::create_reply,
+        crate::controllers::forum::replies::update_reply,
+        crate::controllers::forum::replies::delete_reply,
         // Commerce
         crate::controllers::commerce::products::list_products,
         crate::controllers::commerce::products::create_product,
@@ -75,6 +91,21 @@ use utoipa::OpenApi;
             // Blog
             rustok_blog::dto::CreatePostInput,
 
+            // Forum
+            rustok_forum::CreateCategoryInput,
+            rustok_forum::UpdateCategoryInput,
+            rustok_forum::CategoryResponse,
+            rustok_forum::CategoryListItem,
+            rustok_forum::CreateTopicInput,
+            rustok_forum::UpdateTopicInput,
+            rustok_forum::ListTopicsFilter,
+            rustok_forum::TopicResponse,
+            rustok_forum::TopicListItem,
+            rustok_forum::CreateReplyInput,
+            rustok_forum::UpdateReplyInput,
+            rustok_forum::ReplyResponse,
+            rustok_forum::ReplyListItem,
+
             // Commerce
             rustok_commerce::dto::CreateProductInput,
             rustok_commerce::dto::UpdateProductInput,
@@ -106,6 +137,7 @@ use utoipa::OpenApi;
         (name = "auth", description = "Authentication endpoints"),
         (name = "content", description = "Content Management endpoints"),
         (name = "blog", description = "Blog endpoints"),
+        (name = "forum", description = "Forum endpoints"),
         (name = "commerce", description = "Ecommerce endpoints")
     )
 )]
