@@ -32,8 +32,7 @@ pub enum TelemetryError {
 }
 
 pub fn init(config: TelemetryConfig) -> Result<TelemetryHandles, TelemetryError> {
-    let env_filter =
-        EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
+    let env_filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("info"));
     let fmt_layer = match config.log_format {
         LogFormat::Json => fmt::layer()
             .json()
