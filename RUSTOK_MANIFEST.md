@@ -446,6 +446,12 @@ pub trait RusToKModule: Send + Sync + MigrationSource {
 ### 7.3 Service Pattern
 Использование `NodeService` как эталона для бизнес-логики (CRUD + Event Publishing).
 
+### 7.4 Integration Tests as Documentation
+Интеграционные тесты считаются **исполняемой документацией**:
+- фиксируют кросс-модульные сценарии (write → event → read/index);
+- подтверждают совместимость версий событий и схем;
+- служат регрессионным контрактом при изменениях архитектуры.
+
 ---
 
 ## 8. EVENT SYSTEM
@@ -1062,5 +1068,18 @@ Check/add:
 | 3.2 AppContext fields | ✅ Done (scaffold) | events/cache/search traits present |
 | 3.3 Telemetry improvements | ⛔ Not yet | JSON logs/metrics/trace propagation |
 | 3.4 Config hierarchy | ✅ Done | Loco YAML configs + env overrides |
+
+---
+
+## 25. DECISION LOG (Realism & Complexity)
+
+We keep a lightweight decision log in the manifest to acknowledge complexity and track rationale:
+- **Decision:** What was chosen.
+- **Context:** Why it mattered (constraints, risks, timelines).
+- **Trade-offs:** What we accept by choosing it.
+- **Status:** Active / Revisit / Deprecated.
+- **Owner/Date:** Accountability and timeline.
+
+This log exists to keep the project realistic and aligned as the system grows.
 
 END OF MANIFEST v4.1
