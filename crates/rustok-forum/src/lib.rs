@@ -2,13 +2,16 @@ use async_trait::async_trait;
 use rustok_core::{MigrationSource, RusToKModule};
 use sea_orm_migration::MigrationTrait;
 
+pub mod constants;
 pub mod dto;
 pub mod entities;
 pub mod error;
 pub mod services;
 
-pub use dto::{CreateThreadInput, ThreadListItem, ThreadResponse, UpdateThreadInput};
-pub use services::ThreadService;
+pub use constants::*;
+pub use dto::*;
+pub use error::{ForumError, ForumResult};
+pub use services::{CategoryService, ModerationService, ReplyService, TopicService};
 
 pub struct ForumModule;
 
@@ -23,7 +26,7 @@ impl RusToKModule for ForumModule {
     }
 
     fn description(&self) -> &'static str {
-        "Threads, replies, moderation, and forum workflows"
+        "Forum categories, topics, replies, and moderation workflows"
     }
 
     fn version(&self) -> &'static str {

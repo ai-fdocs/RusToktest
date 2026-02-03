@@ -1,3 +1,7 @@
-mod thread;
+pub mod category;
+pub mod reply;
+pub mod topic;
 
-pub use thread::{CreateThreadInput, ThreadListItem, ThreadResponse, UpdateThreadInput};
+pub use category::*;
+pub use reply::*;
+pub use topic::*;

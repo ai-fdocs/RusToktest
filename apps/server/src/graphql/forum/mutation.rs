@@ -5,7 +5,7 @@ use uuid::Uuid;
 pub struct ForumMutation;
 
 #[derive(InputObject)]
-pub struct CreateForumThreadInput {
+pub struct CreateForumTopicInput {
     pub locale: String,
     pub title: String,
     pub body: String,
@@ -13,7 +13,7 @@ pub struct CreateForumThreadInput {
 
 #[Object]
 impl ForumMutation {
-    async fn create_forum_thread(&self, _input: CreateForumThreadInput) -> Uuid {
+    async fn create_forum_topic(&self, _input: CreateForumTopicInput) -> Uuid {
         rustok_core::generate_id()
     }
 }

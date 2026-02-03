@@ -11,7 +11,10 @@ serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true
 utoipa.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
 
 rustok-core.workspace = true
+rustok-content.workspace = true
 sea-orm.workspace = true
 sea-orm-migration.workspace = true
