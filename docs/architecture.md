@@ -63,6 +63,15 @@ graph TD
 ### 1. Multi-Tenant Isolation
 Every request passes through the `TenantContext` middleware, which identifies the tenant (site/store) based on headers or hostname. All database queries are automatically scoped by `tenant_id`.
 
+### 1.1. Request-Level Caching (Tenant Context)
+To reduce repeated tenant lookups, the tenant resolver maintains an in-memory cache keyed by identifier (host/slug/uuid). The cache is TTL-based (5 minutes) and capacity-limited (1,000 entries). When a tenant is updated, the cache entry should be invalidated so future requests re-fetch fresh data.
+
+**Planned improvements**
+- Normalize cache keys (e.g., `uuid:`, `slug:`, `host:` prefixes) to avoid collisions and simplify debugging.
+- Add short-lived negative caching for 404 tenant lookups to reduce repeated DB hits.
+- Centralize cache metrics (hit/miss/evictions) and configure TTL/size based on production data.
+- Consider routing tenant cache through the shared `CacheBackend` interface to enable distributed caches (e.g., Redis) and unified observability.
+
 ### 2. CQRS-lite (Write vs Read)
 To ensure maximum Performance on read paths (Storefront) without sacrificing data integrity on write paths (Admin), RusTok uses a **CQRS-lite** approach:
 
