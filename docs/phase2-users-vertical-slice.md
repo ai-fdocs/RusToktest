@@ -136,7 +136,7 @@ mutation DisableUser($id: ID!) {
 
 ## Deliverables checklist
 
-- [ ] i18n refactor + aligned keys
+- [x] i18n refactor + aligned keys
 - [ ] Login flow (REST) in both apps
 - [ ] Users list (GraphQL) with pagination + filters
 - [x] User details

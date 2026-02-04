@@ -6,7 +6,7 @@ import { OverviewCard } from "@/components/overview-card";
 import { Button } from "@/components/ui/button";
 
 export default async function AdminHome() {
-  const t = await getTranslations("Admin");
+  const t = await getTranslations("app.dashboard");
   const locale = await getLocale();
   const quickActions = t.raw("quickActions") as Array<{
     title: string;

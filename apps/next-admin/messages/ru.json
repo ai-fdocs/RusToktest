@@ -1,40 +1,63 @@
 {
-  "Admin": {
-    "eyebrow": "RusToK Admin",
-    "title": "Панель управления",
-    "subtitle": "Скелет админки на Next.js с быстрыми библиотеками: React Query, React Hook Form, Zod, DaisyUI и shadcn/ui.",
-    "notifications": "Центр уведомлений",
-    "stats": {
-      "requests": "Запросы",
-      "requestsValue": "24 300",
-      "requestsDescription": "За последние 24 часа",
-      "modules": "Активные модули",
-      "modulesValue": "12",
-      "modulesDescription": "Commerce, Content, Community",
-      "events": "События",
-      "eventsValue": "1 284",
-      "eventsDescription": "Синхронизировано без ошибок"
+  "app": {
+    "nav": {
+      "dashboard": "Дашборд",
+      "users": "Пользователи"
     },
-    "quickActionsTitle": "Быстрые действия",
-    "quickActionsDescription": "Самые частые сценарии для администраторов RusToK.",
-    "quickActions": [
-      {
-        "title": "Новый каталог",
-        "description": "Добавьте категорию в витрину"
+    "dashboard": {
+      "eyebrow": "RusToK Admin",
+      "title": "Панель управления",
+      "subtitle": "Скелет админки на Next.js с быстрыми библиотеками: React Query, React Hook Form, Zod, DaisyUI и shadcn/ui.",
+      "notifications": "Центр уведомлений",
+      "stats": {
+        "requests": "Запросы",
+        "requestsValue": "24 300",
+        "requestsDescription": "За последние 24 часа",
+        "modules": "Активные модули",
+        "modulesValue": "12",
+        "modulesDescription": "Commerce, Content, Community",
+        "events": "События",
+        "eventsValue": "1 284",
+        "eventsDescription": "Синхронизировано без ошибок"
       },
-      {
-        "title": "Управление пользователями",
-        "description": "Настройте роли и доступы"
-      },
-      {
-        "title": "Запуск промо",
-        "description": "Подготовьте кампанию"
-      }
-    ],
-    "alertTitle": "Многоязычность",
-    "alertDescription": "Локализация включена через next-intl (ru/en)."
+      "quickActionsTitle": "Быстрые действия",
+      "quickActionsDescription": "Самые частые сценарии для администраторов RusToK.",
+      "quickActions": [
+        {
+          "title": "Новый каталог",
+          "description": "Добавьте категорию в витрину"
+        },
+        {
+          "title": "Управление пользователями",
+          "description": "Настройте роли и доступы"
+        },
+        {
+          "title": "Запуск промо",
+          "description": "Подготовьте кампанию"
+        }
+      ],
+      "alertTitle": "Многоязычность",
+      "alertDescription": "Локализация включена через next-intl (ru/en)."
+    }
   },
-  "Users": {
+  "auth": {
+    "badge": "Admin Foundation",
+    "heroTitle": "RusToK Control Center",
+    "heroSubtitle": "Управляйте тенантами, модулями и контентом в одном месте. Настраиваемый доступ, быстрые действия и прозрачная аналитика.",
+    "heroListTitle": "Входит в v1.0",
+    "heroListSubtitle": "Логин, роли, графики активности и контроль модулей.",
+    "title": "Вход в админ-панель",
+    "subtitle": "Введите рабочие данные для доступа к панели управления.",
+    "tenantLabel": "Tenant Slug",
+    "emailLabel": "Email",
+    "passwordLabel": "Пароль",
+    "submit": "Продолжить",
+    "demoLink": "Перейти в демонстрационный дашборд →",
+    "footer": "Нужен доступ? Напишите администратору безопасности для активации.",
+    "errorRequired": "Заполните все поля",
+    "errorDemoDisabled": "Демо-вход отключен. Используйте серверную аутентификацию или включите RUSTOK_DEMO_MODE."
+  },
+  "users": {
     "eyebrow": "Users",
     "title": "Пользователи",
     "subtitle": "Одна страница, два формата API: REST /api/auth/me и GraphQL users.",
@@ -79,5 +102,14 @@
         "id": "ID пользователя"
       }
     }
+  },
+  "errors": {
+    "auth": {
+      "invalid_credentials": "Неверный email или пароль.",
+      "unauthorized": "Недостаточно прав для выполнения действия."
+    },
+    "http": "Ошибка сервера. Попробуйте снова.",
+    "network": "Сетевая ошибка. Проверьте соединение.",
+    "unknown": "Что-то пошло не так. Попробуйте снова."
   }
 }

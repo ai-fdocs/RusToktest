@@ -1,40 +1,63 @@
 {
-  "Admin": {
-    "eyebrow": "RusToK Admin",
-    "title": "Control center",
-    "subtitle": "Next.js admin skeleton with fast libraries: React Query, React Hook Form, Zod, DaisyUI, and shadcn/ui.",
-    "notifications": "Notifications hub",
-    "stats": {
-      "requests": "Requests",
-      "requestsValue": "24,300",
-      "requestsDescription": "Last 24 hours",
-      "modules": "Active modules",
-      "modulesValue": "12",
-      "modulesDescription": "Commerce, Content, Community",
-      "events": "Events",
-      "eventsValue": "1,284",
-      "eventsDescription": "Synced without errors"
+  "app": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "users": "Users"
     },
-    "quickActionsTitle": "Quick actions",
-    "quickActionsDescription": "Most common flows for RusToK admins.",
-    "quickActions": [
-      {
-        "title": "New catalog",
-        "description": "Add a category to the storefront"
+    "dashboard": {
+      "eyebrow": "RusToK Admin",
+      "title": "Control center",
+      "subtitle": "Next.js admin skeleton with fast libraries: React Query, React Hook Form, Zod, DaisyUI, and shadcn/ui.",
+      "notifications": "Notifications hub",
+      "stats": {
+        "requests": "Requests",
+        "requestsValue": "24,300",
+        "requestsDescription": "Last 24 hours",
+        "modules": "Active modules",
+        "modulesValue": "12",
+        "modulesDescription": "Commerce, Content, Community",
+        "events": "Events",
+        "eventsValue": "1,284",
+        "eventsDescription": "Synced without errors"
       },
-      {
-        "title": "User management",
-        "description": "Set roles and permissions"
-      },
-      {
-        "title": "Launch promo",
-        "description": "Prepare a new campaign"
-      }
-    ],
-    "alertTitle": "Localization",
-    "alertDescription": "Localization is wired via next-intl (ru/en)."
+      "quickActionsTitle": "Quick actions",
+      "quickActionsDescription": "Most common flows for RusToK admins.",
+      "quickActions": [
+        {
+          "title": "New catalog",
+          "description": "Add a category to the storefront"
+        },
+        {
+          "title": "User management",
+          "description": "Set roles and permissions"
+        },
+        {
+          "title": "Launch promo",
+          "description": "Prepare a new campaign"
+        }
+      ],
+      "alertTitle": "Localization",
+      "alertDescription": "Localization is wired via next-intl (ru/en)."
+    }
   },
-  "Users": {
+  "auth": {
+    "badge": "Admin Foundation",
+    "heroTitle": "RusToK Control Center",
+    "heroSubtitle": "Manage tenants, modules, and content in one place. Configurable access, fast actions, and transparent analytics.",
+    "heroListTitle": "Included in v1.0",
+    "heroListSubtitle": "Login, roles, activity charts, and module control.",
+    "title": "Sign in to admin",
+    "subtitle": "Enter your credentials to access the control panel.",
+    "tenantLabel": "Tenant Slug",
+    "emailLabel": "Email",
+    "passwordLabel": "Password",
+    "submit": "Continue",
+    "demoLink": "Open demo dashboard →",
+    "footer": "Need access? Contact a security administrator to activate.",
+    "errorRequired": "Please fill in all fields",
+    "errorDemoDisabled": "Demo login is disabled. Use server auth or enable RUSTOK_DEMO_MODE."
+  },
+  "users": {
     "eyebrow": "Users",
     "title": "Users",
     "subtitle": "Single page, two API formats: REST /api/auth/me and GraphQL users.",
@@ -79,5 +102,14 @@
         "id": "User ID"
       }
     }
+  },
+  "errors": {
+    "auth": {
+      "invalid_credentials": "Invalid email or password.",
+      "unauthorized": "You are not authorized to perform this action."
+    },
+    "http": "Server error. Please try again.",
+    "network": "Network error. Check your connection.",
+    "unknown": "Something went wrong. Please try again."
   }
 }

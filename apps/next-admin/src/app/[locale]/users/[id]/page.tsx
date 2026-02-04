@@ -78,7 +78,7 @@ type UsersDetailPageProps = {
 };
 
 export default async function UsersDetailPage({ params }: UsersDetailPageProps) {
-  const t = await getTranslations("Users");
+  const t = await getTranslations("users");
   const locale = await getLocale();
   const result = await fetchGraphqlUser(params.id);
 
