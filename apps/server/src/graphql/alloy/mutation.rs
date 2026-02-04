@@ -1,11 +1,12 @@
 use async_graphql::{Context, Object, Result};
+use chrono::Utc;
 use uuid::Uuid;
 
 use alloy_scripting::model::Script;
 use alloy_scripting::runner::ExecutionOutcome;
 
 use super::types::{CreateScriptInput, GqlExecutionResult, GqlScript, RunScriptInput, UpdateScriptInput};
-use super::{dynamic_to_json, json_to_dynamic, AlloyState};
+use super::{dynamic_to_json, json_to_dynamic, require_admin, AlloyState};
 
 #[derive(Default)]
 pub struct AlloyMutation;
@@ -17,6 +18,7 @@ impl AlloyMutation {
         ctx: &Context<'_>,
         input: CreateScriptInput,
     ) -> Result<GqlScript> {
+        require_admin(ctx)?;
         let state = ctx.data::<AlloyState>()?;
         state
             .engine
@@ -47,6 +49,7 @@ impl AlloyMutation {
         id: Uuid,
         input: UpdateScriptInput,
     ) -> Result<GqlScript> {
+        require_admin(ctx)?;
         let state = ctx.data::<AlloyState>()?;
         let mut script = state
             .storage
@@ -95,6 +98,7 @@ impl AlloyMutation {
     }
 
     async fn delete_script(&self, ctx: &Context<'_>, id: Uuid) -> Result<bool> {
+        require_admin(ctx)?;
         let state = ctx.data::<AlloyState>()?;
         state
             .storage
@@ -110,10 +114,9 @@ impl AlloyMutation {
         ctx: &Context<'_>,
         input: RunScriptInput,
     ) -> Result<GqlExecutionResult> {
+        let auth = require_admin(ctx)?;
         let state = ctx.data::<AlloyState>()?;
-        let user_id = ctx
-            .data_opt::<crate::context::AuthContext>()
-            .map(|auth| auth.user_id.to_string());
+        let user_id = Some(auth.user_id.to_string());
 
         let params = input
             .params
@@ -163,5 +166,104 @@ impl AlloyMutation {
             return_value: return_value.map(async_graphql::Json),
             changes: changes.map(async_graphql::Json),
         })
+    }
+
+    async fn activate_script(&self, ctx: &Context<'_>, id: Uuid) -> Result<GqlScript> {
+        require_admin(ctx)?;
+        let state = ctx.data::<AlloyState>()?;
+        let mut script = state
+            .storage
+            .get(id)
+            .await
+            .map_err(|err| async_graphql::Error::new(err.to_string()))?;
+
+        script.activate();
+        let saved = state
+            .storage
+            .save(script)
+            .await
+            .map_err(|err| async_graphql::Error::new(err.to_string()))?;
+
+        Ok(saved.into())
+    }
+
+    async fn pause_script(&self, ctx: &Context<'_>, id: Uuid) -> Result<GqlScript> {
+        require_admin(ctx)?;
+        let state = ctx.data::<AlloyState>()?;
+        let mut script = state
+            .storage
+            .get(id)
+            .await
+            .map_err(|err| async_graphql::Error::new(err.to_string()))?;
+
+        script.status = alloy_scripting::model::ScriptStatus::Paused;
+        script.updated_at = Utc::now();
+
+        let saved = state
+            .storage
+            .save(script)
+            .await
+            .map_err(|err| async_graphql::Error::new(err.to_string()))?;
+
+        Ok(saved.into())
+    }
+
+    async fn disable_script(&self, ctx: &Context<'_>, id: Uuid) -> Result<GqlScript> {
+        require_admin(ctx)?;
+        let state = ctx.data::<AlloyState>()?;
+        let mut script = state
+            .storage
+            .get(id)
+            .await
+            .map_err(|err| async_graphql::Error::new(err.to_string()))?;
+
+        script.disable();
+        let saved = state
+            .storage
+            .save(script)
+            .await
+            .map_err(|err| async_graphql::Error::new(err.to_string()))?;
+
+        Ok(saved.into())
+    }
+
+    async fn archive_script(&self, ctx: &Context<'_>, id: Uuid) -> Result<GqlScript> {
+        require_admin(ctx)?;
+        let state = ctx.data::<AlloyState>()?;
+        let mut script = state
+            .storage
+            .get(id)
+            .await
+            .map_err(|err| async_graphql::Error::new(err.to_string()))?;
+
+        script.archive();
+        let saved = state
+            .storage
+            .save(script)
+            .await
+            .map_err(|err| async_graphql::Error::new(err.to_string()))?;
+
+        Ok(saved.into())
+    }
+
+    async fn reset_script_errors(&self, ctx: &Context<'_>, id: Uuid) -> Result<GqlScript> {
+        require_admin(ctx)?;
+        let state = ctx.data::<AlloyState>()?;
+        let mut script = state
+            .storage
+            .get(id)
+            .await
+            .map_err(|err| async_graphql::Error::new(err.to_string()))?;
+
+        script.reset_errors();
+        script.updated_at = Utc::now();
+
+        let saved = state
+            .storage
+            .save(script)
+            .await
+            .map_err(|err| async_graphql::Error::new(err.to_string()))?;
+
+        Ok(saved.into())
     }
 }

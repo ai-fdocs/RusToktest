@@ -3,7 +3,8 @@ use uuid::Uuid;
 
 use alloy_scripting::storage::ScriptQuery;
 
-use super::{AlloyState, GqlEventType, GqlScript, GqlScriptStatus};
+use crate::graphql::common::PaginationInput;
+use super::{require_admin, AlloyState, GqlEventType, GqlScript, GqlScriptConnection, GqlScriptStatus};
 
 #[derive(Default)]
 pub struct AlloyQuery;
@@ -14,7 +15,9 @@ impl AlloyQuery {
         &self,
         ctx: &Context<'_>,
         status: Option<GqlScriptStatus>,
-    ) -> Result<Vec<GqlScript>> {
+        #[graphql(default)] pagination: PaginationInput,
+    ) -> Result<GqlScriptConnection> {
+        require_admin(ctx)?;
         let state = ctx.data::<AlloyState>()?;
         let query = match status {
             Some(status) => ScriptQuery::ByStatus(status.into()),
@@ -27,10 +30,23 @@ impl AlloyQuery {
             .await
             .map_err(|err| async_graphql::Error::new(err.to_string()))?;
 
-        Ok(scripts.into_iter().map(GqlScript::from).collect())
+        let total = scripts.len() as i64;
+        let (offset, limit) = pagination.normalize();
+        let items = scripts
+            .into_iter()
+            .skip(offset as usize)
+            .take(limit as usize)
+            .map(GqlScript::from)
+            .collect();
+
+        Ok(GqlScriptConnection {
+            items,
+            page_info: crate::graphql::common::PageInfo::new(total, offset, limit),
+        })
     }
 
     async fn script(&self, ctx: &Context<'_>, id: Uuid) -> Result<Option<GqlScript>> {
+        require_admin(ctx)?;
         let state = ctx.data::<AlloyState>()?;
         match state.storage.get(id).await {
             Ok(script) => Ok(Some(script.into())),
@@ -43,6 +59,7 @@ impl AlloyQuery {
         ctx: &Context<'_>,
         name: String,
     ) -> Result<Option<GqlScript>> {
+        require_admin(ctx)?;
         let state = ctx.data::<AlloyState>()?;
         match state.storage.get_by_name(&name).await {
             Ok(script) => Ok(Some(script.into())),
@@ -56,6 +73,7 @@ impl AlloyQuery {
         entity_type: String,
         event: GqlEventType,
     ) -> Result<Vec<GqlScript>> {
+        require_admin(ctx)?;
         let state = ctx.data::<AlloyState>()?;
         let scripts = state
             .storage

@@ -4,8 +4,12 @@ mod types;
 
 use std::sync::Arc;
 
+use async_graphql::{Context, FieldError, Result};
 use alloy_scripting::{ScriptEngine, ScriptOrchestrator, SeaOrmStorage};
 use rhai::Dynamic;
+
+use crate::context::AuthContext;
+use crate::graphql::errors::GraphQLError;
 
 pub use mutation::AlloyMutation;
 pub use query::AlloyQuery;
@@ -30,6 +34,21 @@ impl AlloyState {
             orchestrator,
         }
     }
+}
+
+pub(crate) fn require_admin(ctx: &Context<'_>) -> Result<AuthContext> {
+    let auth = ctx
+        .data::<AuthContext>()
+        .map_err(|_| <FieldError as GraphQLError>::unauthenticated())?;
+
+    if !matches!(
+        auth.role,
+        rustok_core::UserRole::Admin | rustok_core::UserRole::SuperAdmin
+    ) {
+        return Err(<FieldError as GraphQLError>::permission_denied("Forbidden"));
+    }
+
+    Ok(auth.clone())
 }
 
 fn json_to_dynamic(value: serde_json::Value) -> Dynamic {

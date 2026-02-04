@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use uuid::Uuid;
 
 use alloy_scripting::model::{EventType, HttpMethod, Script, ScriptStatus, ScriptTrigger};
+use crate::graphql::common::PageInfo;
 
 #[derive(Enum, Copy, Clone, Eq, PartialEq)]
 #[graphql(rename_items = "SCREAMING_SNAKE_CASE")]
@@ -203,6 +204,12 @@ pub struct GqlExecutionResult {
     pub error: Option<String>,
     pub return_value: Option<async_graphql::Json<serde_json::Value>>,
     pub changes: Option<async_graphql::Json<serde_json::Value>>,
+}
+
+#[derive(SimpleObject)]
+pub struct GqlScriptConnection {
+    pub items: Vec<GqlScript>,
+    pub page_info: PageInfo,
 }
 
 #[derive(InputObject)]
