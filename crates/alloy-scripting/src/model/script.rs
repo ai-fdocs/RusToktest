@@ -98,4 +98,15 @@ impl ScriptStatus {
             Self::Archived => "archived",
         }
     }
+
+    pub fn from_str(value: &str) -> Option<Self> {
+        match value {
+            "draft" => Some(Self::Draft),
+            "active" => Some(Self::Active),
+            "paused" => Some(Self::Paused),
+            "disabled" => Some(Self::Disabled),
+            "archived" => Some(Self::Archived),
+            _ => None,
+        }
+    }
 }
