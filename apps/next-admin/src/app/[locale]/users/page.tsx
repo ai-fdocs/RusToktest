@@ -110,7 +110,7 @@ async function fetchGraphqlUsers() {
 }
 
 export default async function UsersPage() {
-  const t = await getTranslations("Users");
+  const t = await getTranslations("users");
   const locale = await getLocale();
   const [restResult, graphqlResult] = await Promise.all([
     fetchRestUser(),
