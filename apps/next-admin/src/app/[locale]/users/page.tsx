@@ -285,9 +285,12 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                         name="role"
                       >
                         <option value="">{t("filters.rolePlaceholder")}</option>
+                        <option value="SUPER_ADMIN">
+                          {t("filters.roleSuperAdmin")}
+                        </option>
                         <option value="ADMIN">{t("filters.roleAdmin")}</option>
-                        <option value="EDITOR">{t("filters.roleEditor")}</option>
-                        <option value="VIEWER">{t("filters.roleViewer")}</option>
+                        <option value="MANAGER">{t("filters.roleManager")}</option>
+                        <option value="CUSTOMER">{t("filters.roleCustomer")}</option>
                       </select>
                     </label>
                     <label className="text-xs font-semibold uppercase text-slate-400">
@@ -301,9 +304,10 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
                           {t("filters.statusPlaceholder")}
                         </option>
                         <option value="ACTIVE">{t("filters.statusActive")}</option>
-                        <option value="DISABLED">
-                          {t("filters.statusDisabled")}
+                        <option value="INACTIVE">
+                          {t("filters.statusInactive")}
                         </option>
+                        <option value="BANNED">{t("filters.statusBanned")}</option>
                       </select>
                     </label>
                   </div>

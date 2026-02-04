@@ -140,7 +140,7 @@ mutation DisableUser($id: ID!) {
 - [x] Login flow (REST) in both apps
 - [x] Users list (GraphQL) with pagination + filters
 - [x] User details
-- [ ] CRUD mutations + RBAC
+- [x] CRUD mutations + RBAC
 - [ ] Admin UI parity + shared components
 
 ## Notes / decisions
