@@ -1,6 +1,7 @@
 use leptos::prelude::*;
 use leptos_router::components::{Route, Router, Routes};
 use leptos_router::hooks::use_navigate;
+use leptos_router::path;
 
 use crate::pages::{
     dashboard::Dashboard, login::Login, not_found::NotFound, profile::Profile, register::Register,
@@ -19,16 +20,16 @@ pub fn App() -> impl IntoView {
             <main class="app-shell">
                 <Style />
                 <Routes>
-                    <Route path="/login" view=Login />
-                    <Route path="/register" view=Register />
-                    <Route path="/reset" view=ResetPassword />
-                    <Route path="/dashboard" view=ProtectedDashboard />
-                    <Route path="/profile" view=ProtectedProfile />
-                    <Route path="/security" view=ProtectedSecurity />
-                    <Route path="/users" view=ProtectedUsers />
-                    <Route path="/users/:id" view=ProtectedUserDetails />
-                    <Route path="" view=ProtectedDashboard />
-                    <Route path="/*" view=NotFound />
+                    <Route path=path!("/login") view=Login />
+                    <Route path=path!("/register") view=Register />
+                    <Route path=path!("/reset") view=ResetPassword />
+                    <Route path=path!("/dashboard") view=ProtectedDashboard />
+                    <Route path=path!("/profile") view=ProtectedProfile />
+                    <Route path=path!("/security") view=ProtectedSecurity />
+                    <Route path=path!("/users") view=ProtectedUsers />
+                    <Route path=path!("/users/:id") view=ProtectedUserDetails />
+                    <Route path=path!("") view=ProtectedDashboard />
+                    <Route path=path!("/*") view=NotFound />
                 </Routes>
             </main>
         </Router>
@@ -40,7 +41,7 @@ fn ProtectedDashboard() -> impl IntoView {
     let auth = use_auth();
     let navigate = use_navigate();
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if auth.token.get().is_none() {
             navigate("/login", Default::default());
         }
@@ -61,7 +62,7 @@ fn ProtectedUsers() -> impl IntoView {
     let auth = use_auth();
     let navigate = use_navigate();
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if auth.token.get().is_none() {
             navigate("/login", Default::default());
         }
@@ -82,7 +83,7 @@ fn ProtectedUserDetails() -> impl IntoView {
     let auth = use_auth();
     let navigate = use_navigate();
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if auth.token.get().is_none() {
             navigate("/login", Default::default());
         }
@@ -103,7 +104,7 @@ fn ProtectedProfile() -> impl IntoView {
     let auth = use_auth();
     let navigate = use_navigate();
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if auth.token.get().is_none() {
             navigate("/login", Default::default());
         }
@@ -124,7 +125,7 @@ fn ProtectedSecurity() -> impl IntoView {
     let auth = use_auth();
     let navigate = use_navigate();
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if auth.token.get().is_none() {
             navigate("/login", Default::default());
         }

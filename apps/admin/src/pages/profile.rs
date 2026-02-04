@@ -16,12 +16,12 @@ pub fn Profile() -> impl IntoView {
         .unwrap_or_default();
     let initial_email = auth.user.get().map(|user| user.email).unwrap_or_default();
 
-    let (name, set_name) = create_signal(initial_name);
-    let (email, set_email) = create_signal(initial_email);
-    let (avatar, set_avatar) = create_signal(String::new());
-    let (timezone, set_timezone) = create_signal(String::from("Europe/Moscow"));
-    let (preferred_locale, set_preferred_locale) = create_signal(String::from("ru"));
-    let (status, set_status) = create_signal(Option::<String>::None);
+    let (name, set_name) = signal(initial_name);
+    let (email, set_email) = signal(initial_email);
+    let (avatar, set_avatar) = signal(String::new());
+    let (timezone, set_timezone) = signal(String::from("Europe/Moscow"));
+    let (preferred_locale, set_preferred_locale) = signal(String::from("ru"));
+    let (status, set_status) = signal(Option::<String>::None);
 
     let on_save = move |_| {
         set_status.set(Some(
@@ -53,19 +53,19 @@ pub fn Profile() -> impl IntoView {
                         value=name
                         set_value=set_name
                         placeholder="Alex Morgan"
-                        label=move || translate(locale.locale.get(), "profile.nameLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "profile.nameLabel").to_string())
                     />
                     <Input
                         value=email
                         set_value=set_email
                         placeholder="admin@rustok.io"
-                        label=move || translate(locale.locale.get(), "profile.emailLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "profile.emailLabel").to_string())
                     />
                     <Input
                         value=avatar
                         set_value=set_avatar
                         placeholder="https://cdn.rustok.io/avatar.png"
-                        label=move || translate(locale.locale.get(), "profile.avatarLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "profile.avatarLabel").to_string())
                     />
                     <div class="input-group">
                         <label>{move || translate(locale.locale.get(), "profile.timezoneLabel")}</label>

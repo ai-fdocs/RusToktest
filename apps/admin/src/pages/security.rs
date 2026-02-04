@@ -20,9 +20,9 @@ struct LoginEvent<'a> {
 pub fn Security() -> impl IntoView {
     let locale = use_locale();
 
-    let (current_password, set_current_password) = create_signal(String::new());
-    let (new_password, set_new_password) = create_signal(String::new());
-    let (status, set_status) = create_signal(Option::<String>::None);
+    let (current_password, set_current_password) = signal(String::new());
+    let (new_password, set_new_password) = signal(String::new());
+    let (status, set_status) = signal(Option::<String>::None);
 
     let on_change_password = move |_| {
         if current_password.get().is_empty() || new_password.get().is_empty() {
@@ -102,14 +102,14 @@ pub fn Security() -> impl IntoView {
                         set_value=set_current_password
                         placeholder="••••••••"
                         type_="password"
-                        label=move || translate(locale.locale.get(), "security.currentPasswordLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "security.currentPasswordLabel").to_string())
                     />
                     <Input
                         value=new_password
                         set_value=set_new_password
                         placeholder="••••••••"
                         type_="password"
-                        label=move || translate(locale.locale.get(), "security.newPasswordLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "security.newPasswordLabel").to_string())
                     />
                     <p class="form-hint">{move || translate(locale.locale.get(), "security.passwordHint")}</p>
                     <Button on_click=on_change_password class="w-full">

@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos::web_sys;
 
 use crate::providers::locale::{use_locale, Locale};
 
@@ -26,7 +27,7 @@ pub fn Input(
     #[prop(into)] set_value: WriteSignal<String>,
     #[prop(into)] placeholder: String,
     #[prop(default = "text")] type_: &'static str,
-    #[prop(default = MaybeSignal::Static(String::new()), into)] label: MaybeSignal<String>,
+    #[prop(default = String::new().into(), into)] label: Signal<String>,
 ) -> impl IntoView {
     view! {
         <div class="input-group">

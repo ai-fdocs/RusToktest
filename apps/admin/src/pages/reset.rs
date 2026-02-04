@@ -7,12 +7,12 @@ use crate::providers::locale::{translate, use_locale};
 pub fn ResetPassword() -> impl IntoView {
     let locale = use_locale();
 
-    let (tenant, set_tenant) = create_signal(String::new());
-    let (email, set_email) = create_signal(String::new());
-    let (token, set_token) = create_signal(String::new());
-    let (new_password, set_new_password) = create_signal(String::new());
-    let (error, set_error) = create_signal(Option::<String>::None);
-    let (status, set_status) = create_signal(Option::<String>::None);
+    let (tenant, set_tenant) = signal(String::new());
+    let (email, set_email) = signal(String::new());
+    let (token, set_token) = signal(String::new());
+    let (new_password, set_new_password) = signal(String::new());
+    let (error, set_error) = signal(Option::<String>::None);
+    let (status, set_status) = signal(Option::<String>::None);
 
     let on_request = move |_| {
         if tenant.get().is_empty() || email.get().is_empty() {
@@ -77,13 +77,13 @@ pub fn ResetPassword() -> impl IntoView {
                         value=tenant
                         set_value=set_tenant
                         placeholder="demo"
-                        label=move || translate(locale.locale.get(), "reset.tenantLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "reset.tenantLabel").to_string())
                     />
                     <Input
                         value=email
                         set_value=set_email
                         placeholder="admin@rustok.io"
-                        label=move || translate(locale.locale.get(), "reset.emailLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "reset.emailLabel").to_string())
                     />
                     <Button on_click=on_request class="w-full">
                         {move || translate(locale.locale.get(), "reset.requestSubmit")}
@@ -99,14 +99,14 @@ pub fn ResetPassword() -> impl IntoView {
                         value=token
                         set_value=set_token
                         placeholder="RESET-2024-0001"
-                        label=move || translate(locale.locale.get(), "reset.tokenLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "reset.tokenLabel").to_string())
                     />
                     <Input
                         value=new_password
                         set_value=set_new_password
                         placeholder="••••••••"
                         type_="password"
-                        label=move || translate(locale.locale.get(), "reset.newPasswordLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "reset.newPasswordLabel").to_string())
                     />
                     <p class="form-hint">{move || translate(locale.locale.get(), "reset.tokenHint")}</p>
                     <Button on_click=on_reset class="w-full ghost-button">

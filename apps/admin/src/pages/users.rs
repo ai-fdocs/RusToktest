@@ -64,15 +64,15 @@ struct PaginationInput {
 pub fn Users() -> impl IntoView {
     let auth = use_auth();
     let locale = use_locale();
-    let (api_token, set_api_token) = create_signal(auth.token.get().unwrap_or_default());
-    let (tenant_slug, set_tenant_slug) = create_signal(String::new());
-    let (refresh_counter, set_refresh_counter) = create_signal(0u32);
-    let (page, set_page) = create_signal(1i64);
-    let (limit, set_limit) = create_signal(12i64);
-    let (limit_input, set_limit_input) = create_signal("12".to_string());
-    let (search_query, set_search_query) = create_signal(String::new());
-    let (role_filter, set_role_filter) = create_signal(String::new());
-    let (status_filter, set_status_filter) = create_signal(String::new());
+    let (api_token, set_api_token) = signal(auth.token.get().unwrap_or_default());
+    let (tenant_slug, set_tenant_slug) = signal(String::new());
+    let (refresh_counter, set_refresh_counter) = signal(0u32);
+    let (page, set_page) = signal(1i64);
+    let (limit, set_limit) = signal(12i64);
+    let (limit_input, set_limit_input) = signal("12".to_string());
+    let (search_query, set_search_query) = signal(String::new());
+    let (role_filter, set_role_filter) = signal(String::new());
+    let (status_filter, set_status_filter) = signal(String::new());
 
     let rest_resource = create_resource(
         move || refresh_counter.get(),
@@ -151,13 +151,13 @@ pub fn Users() -> impl IntoView {
                         value=api_token
                         set_value=set_api_token
                         placeholder="Bearer token"
-                        label=move || translate(locale.locale.get(), "users.access.token").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "users.access.token").to_string())
                     />
                     <Input
                         value=tenant_slug
                         set_value=set_tenant_slug
                         placeholder="demo"
-                        label=move || translate(locale.locale.get(), "users.access.tenant").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "users.access.tenant").to_string())
                     />
                     <Input
                         value=limit_input
@@ -169,7 +169,7 @@ pub fn Users() -> impl IntoView {
                             }
                         }
                         placeholder="12"
-                        label=move || translate(locale.locale.get(), "users.access.limit").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "users.access.limit").to_string())
                     />
                 </div>
                 <p class="form-hint">
@@ -223,19 +223,19 @@ pub fn Users() -> impl IntoView {
                                         value=search_query
                                         set_value=set_search_query
                                         placeholder=move || translate(locale.locale.get(), "users.filters.searchPlaceholder").to_string()
-                                        label=move || translate(locale.locale.get(), "users.filters.search").to_string()
+                                        label=Signal::derive(move || translate(locale.locale.get(), "users.filters.search").to_string())
                                     />
                                     <Input
                                         value=role_filter
                                         set_value=set_role_filter
                                         placeholder=move || translate(locale.locale.get(), "users.filters.rolePlaceholder").to_string()
-                                        label=move || translate(locale.locale.get(), "users.filters.role").to_string()
+                                        label=Signal::derive(move || translate(locale.locale.get(), "users.filters.role").to_string())
                                     />
                                     <Input
                                         value=status_filter
                                         set_value=set_status_filter
                                         placeholder=move || translate(locale.locale.get(), "users.filters.statusPlaceholder").to_string()
-                                        label=move || translate(locale.locale.get(), "users.filters.status").to_string()
+                                        label=Signal::derive(move || translate(locale.locale.get(), "users.filters.status").to_string())
                                     />
                                 </div>
                                 <div class="table-wrap">
@@ -250,7 +250,7 @@ pub fn Users() -> impl IntoView {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {({
+                                            {{
                                                 let query = search_query.get().to_lowercase();
                                                 let role = role_filter.get().to_lowercase();
                                                 let status = status_filter.get().to_lowercase();
@@ -295,7 +295,7 @@ pub fn Users() -> impl IntoView {
                                                         }
                                                     })
                                                     .collect_view()
-                                            })}
+                                            }}
                                         </tbody>
                                     </table>
                                 </div>

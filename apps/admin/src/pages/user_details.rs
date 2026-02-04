@@ -40,7 +40,7 @@ pub fn UserDetails() -> impl IntoView {
     let locale = use_locale();
     let navigate = use_navigate();
     let params = use_params::<UserParams>();
-    let (tenant_slug, set_tenant_slug) = create_signal(String::new());
+    let (tenant_slug, set_tenant_slug) = signal(String::new());
 
     let user_resource = create_resource(
         move || (params.get().ok().map(|p| p.id), tenant_slug.get()),
@@ -90,7 +90,7 @@ pub fn UserDetails() -> impl IntoView {
                         value=tenant_slug
                         set_value=set_tenant_slug
                         placeholder="demo"
-                        label=move || translate(locale.locale.get(), "users.access.tenant").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "users.access.tenant").to_string())
                     />
                 </div>
                 <p class="form-hint">

@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos::web_sys;
 
 mod app;
 mod auth;
@@ -37,9 +38,9 @@ pub struct LocaleContext {
 
 pub fn provide_locale_context() {
     let initial_locale = load_locale_from_storage().unwrap_or(Locale::Ru);
-    let (locale, set_locale) = create_signal(initial_locale);
+    let (locale, set_locale) = signal(initial_locale);
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(storage) = local_storage() {
             let _ = storage.set_item("rustok-admin-locale", locale.get().code());
         }

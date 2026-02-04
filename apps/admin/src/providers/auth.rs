@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos::web_sys;
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
@@ -18,10 +19,10 @@ pub struct AuthContext {
 }
 
 pub fn provide_auth_context() {
-    let (user, set_user) = create_signal(load_user_from_storage());
-    let (token, set_token) = create_signal(load_token_from_storage());
+    let (user, set_user) = signal(load_user_from_storage());
+    let (token, set_token) = signal(load_token_from_storage());
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(storage) = local_storage() {
             match token.get() {
                 Some(value) => {
@@ -34,7 +35,7 @@ pub fn provide_auth_context() {
         }
     });
 
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if let Some(storage) = local_storage() {
             match user.get() {
                 Some(ref value) => {

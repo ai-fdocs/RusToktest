@@ -1,4 +1,5 @@
 use leptos::prelude::*;
+use leptos::task::spawn_local;
 use leptos_router::hooks::use_navigate;
 use serde::{Deserialize, Serialize};
 
@@ -34,14 +35,14 @@ pub fn Login() -> impl IntoView {
     let locale = use_locale();
     let navigate = use_navigate();
 
-    let (tenant, set_tenant) = create_signal(String::new());
-    let (email, set_email) = create_signal(String::new());
-    let (password, set_password) = create_signal(String::new());
-    let (error, set_error) = create_signal(Option::<String>::None);
-    let (is_loading, set_is_loading) = create_signal(false);
+    let (tenant, set_tenant) = signal(String::new());
+    let (email, set_email) = signal(String::new());
+    let (password, set_password) = signal(String::new());
+    let (error, set_error) = signal(Option::<String>::None);
+    let (is_loading, set_is_loading) = signal(false);
 
     let navigate_effect = navigate.clone();
-    create_effect(move |_| {
+    Effect::new(move |_| {
         if auth.token.get().is_some() {
             navigate_effect("/dashboard", Default::default());
         }
@@ -140,20 +141,20 @@ pub fn Login() -> impl IntoView {
                         value=tenant
                         set_value=set_tenant
                         placeholder="demo"
-                        label=move || translate(locale.locale.get(), "auth.tenantLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "auth.tenantLabel").to_string())
                     />
                     <Input
                         value=email
                         set_value=set_email
                         placeholder="admin@rustok.io"
-                        label=move || translate(locale.locale.get(), "auth.emailLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "auth.emailLabel").to_string())
                     />
                     <Input
                         value=password
                         set_value=set_password
                         placeholder="••••••••"
                         type_="password"
-                        label=move || translate(locale.locale.get(), "auth.passwordLabel").to_string()
+                        label=Signal::derive(move || translate(locale.locale.get(), "auth.passwordLabel").to_string())
                     />
                     <Button on_click=on_submit class="w-full" disabled=move || is_loading.get()>
                         {move || translate(locale.locale.get(), "auth.submit")}
