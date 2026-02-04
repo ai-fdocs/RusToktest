@@ -41,12 +41,13 @@ impl ScriptEngine {
     }
 
     /// Register a native function with Rhai using the required trait bounds.
-    pub fn register_fn<A: 'static, const N: usize, const X: bool, R: 'static, const F: bool>(
+    pub fn register_fn<A, const N: usize, const X: bool, R, const F: bool>(
         &mut self,
         name: &str,
         func: impl RhaiNativeFunc<A, N, X, R, F> + Send + Sync + 'static,
     ) where
-        R: Clone + Send + Sync,
+        A: 'static,
+        R: 'static + Clone + Send + Sync,
     {
         self.engine.register_fn(name, func);
     }
