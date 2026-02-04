@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { getLocale, getTranslations } from "next-intl/server";
 
 type RestUser = {
@@ -51,16 +52,21 @@ const apiToken = process.env.ADMIN_API_TOKEN;
 const tenantSlug = process.env.ADMIN_TENANT_SLUG;
 
 const buildHeaders = () => {
+  const cookieStore = cookies();
+  const cookieToken = cookieStore.get("rustok-admin-token")?.value;
+  const cookieTenant = cookieStore.get("rustok-admin-tenant")?.value;
+  const resolvedToken = cookieToken ?? apiToken;
+  const resolvedTenant = cookieTenant ?? tenantSlug;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
   };
 
-  if (apiToken) {
-    headers.Authorization = `Bearer ${apiToken}`;
+  if (resolvedToken) {
+    headers.Authorization = `Bearer ${resolvedToken}`;
   }
 
-  if (tenantSlug) {
-    headers["X-Tenant-Slug"] = tenantSlug;
+  if (resolvedTenant) {
+    headers["X-Tenant-Slug"] = resolvedTenant;
   }
 
   return headers;
