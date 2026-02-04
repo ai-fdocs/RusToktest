@@ -98,9 +98,9 @@ pub fn Dashboard() -> impl IntoView {
                     .map(|(title, value, hint)| {
                         view! {
                             <div class="stat-card">
-                                <h3>{*title}</h3>
+                                <h3>{title.clone()}</h3>
                                 <strong>{*value}</strong>
-                                <p style="margin:8px 0 0; color:#94a3b8;">{*hint}</p>
+                                <p style="margin:8px 0 0; color:#94a3b8;">{hint.clone()}</p>
                             </div>
                         }
                     })
@@ -116,10 +116,10 @@ pub fn Dashboard() -> impl IntoView {
                             view! {
                                 <div class="activity-item">
                                     <div>
-                                        <strong>{*title}</strong>
-                                        <p style="margin:4px 0 0; color:#64748b;">{*detail}</p>
+                                        <strong>{title.clone()}</strong>
+                                        <p style="margin:4px 0 0; color:#64748b;">{detail.clone()}</p>
                                     </div>
-                                    <span class="badge">{*time}</span>
+                                    <span class="badge">{time.clone()}</span>
                                 </div>
                             }
                         })

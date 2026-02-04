@@ -4,7 +4,7 @@ use thiserror::Error;
 pub const API_URL: &str = "http://localhost:3000/api/graphql";
 pub const REST_API_URL: &str = "http://localhost:3000";
 
-#[derive(Error, Debug, Clone)]
+#[derive(Error, Debug, Clone, Serialize, Deserialize)]
 pub enum ApiError {
     #[error("Network error")]
     Network,

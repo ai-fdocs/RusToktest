@@ -13,12 +13,12 @@ struct UserParams {
     id: Option<String>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct GraphqlUserResponse {
     user: Option<GraphqlUser>,
 }
 
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 struct GraphqlUser {
     id: String,
     email: String,
