@@ -61,6 +61,35 @@ simple and production-ready.
   - Successful/failed logins with timestamps and IPs.
   - Use localized date/time formatting.
 
+## Parallel Delivery Tracks
+
+Each track is self-contained, can be shipped independently, and shares a small set
+of reusable UI components (inputs, validation, callouts, empty states).
+
+### Track A — Auth Core
+
+- Login page (tenant + email + password).
+- Auth errors and loading states.
+- Language switch + persistence.
+
+### Track B — Password Recovery
+
+- Request reset email.
+- Reset form with token + new password.
+- Token expiry UI.
+
+### Track C — Registration & Invites
+
+- Sign-up form (with tenant).
+- Invite acceptance flow.
+- Email verification + resend action.
+
+### Track D — Profile & Security
+
+- Profile settings (name, avatar, timezone, language).
+- Change password flow.
+- Sessions + login history.
+
 ## Localization (RU/EN)
 
 - All auth/profile UI strings are localized.
@@ -86,6 +115,13 @@ simple and production-ready.
   - shared auth UI components,
   - isolated endpoints per flow,
   - independent feature flags.
+
+## Deliverables Checklist
+
+- RU/EN dictionary coverage for all auth/profile UI + validation.
+- Email templates in RU/EN for: verify, reset, invite.
+- Admin route map: `/login`, `/register`, `/reset`, `/profile`, `/security`.
+- Minimal audit log schema for auth events.
 
 ## Out of Scope (Phase 3)
 
