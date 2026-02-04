@@ -129,7 +129,10 @@ pub fn Login() -> impl IntoView {
                         <h2>{move || translate(locale.locale.get(), "auth.title")}</h2>
                         <p>{move || translate(locale.locale.get(), "auth.subtitle")}</p>
                     </div>
-                    <LanguageToggle />
+                    <div class="auth-locale">
+                        <span>{move || translate(locale.locale.get(), "auth.languageLabel")}</span>
+                        <LanguageToggle />
+                    </div>
                     <Show when=move || error.get().is_some()>
                         <div class="alert">{move || error.get().unwrap_or_default()}</div>
                     </Show>

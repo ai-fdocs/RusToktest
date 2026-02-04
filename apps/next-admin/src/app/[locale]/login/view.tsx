@@ -3,8 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { locales } from "@/i18n";
 
 type LoginFormProps = {
   locale: string;
@@ -93,6 +95,24 @@ export default function LoginForm({ locale }: LoginFormProps) {
                 {t("title")}
               </h2>
               <p className="mt-2 text-sm text-slate-500">{t("subtitle")}</p>
+            </div>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {locales.map((targetLocale) => (
+                <Button
+                  asChild
+                  key={targetLocale}
+                  size="md"
+                  variant={targetLocale === locale ? "primary" : "outline"}
+                >
+                  <Link
+                    aria-current={targetLocale === locale ? "page" : undefined}
+                    href={`/${targetLocale}/login`}
+                  >
+                    {targetLocale.toUpperCase()}
+                  </Link>
+                </Button>
+              ))}
             </div>
 
             {error ? (
