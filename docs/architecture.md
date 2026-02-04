@@ -70,7 +70,7 @@ The tenant resolver middleware keeps a **local in-memory cache** (Moka) keyed by
 **Implemented improvements**
 - Normalized cache keys (e.g., `uuid:`, `slug:`, `host:` prefixes) to avoid collisions and simplify debugging.
 - Added short-lived **negative caching** for 404 tenant lookups to reduce repeated DB hits.
-- Enabled cache stats (hit/miss/evictions + negative cache stats) to guide TTL/size tuning.
+- Enabled cache stats (hit/miss/evictions + negative cache stats) and exposed them via the `/metrics` endpoint.
 
 **Future improvement**
 - Consider routing tenant cache through the shared `CacheBackend` interface to enable distributed caches (e.g., Redis) and unified observability.
