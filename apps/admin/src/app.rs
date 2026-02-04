@@ -113,6 +113,7 @@ fn Style() -> impl IntoView {
             ".auth-card { background: #fff; border-radius: 24px; padding: 32px; box-shadow: 0 24px 60px rgba(15, 23, 42, 0.12); display: flex; flex-direction: column; gap: 20px; }\n"
             ".auth-card h2 { margin: 0; font-size: 1.75rem; }\n"
             ".auth-card p { margin: 0; color: #64748b; }\n"
+            ".auth-locale { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 0.9rem; color: #475569; }\n"
             ".input-group { display: flex; flex-direction: column; gap: 8px; }\n"
             ".input-group label { font-size: 0.9rem; color: #475569; }\n"
             ".input-group input { padding: 12px 16px; border-radius: 12px; border: 1px solid #e2e8f0; font-size: 0.95rem; }\n"

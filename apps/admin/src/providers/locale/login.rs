@@ -13,6 +13,7 @@ pub fn translate_en(key: &str) -> Option<&'static str> {
         "auth.emailLabel" => Some("Email"),
         "auth.passwordLabel" => Some("Password"),
         "auth.submit" => Some("Continue"),
+        "auth.languageLabel" => Some("Language"),
         "auth.demoLink" => Some("Open demo dashboard →"),
         "auth.footer" => Some("Need access? Contact a security administrator to activate."),
         "auth.errorRequired" => Some("Please fill in all fields"),
@@ -38,6 +39,7 @@ pub fn translate_ru(key: &str) -> Option<&'static str> {
         "auth.emailLabel" => Some("Email"),
         "auth.passwordLabel" => Some("Пароль"),
         "auth.submit" => Some("Продолжить"),
+        "auth.languageLabel" => Some("Язык"),
         "auth.demoLink" => Some("Перейти в демонстрационный дашборд →"),
         "auth.footer" => Some(
             "Нужен доступ? Напишите администратору безопасности для активации.",
