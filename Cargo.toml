@@ -10,7 +10,7 @@ members = [
 
 [patch.crates-io]
 utoipa-swagger-ui-vendored = { path = "crates/utoipa-swagger-ui-vendored" }
-reqwest-middleware = { git = "https://github.com/TrueLayer/reqwest-middleware", tag = "reqwest-middleware-v0.5.0" }
+reqwest-middleware = { path = "vendor/reqwest-middleware" }
 
 [workspace.package]
 version = "0.1.0"
