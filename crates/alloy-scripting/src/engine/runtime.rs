@@ -44,8 +44,7 @@ impl ScriptEngine {
         &mut self,
         name: &str,
         func: F,
-    )
-    where
+    ) where
         F: rhai::RhaiNativeFunc<A, N, X, R, RETURN_RESULT> + Send + Sync + 'static,
     {
         self.engine.register_fn(name, func);
