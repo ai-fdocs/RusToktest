@@ -164,7 +164,7 @@ impl AlloyMutation {
                         .collect(),
                 )),
             ),
-            ExecutionOutcome::Aborted { reason } => (false, Some(reason), None, None),
+            ExecutionOutcome::Aborted { ref reason } => (false, Some(reason.clone()), None, None),
             ExecutionOutcome::Failed { ref error } => (false, Some(error.to_string()), None, None),
         };
 
