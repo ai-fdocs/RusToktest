@@ -3,6 +3,8 @@
 This document compares the current implementation with the target scope from
 `docs/admin-auth-phase3.md` and adds parity guidance for a unified admin UX.
 
+Implementation architecture is documented in `docs/admin-phase3-architecture.md`.
+
 > Context: the project is converging on a shared admin look/behavior and a unified
 > component approach (`shadcn/ui`-style design system in both admin apps).
 
@@ -28,10 +30,10 @@ Phase 3 target scope is defined in `docs/admin-auth-phase3.md`:
 | Route | Leptos admin (`apps/admin`) | Next admin (`apps/next-admin`) | Notes |
 | --- | --- | --- | --- |
 | `/login` | ✅ | ✅ (`/[locale]/login`) | Both implement tenant + email + password login flow. |
-| `/register` | ✅ | ❌ | Next app has no register route yet. |
-| `/reset` | ✅ | ❌ | Next app has no reset route yet. |
-| `/profile` | ✅ | ❌ | Next app has no profile route yet. |
-| `/security` | ✅ | ❌ | Next app has no security route yet. |
+| `/register` | ✅ | ✅ (`/[locale]/register`) | API-wired in both admin apps. |
+| `/reset` | ✅ | ✅ (`/[locale]/reset`) | Reset request/confirm wired in both admin apps. |
+| `/profile` | ✅ | ✅ (`/[locale]/profile`) | Profile update endpoint wired in both admin apps. |
+| `/security` | ✅ | ✅ (`/[locale]/security`) | Sessions/history/change-password/revoke-all are API-wired. |
 
 ## Detailed phase checklist
 
@@ -48,15 +50,15 @@ Phase 3 target scope is defined in `docs/admin-auth-phase3.md`:
 
 | Capability | Leptos | Next | Gap / action |
 | --- | --- | --- | --- |
-| Reset request UI | ✅ (UI) | ❌ | Implement `/{locale}/reset` in Next with same states. |
-| Reset token + new password flow | 🟡 | ❌ | Confirm backend contract and wire both apps to same endpoints. |
-| Token expiry UX | 🟡 | ❌ | Add explicit expired-token state and recovery CTA. |
+| Reset request UI | ✅ | ✅ | Implemented in both apps with tenant-aware request. |
+| Reset token + new password flow | ✅ | ✅ | Both use `/api/auth/reset/confirm`. |
+| Token expiry UX | 🟡 | 🟡 | Contract supports expiry; dedicated UX state can be improved. |
 
 ### Track C — Registration & invites
 
 | Capability | Leptos | Next | Gap / action |
 | --- | --- | --- | --- |
-| Registration form | ✅ (UI) | ❌ | Implement `/{locale}/register` in Next. |
+| Registration form | ✅ | ✅ | Both use `/api/auth/register`. |
 | Invite acceptance | ❌ | ❌ | Add invite endpoint + page in both apps. |
 | Email verification + resend | ❌ | ❌ | Add verify/resend flow and localized feedback. |
 
@@ -64,11 +66,11 @@ Phase 3 target scope is defined in `docs/admin-auth-phase3.md`:
 
 | Capability | Leptos | Next | Gap / action |
 | --- | --- | --- | --- |
-| Profile editing (name, avatar, timezone, language) | 🟡 | ❌ | Leptos has profile page shell; complete backend wiring and mirror in Next. |
-| Change password | 🟡 | ❌ | Add backend mutation/endpoint integration and policy errors. |
-| Active sessions list | 🟡 | ❌ | Replace demo/static records with API data. |
-| Login history | 🟡 | ❌ | Add paginated audit feed + localized timestamps. |
-| Sign out all sessions | 🟡 | ❌ | Wire action to server session invalidation endpoint. |
+| Profile editing (name, avatar, timezone, language) | 🟡 | 🟡 | Name update is wired; avatar/timezone/language persistence still pending backend fields. |
+| Change password | ✅ | ✅ | Both call `/api/auth/change-password`. |
+| Active sessions list | ✅ | ✅ | Both call `/api/auth/sessions`. |
+| Login history | ✅ | ✅ | Both call `/api/auth/history`; pagination/audit enrichment remains future work. |
+| Sign out all sessions | ✅ | ✅ | Both call `/api/auth/sessions/revoke-all`. |
 
 ## Shared UX and component-system parity (shadcn/ui)
 
