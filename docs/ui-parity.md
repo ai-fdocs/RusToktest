@@ -8,6 +8,7 @@ using **shadcn/ui** and **leptos-shadcn-ui** with shared design tokens and a par
 - Ship **pixel-consistent UI** between Leptos and Next.js for admin and storefront experiences.
 - Use a **single component philosophy** (shadcn-style, headless + tokens) to avoid drift.
 - Enable **parallel development** with clear parity checks and documentation.
+- Accept small deviations when a Leptos UI library lacks a 1:1 feature, but document every gap.
 
 ## Scope
 
@@ -79,6 +80,7 @@ Create and maintain a small table (e.g. `docs/ui/parity-matrix.md`) with columns
 5. **Review checklist**
    - Compare screen snapshots across stacks.
    - Verify tokens only (no ad‑hoc colors/spacing).
+   - Record any UI gaps and link to a follow-up plan to remove them.
 
 ## Storefront applicability
 
@@ -94,3 +96,4 @@ and can consume the same design tokens and shadcn-style component contracts.
 - Define a parity matrix starter list.
 - Build the first shared components (Button, Input, Select, Card, Table).
 - Migrate admin screens first, then storefront screens.
+- Maintain a UI gap log and update it as Leptos libraries evolve.

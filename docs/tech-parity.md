@@ -15,6 +15,8 @@ feature parity **in behavior and integration**, independent of UI design.
 - Same navigation flows, route guards, and URL structures.
 - Same SEO strategy and metadata coverage where applicable.
 - Same auth/session behavior and error handling.
+- Accept small behavioral differences when libraries are not 1:1, but document them clearly.
+- Keep the documentation current as Leptos libraries catch up with Next.js features.
 
 ## Integration parity matrix
 
@@ -33,6 +35,26 @@ feature parity **in behavior and integration**, independent of UI design.
 | SEO | ✅ | ⚠️ | ✅ | ⚠️ | Same metadata, structured data, and robots rules.
 
 Legend: ✅ implemented, ⚠️ pending, ❌ not planned.
+
+## Library parity notes
+
+Leptos ecosystem libraries are younger and may lag behind the Next.js equivalents. We accept small
+differences as long as they are **explicitly documented** and tracked.
+
+When a feature is missing on the Leptos side:
+
+1. Implement a **custom workaround** in code.
+2. Add a code comment noting that this is a temporary custom implementation and should be replaced
+   with a library-provided solution when available.
+3. Update this document with the gap and a migration note.
+
+### Suggested code annotation format
+
+Use a short, consistent marker near the custom implementation:
+
+```
+// PARITY: custom implementation (no Leptos equivalent yet). Replace when available.
+```
 
 ## Implementation tables
 
@@ -75,9 +97,11 @@ Legend: ✅ implemented, ⚠️ pending, ❌ not planned.
 1. Update this document whenever a new integration is added or changed.
 2. Require dual implementation PRs (Next.js + Leptos) for parity-sensitive work.
 3. Add a snapshot or checklist per release to ensure parity stays intact.
+4. Document any parity gaps and the intended migration path.
 
 ## Next steps
 
 - Create a shared API contract reference (REST + GraphQL) and link it here.
 - Define shared route maps for admin and storefront.
 - Add a standard error code map and i18n keys list.
+- Add a parity gap log (custom implementations + planned migrations).
