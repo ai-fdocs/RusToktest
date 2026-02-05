@@ -6,14 +6,12 @@ use loco_rs::{
     app::{AppContext, Hooks, Initializer},
     boot::{create_app, BootResult, StartMode},
     controller::AppRoutes,
+    config::Config,
     environment::Environment,
     task::Tasks,
     Result,
 };
-use sea_orm::DatabaseConnection;
 use std::path::Path;
-use utoipa::OpenApi;
-use utoipa_swagger_ui::SwaggerUi;
 
 use crate::controllers;
 use crate::middleware;
@@ -40,8 +38,8 @@ impl Hooks for App {
         )
     }
 
-    async fn boot(mode: StartMode, environment: &Environment) -> Result<BootResult> {
-        create_app::<Self, Migrator>(mode, environment).await
+    async fn boot(mode: StartMode, environment: &Environment, config: Config) -> Result<BootResult> {
+        create_app::<Self, Migrator>(mode, environment, config).await
     }
 
     fn routes(_ctx: &AppContext) -> AppRoutes {
@@ -68,10 +66,6 @@ impl Hooks for App {
         let alloy_state = crate::graphql::alloy::AlloyState::new(engine, storage, orchestrator);
 
         Ok(router
-            .merge(SwaggerUi::new("/swagger").url(
-                "/api-docs/openapi.json",
-                controllers::swagger::ApiDoc::openapi(),
-            ))
             .layer(Extension(registry))
             .layer(Extension(alloy_state))
             .layer(axum_middleware::from_fn_with_state(
@@ -80,7 +74,7 @@ impl Hooks for App {
             )))
     }
 
-    async fn truncate(_db: &DatabaseConnection) -> Result<()> {
+    async fn truncate(_ctx: &AppContext) -> Result<()> {
         Ok(())
     }
 
@@ -94,7 +88,7 @@ impl Hooks for App {
         Ok(())
     }
 
-    async fn seed(_db: &DatabaseConnection, _path: &Path) -> Result<()> {
+    async fn seed(_ctx: &AppContext, _path: &Path) -> Result<()> {
         Ok(())
     }
 }

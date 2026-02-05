@@ -89,7 +89,7 @@ fn dynamic_to_json(value: Dynamic) -> serde_json::Value {
     }
 
     if let Ok(v) = value.clone().try_cast::<i64>() {
-        return serde_json::Value::Number(v.into());
+        return serde_json::Value::Number(serde_json::Number::from(v));
     }
 
     if let Ok(v) = value.clone().try_cast::<f64>() {
@@ -103,11 +103,12 @@ fn dynamic_to_json(value: Dynamic) -> serde_json::Value {
     }
 
     if let Ok(v) = value.clone().try_cast::<Vec<Dynamic>>() {
-        return serde_json::Value::Array(v.into_iter().map(dynamic_to_json).collect());
+        let items: Vec<serde_json::Value> = v.into_iter().map(dynamic_to_json).collect();
+        return serde_json::Value::Array(items);
     }
 
     if let Ok(v) = value.try_cast::<rhai::Map>() {
-        let mut json_map = serde_json::Map::new();
+        let mut json_map: serde_json::Map<String, serde_json::Value> = serde_json::Map::new();
         for (key, value) in v {
             json_map.insert(key.to_string(), dynamic_to_json(value));
         }

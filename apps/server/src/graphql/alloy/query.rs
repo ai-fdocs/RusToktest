@@ -1,6 +1,7 @@
 use async_graphql::{Context, Object, Result};
 use uuid::Uuid;
 
+use alloy_scripting::ScriptRegistry;
 use alloy_scripting::storage::ScriptQuery;
 
 use super::{

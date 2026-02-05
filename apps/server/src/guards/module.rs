@@ -1,5 +1,4 @@
 use axum::{
-    async_trait,
     extract::{FromRef, FromRequestParts},
     http::{request::Parts, StatusCode},
 };
@@ -16,7 +15,6 @@ pub trait ModuleSlug {
 
 pub struct RequireModule<M: ModuleSlug>(PhantomData<M>);
 
-#[async_trait]
 impl<S, M: ModuleSlug> FromRequestParts<S> for RequireModule<M>
 where
     S: Send + Sync,

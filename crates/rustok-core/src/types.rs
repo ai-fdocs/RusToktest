@@ -2,6 +2,7 @@ use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::str::FromStr;
+use utoipa::ToSchema;
 
 #[derive(Debug, thiserror::Error)]
 pub enum UserRoleParseError {
@@ -10,7 +11,17 @@ pub enum UserRoleParseError {
 }
 
 #[derive(
-    Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, EnumIter, DeriveActiveEnum, Default,
+    Clone,
+    Debug,
+    PartialEq,
+    Eq,
+    Hash,
+    Serialize,
+    Deserialize,
+    EnumIter,
+    DeriveActiveEnum,
+    Default,
+    ToSchema,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(32))")]
 pub enum UserRole {
@@ -52,7 +63,16 @@ impl FromStr for UserRole {
 }
 
 #[derive(
-    Clone, Debug, PartialEq, Eq, Serialize, Deserialize, EnumIter, DeriveActiveEnum, Default,
+    Clone,
+    Debug,
+    PartialEq,
+    Eq,
+    Serialize,
+    Deserialize,
+    EnumIter,
+    DeriveActiveEnum,
+    Default,
+    ToSchema,
 )]
 #[sea_orm(rs_type = "String", db_type = "String(StringLen::N(32))")]
 pub enum UserStatus {

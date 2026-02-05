@@ -5503,6 +5503,7 @@ dependencies = [
  "tokio",
  "tracing",
  "ulid",
+ "utoipa 5.4.0",
  "uuid",
 ]
 
@@ -5670,8 +5671,8 @@ dependencies = [
  "thiserror 2.0.18",
  "tokio",
  "tracing",
+ "rhai",
  "utoipa 5.4.0",
- "utoipa-swagger-ui",
  "uuid",
 ]
 

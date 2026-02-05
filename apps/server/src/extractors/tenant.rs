@@ -1,5 +1,4 @@
 use axum::{
-    async_trait,
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
 };
@@ -9,7 +8,6 @@ use crate::context::TenantContextExt;
 
 pub struct CurrentTenant(pub TenantContext);
 
-#[async_trait]
 impl<S> FromRequestParts<S> for CurrentTenant
 where
     S: Send + Sync,

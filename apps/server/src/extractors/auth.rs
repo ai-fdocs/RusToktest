@@ -6,7 +6,6 @@ use crate::models::{
 };
 use crate::services::auth::AuthService;
 use axum::{
-    async_trait,
     extract::{FromRef, FromRequestParts},
     http::{request::Parts, StatusCode},
 };
@@ -105,7 +104,6 @@ where
     Ok(CurrentUser { user, permissions })
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for CurrentUser
 where
     S: Send + Sync,
@@ -120,7 +118,6 @@ where
 
 pub struct OptionalCurrentUser(pub Option<CurrentUser>);
 
-#[async_trait]
 impl<S> FromRequestParts<S> for OptionalCurrentUser
 where
     S: Send + Sync,

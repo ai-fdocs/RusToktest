@@ -5,7 +5,7 @@ use axum::{
 };
 use uuid::Uuid;
 
-use rustok_commerce::dto::{CreateVariantInput, UpdateVariantInput, VariantResponse};
+use rustok_commerce::dto::{CreateVariantInput, PriceInput, UpdateVariantInput, VariantResponse};
 use rustok_commerce::{entities, PricingService};
 use rustok_core::{generate_id, DomainEvent, EventBus};
 
@@ -479,7 +479,7 @@ pub(super) async fn update_prices(
     State(ctx): State<AppContext>,
     request: RequestContext,
     Path(id): Path<Uuid>,
-    Json(prices): Json<Vec<rustok_commerce::dto::PriceInput>>,
+    Json(prices): Json<Vec<PriceInput>>,
 ) -> Result<Json<ApiResponse<VariantResponse>>, ApiErrorResponse> {
     let user_id = request.require_user()?;
 

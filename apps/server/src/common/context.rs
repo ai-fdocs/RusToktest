@@ -1,5 +1,4 @@
 use axum::{
-    async_trait,
     extract::FromRequestParts,
     http::{request::Parts, StatusCode},
 };
@@ -19,7 +18,6 @@ impl RequestContext {
     }
 }
 
-#[async_trait]
 impl<S> FromRequestParts<S> for RequestContext
 where
     S: Send + Sync,

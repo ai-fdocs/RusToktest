@@ -3,6 +3,7 @@ use axum::{
     Json,
 };
 use loco_rs::prelude::*;
+use rustok_content::dto::{NodeListItem, NodeResponse};
 use rustok_content::{CreateNodeInput, ListNodesFilter, NodeService, UpdateNodeInput};
 use rustok_core::EventBus;
 use uuid::Uuid;
@@ -28,7 +29,7 @@ pub async fn list_nodes(
     tenant: TenantContext,
     user: CurrentUser,
     Query(filter): Query<ListNodesFilter>,
-) -> Result<Json<Vec<rustok_content::dto::NodeListItem>>> {
+) -> Result<Json<Vec<NodeListItem>>> {
     let service = NodeService::new(ctx.db.clone(), EventBus::default());
     let (items, _) = service
         .list_nodes(tenant.id, user.security_context(), filter)
@@ -56,7 +57,7 @@ pub async fn get_node(
     _tenant: TenantContext,
     _user: CurrentUser,
     Path(id): Path<Uuid>,
-) -> Result<Json<rustok_content::dto::NodeResponse>> {
+) -> Result<Json<NodeResponse>> {
     let service = NodeService::new(ctx.db.clone(), EventBus::default());
     let node = service
         .get_node(id)
@@ -82,7 +83,7 @@ pub async fn create_node(
     tenant: TenantContext,
     user: CurrentUser,
     Json(input): Json<CreateNodeInput>,
-) -> Result<Json<rustok_content::dto::NodeResponse>> {
+) -> Result<Json<NodeResponse>> {
     let service = NodeService::new(ctx.db.clone(), EventBus::default());
     let node = service
         .create_node(tenant.id, user.security_context(), input)
@@ -112,7 +113,7 @@ pub async fn update_node(
     user: CurrentUser,
     Path(id): Path<Uuid>,
     Json(input): Json<UpdateNodeInput>,
-) -> Result<Json<rustok_content::dto::NodeResponse>> {
+) -> Result<Json<NodeResponse>> {
     let service = NodeService::new(ctx.db.clone(), EventBus::default());
     let node = service
         .update_node(id, user.security_context(), input)

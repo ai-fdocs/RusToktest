@@ -3,6 +3,7 @@ use chrono::Utc;
 use uuid::Uuid;
 
 use alloy_scripting::model::Script;
+use alloy_scripting::ScriptRegistry;
 use alloy_scripting::runner::ExecutionOutcome;
 
 use super::types::{
@@ -22,9 +23,10 @@ impl AlloyMutation {
     ) -> Result<GqlScript> {
         require_admin(ctx)?;
         let state = ctx.data::<AlloyState>()?;
+        let mut scope = rhai::Scope::new();
         state
             .engine
-            .compile(&input.name, &input.code)
+            .compile(&input.name, &input.code, &mut scope)
             .map_err(|err| async_graphql::Error::new(err.to_string()))?;
 
         let mut script = Script::new(input.name, input.code, input.trigger.into());
@@ -68,9 +70,10 @@ impl AlloyMutation {
         }
         if let Some(code) = input.code {
             state.engine.invalidate(&script.name);
+            let mut scope = rhai::Scope::new();
             state
                 .engine
-                .compile(&script.name, &code)
+                .compile(&script.name, &code, &mut scope)
                 .map_err(|err| async_graphql::Error::new(err.to_string()))?;
             script.code = code;
         }

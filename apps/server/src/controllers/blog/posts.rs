@@ -4,6 +4,7 @@ use axum::{
 };
 use loco_rs::prelude::*;
 use rustok_blog::{CreatePostInput, PostService};
+use rustok_content::dto::{NodeListItem, NodeResponse};
 use rustok_content::{ListNodesFilter, NodeService, UpdateNodeInput};
 use rustok_core::EventBus;
 use uuid::Uuid;
@@ -26,7 +27,7 @@ pub async fn list_posts(
     tenant: TenantContext,
     user: CurrentUser,
     Query(mut filter): Query<ListNodesFilter>,
-) -> Result<Json<Vec<rustok_content::dto::NodeListItem>>> {
+) -> Result<Json<Vec<NodeListItem>>> {
     let service = NodeService::new(ctx.db.clone(), EventBus::default());
     // Force kind="post"
     filter.kind = Some("post".to_string());
@@ -56,7 +57,7 @@ pub async fn get_post(
     _tenant: TenantContext,
     _user: CurrentUser,
     Path(id): Path<Uuid>,
-) -> Result<Json<rustok_content::dto::NodeResponse>> {
+) -> Result<Json<NodeResponse>> {
     let service = NodeService::new(ctx.db.clone(), EventBus::default());
     let node = service
         .get_node(id)
