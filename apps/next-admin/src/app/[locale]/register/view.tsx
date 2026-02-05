@@ -24,10 +24,12 @@ export default function RegisterView({ locale }: { locale: string }) {
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
     setError(null);
+
     if (!tenant || !email || !password) {
       setError(t("errorRequired"));
       return;
     }
+
     setIsLoading(true);
     try {
       const response = await fetch(`${apiBaseUrl}/api/auth/register`, {
@@ -39,6 +41,7 @@ export default function RegisterView({ locale }: { locale: string }) {
         setError(response.status === 400 ? e("auth.invalid_credentials") : e("http"));
         return;
       }
+
       const payload = (await response.json()) as AuthResponse;
       document.cookie = `rustok-admin-token=${payload.access_token}; path=/`;
       document.cookie = `rustok-admin-tenant=${tenant}; path=/`;
@@ -53,17 +56,52 @@ export default function RegisterView({ locale }: { locale: string }) {
   return (
     <main className="min-h-screen bg-slate-50">
       <section className="mx-auto max-w-2xl px-6 py-12">
-        <form className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm" onSubmit={onSubmit}>
-          <h1 className="text-2xl font-semibold">{t("title")}</h1>
-          {error ? <div className="mt-4 rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600">{error}</div> : null}
+        <form
+          className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          onSubmit={onSubmit}
+        >
+          <h1 className="text-2xl font-semibold">{t("registerTitle")}</h1>
+          <p className="mt-2 text-sm text-slate-500">{t("registerSubtitle")}</p>
+          {error ? (
+            <div className="mt-4 rounded border border-rose-200 bg-rose-50 p-3 text-sm text-rose-600">
+              {error}
+            </div>
+          ) : null}
           <div className="mt-4 grid gap-4">
-            <input className="input input-bordered" placeholder="demo" value={tenant} onChange={(e) => setTenant(e.target.value)} />
-            <input className="input input-bordered" placeholder="admin@rustok.io" value={email} onChange={(e) => setEmail(e.target.value)} />
-            <input className="input input-bordered" placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} />
-            <input type="password" className="input input-bordered" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input
+              className="input input-bordered"
+              placeholder="demo"
+              value={tenant}
+              onChange={(event) => setTenant(event.target.value)}
+            />
+            <input
+              className="input input-bordered"
+              placeholder="admin@rustok.io"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+            />
+            <input
+              className="input input-bordered"
+              placeholder={t("nameLabel")}
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+            />
+            <input
+              type="password"
+              className="input input-bordered"
+              placeholder="••••••••"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
           </div>
-          <Button className="mt-6 w-full" type="submit" disabled={isLoading}>{isLoading ? `${t("submit")}…` : t("submit")}</Button>
-          <div className="mt-4 text-sm"><Link href={`/${locale}/login`} className="link link-primary">{t("title")}</Link></div>
+          <Button className="mt-6 w-full" type="submit" disabled={isLoading}>
+            {isLoading ? `${t("registerSubmit")}…` : t("registerSubmit")}
+          </Button>
+          <div className="mt-4 text-sm">
+            <Link href={`/${locale}/login`} className="link link-primary">
+              {t("backToLogin")}
+            </Link>
+          </div>
         </form>
       </section>
     </main>
