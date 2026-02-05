@@ -129,7 +129,7 @@ impl AlloyMutation {
 
         let params = input
             .params
-            .map(|params| {
+            .map(|params| -> Result<HashMap<String, Dynamic>> {
                 let object = params
                     .0
                     .as_object()
