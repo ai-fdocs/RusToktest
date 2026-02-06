@@ -345,6 +345,7 @@ cargo loco generate controller products --api
 - [UI parity (admin + storefront)](docs/ui-parity.md)
 - [Tech parity tracker](docs/tech-parity.md)
 - [Template integration plan](docs/admin-template-integration-plan.md)
+- [Admin libraries parity](docs/admin-libraries-parity.md)
 
 ---
 

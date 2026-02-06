@@ -194,6 +194,7 @@ Admin docs:
 - `docs/ui-parity.md`
 - `docs/tech-parity.md`
 - `docs/admin-template-integration-plan.md`
+- `docs/admin-libraries-parity.md`
 
 ---
 
