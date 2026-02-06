@@ -287,33 +287,42 @@ pub fn Security() -> impl IntoView {
                     </Show>
                 </div>
 
-                <div class="grid gap-4 rounded-2xl bg-white p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)]">
-                    <h3 class="text-lg font-semibold">
-                        {move || translate(locale.locale.get(), "security.sessionsTitle")}
-                    </h3>
-                    <p class="text-sm text-slate-500">
-                        {move || translate(locale.locale.get(), "security.sessionsSubtitle")}
-                    </p>
-                    <div class="grid gap-3">
-                        {sessions
-                            .into_iter()
-                            .map(|session| {
-                                view! {
-                                    <div class="flex items-center justify-between gap-4 border-b border-slate-200 py-3 last:border-b-0">
-                                        <div>
-                                            <strong>{session.device}</strong>
-                                            <p class="text-sm text-slate-500">
-                                                {move || translate(locale.locale.get(), "security.sessionIp")} ": "
-                                                {session.ip}
-                                            </p>
-                                        </div>
-                                        <div class="grid gap-1 text-right">
-                                            <span class="inline-flex items-center justify-center rounded-full bg-slate-200 px-2.5 py-1 text-xs text-slate-600">
-                                                {move || translate(locale.locale.get(), session.status_key)}
-                                            </span>
-                                            <span class="text-xs text-slate-400">
-                                                {move || translate(locale.locale.get(), session.last_active_key)}
-                                            </span>
+                <div class="settings-card">
+                    <h3>{move || translate(locale.locale.get(), "security.sessionsTitle")}</h3>
+                    <p class="section-subtitle">{move || translate(locale.locale.get(), "security.sessionsSubtitle")}</p>
+                    <div class="session-list">
+                        {move || {
+                            sessions
+                                .get()
+                                .into_iter()
+                                .map(|session| {
+                                    let label = session
+                                        .user_agent
+                                        .clone()
+                                        .unwrap_or_else(|| "Unknown device".to_string());
+                                    let ip = session
+                                        .ip_address
+                                        .clone()
+                                        .unwrap_or_else(|| "Unknown IP".to_string());
+                                    let status_label = if session.current {
+                                        "Current"
+                                    } else {
+                                        "Other"
+                                    };
+                                    view! {
+                                        <div class="session-item">
+                                            <div>
+                                                <strong>{label}</strong>
+                                                <p class="form-hint">
+                                                    {move || translate(locale.locale.get(), "security.sessionIp")}
+                                                    {" : "}
+                                                    {ip}
+                                                </p>
+                                            </div>
+                                            <div class="session-meta">
+                                                <span class="status-pill">{status_label}</span>
+                                                <span class="meta-text">{session.created_at}</span>
+                                            </div>
                                         </div>
                                     }
                                 })
@@ -322,27 +331,34 @@ pub fn Security() -> impl IntoView {
                     </div>
                 </div>
 
-                <div class="grid gap-4 rounded-2xl bg-white p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)]">
-                    <h3 class="text-lg font-semibold">
-                        {move || translate(locale.locale.get(), "security.historyTitle")}
-                    </h3>
-                    <p class="text-sm text-slate-500">
-                        {move || translate(locale.locale.get(), "security.historySubtitle")}
-                    </p>
-                    <div class="grid gap-3">
-                        {history
-                            .into_iter()
-                            .map(|event| {
-                                view! {
-                                    <div class="flex items-center justify-between gap-4 border-b border-slate-200 py-3 last:border-b-0">
-                                        <div>
-                                            <strong>
-                                                {move || translate(locale.locale.get(), event.timestamp_key)}
-                                            </strong>
-                                            <p class="text-sm text-slate-500">
-                                                {move || translate(locale.locale.get(), "security.sessionIp")} ": "
-                                                {event.ip}
-                                            </p>
+                <div class="settings-card">
+                    <h3>{move || translate(locale.locale.get(), "security.historyTitle")}</h3>
+                    <p class="section-subtitle">{move || translate(locale.locale.get(), "security.historySubtitle")}</p>
+                    <div class="session-list">
+                        {move || {
+                            history
+                                .get()
+                                .into_iter()
+                                .map(|event| {
+                                    let label = event
+                                        .user_agent
+                                        .clone()
+                                        .unwrap_or_else(|| "Unknown device".to_string());
+                                    let ip = event
+                                        .ip_address
+                                        .clone()
+                                        .unwrap_or_else(|| "Unknown IP".to_string());
+                                    view! {
+                                        <div class="session-item">
+                                            <div>
+                                                <strong>{label}</strong>
+                                                <p class="form-hint">
+                                                    {move || translate(locale.locale.get(), "security.sessionIp")}
+                                                    {" : "}
+                                                    {ip}
+                                                </p>
+                                            </div>
+                                            <span class="status-pill">{event.created_at}</span>
                                         </div>
                                         <span class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-1 text-xs text-slate-600">
                                             {move || translate(locale.locale.get(), event.status_key)}

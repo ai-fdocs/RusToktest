@@ -27,7 +27,10 @@ impl IggyTransport {
         };
 
         let connector_config = ConnectorConfig::from(&config);
-        connector.connect(&connector_config).await?;
+        connector
+            .connect(&connector_config)
+            .await
+            .map_err(|error| rustok_core::Error::External(error.to_string()))?;
         topology::ensure_topology(&config).await?;
 
         let serializer: Arc<dyn EventSerializer> = match config.serialization {
