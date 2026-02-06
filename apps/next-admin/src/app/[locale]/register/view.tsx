@@ -9,6 +9,8 @@ import { Button } from "@/components/ui/button";
 
 type AuthResponse = { access_token: string };
 type InviteAcceptResponse = { email: string; role: string };
+type VerificationRequestResponse = { verification_token?: string | null };
+type VerificationConfirmResponse = { status: string };
 
 export default function RegisterView({ locale }: { locale: string }) {
   const t = useTranslations("auth");
@@ -20,10 +22,14 @@ export default function RegisterView({ locale }: { locale: string }) {
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [inviteToken, setInviteToken] = useState("");
+  const [verificationEmail, setVerificationEmail] = useState("");
+  const [verificationToken, setVerificationToken] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isInviteLoading, setIsInviteLoading] = useState(false);
+  const [isVerifyLoading, setIsVerifyLoading] = useState(false);
+  const [isVerifyConfirmLoading, setIsVerifyConfirmLoading] = useState(false);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -89,6 +95,77 @@ export default function RegisterView({ locale }: { locale: string }) {
       setError(e("network"));
     } finally {
       setIsInviteLoading(false);
+    }
+  };
+
+  const onResendVerification = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setStatus(null);
+
+    if (!tenant || !verificationEmail) {
+      setError(t("verifyRequired"));
+      return;
+    }
+
+    setIsVerifyLoading(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/auth/verify/request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Tenant-Slug": tenant },
+        body: JSON.stringify({ email: verificationEmail }),
+      });
+
+      if (!response.ok) {
+        setError(e("http"));
+        return;
+      }
+
+      const payload = (await response.json()) as VerificationRequestResponse;
+      if (payload.verification_token) {
+        setVerificationToken(payload.verification_token);
+        setStatus(`${t("verifySent")} ${t("verifyTokenPreview")} ${payload.verification_token}`);
+      } else {
+        setStatus(t("verifySent"));
+      }
+    } catch {
+      setError(e("network"));
+    } finally {
+      setIsVerifyLoading(false);
+    }
+  };
+
+  const onConfirmVerification = async (event: FormEvent) => {
+    event.preventDefault();
+    setError(null);
+    setStatus(null);
+
+    if (!tenant || !verificationToken) {
+      setError(t("verifyTokenRequired"));
+      return;
+    }
+
+    setIsVerifyConfirmLoading(true);
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/auth/verify/confirm`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Tenant-Slug": tenant },
+        body: JSON.stringify({ token: verificationToken }),
+      });
+
+      if (!response.ok) {
+        setError(response.status === 401 ? t("verifyTokenInvalid") : e("http"));
+        return;
+      }
+
+      const payload = (await response.json()) as VerificationConfirmResponse;
+      if (payload.status === "ok") {
+        setStatus(t("verifyConfirmed"));
+      }
+    } catch {
+      setError(e("network"));
+    } finally {
+      setIsVerifyConfirmLoading(false);
     }
   };
 
@@ -164,6 +241,44 @@ export default function RegisterView({ locale }: { locale: string }) {
           </div>
           <Button className="mt-6 w-full" type="submit" disabled={isInviteLoading}>
             {isInviteLoading ? `${t("inviteSubmit")}…` : t("inviteSubmit")}
+          </Button>
+        </form>
+
+        <form
+          className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+          onSubmit={onResendVerification}
+        >
+          <h2 className="text-lg font-semibold">{t("verifyTitle")}</h2>
+          <p className="mt-2 text-sm text-slate-500">{t("verifySubtitle")}</p>
+          <div className="mt-4 grid gap-4">
+            <input
+              className="input input-bordered"
+              placeholder="admin@rustok.io"
+              value={verificationEmail}
+              onChange={(event) => setVerificationEmail(event.target.value)}
+            />
+          </div>
+          <Button className="mt-6 w-full" type="submit" disabled={isVerifyLoading}>
+            {isVerifyLoading ? `${t("verifySubmit")}…` : t("verifySubmit")}
+          </Button>
+          <div className="mt-4 grid gap-2 text-sm text-slate-500">
+            <span>{t("verifyTokenLabel")}</span>
+          </div>
+          <div className="mt-2 grid gap-4">
+            <input
+              className="input input-bordered"
+              placeholder="VERIFY-2024-ABCDE"
+              value={verificationToken}
+              onChange={(event) => setVerificationToken(event.target.value)}
+            />
+          </div>
+          <Button
+            className="mt-6 w-full border border-emerald-200 bg-transparent text-emerald-700 hover:bg-emerald-50"
+            type="button"
+            disabled={isVerifyConfirmLoading}
+            onClick={onConfirmVerification}
+          >
+            {isVerifyConfirmLoading ? `${t("verifyConfirm")}…` : t("verifyConfirm")}
           </Button>
         </form>
       </section>

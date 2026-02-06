@@ -40,6 +40,26 @@ struct InviteAcceptResponse {
     role: String,
 }
 
+#[derive(Serialize)]
+struct VerificationRequestParams {
+    email: String,
+}
+
+#[derive(Deserialize)]
+struct VerificationRequestResponse {
+    verification_token: Option<String>,
+}
+
+#[derive(Serialize)]
+struct VerifyConfirmParams {
+    token: String,
+}
+
+#[derive(Deserialize)]
+struct GenericStatusResponse {
+    status: String,
+}
+
 #[component]
 pub fn Register() -> impl IntoView {
     let auth = use_auth();
@@ -51,6 +71,7 @@ pub fn Register() -> impl IntoView {
     let (password, set_password) = signal(String::new());
     let (invite_token, set_invite_token) = signal(String::new());
     let (verification_email, set_verification_email) = signal(String::new());
+    let (verification_token, set_verification_token) = signal(String::new());
     let (error, set_error) = signal(Option::<String>::None);
     let (status, set_status) = signal(Option::<String>::None);
 
@@ -166,14 +187,101 @@ pub fn Register() -> impl IntoView {
     };
 
     let on_resend_verification = move |_| {
-        if verification_email.get().is_empty() {
+        if tenant.get().is_empty() || verification_email.get().is_empty() {
             set_error.set(Some(translate("register.verifyRequired").to_string()));
             set_status.set(None);
             return;
         }
 
-        set_error.set(None);
-        set_status.set(Some(translate("register.verifySent").to_string()));
+        let tenant_value = tenant.get().trim().to_string();
+        let verification_value = verification_email.get().trim().to_string();
+        let set_error = set_error;
+        let set_status = set_status;
+        let set_verification_token = set_verification_token;
+
+        spawn_local(async move {
+            let result = rest_post::<VerificationRequestParams, VerificationRequestResponse>(
+                "/api/auth/verify/request",
+                &VerificationRequestParams {
+                    email: verification_value,
+                },
+                None,
+                Some(tenant_value),
+            )
+            .await;
+
+            match result {
+                Ok(response) => {
+                    set_error.set(None);
+                    let status = if let Some(token) = response.verification_token {
+                        set_verification_token.set(token.clone());
+                        format!(
+                            "{} {} {}",
+                            translate("register.verifySent"),
+                            translate("register.verifyTokenPreview"),
+                            token
+                        )
+                    } else {
+                        translate("register.verifySent")
+                    };
+                    set_status.set(Some(status));
+                }
+                Err(err) => {
+                    let message = match err {
+                        ApiError::Unauthorized => translate("errors.auth.unauthorized").to_string(),
+                        ApiError::Http(_) => translate("errors.http").to_string(),
+                        ApiError::Network => translate("errors.network").to_string(),
+                        ApiError::Graphql(_) => translate("errors.unknown").to_string(),
+                    };
+                    set_error.set(Some(message));
+                    set_status.set(None);
+                }
+            }
+        });
+    };
+
+    let on_confirm_verification = move |_| {
+        if tenant.get().is_empty() || verification_token.get().is_empty() {
+            set_error.set(Some(translate("register.verifyTokenRequired").to_string()));
+            set_status.set(None);
+            return;
+        }
+
+        let tenant_value = tenant.get().trim().to_string();
+        let token_value = verification_token.get().trim().to_string();
+        let set_error = set_error;
+        let set_status = set_status;
+
+        spawn_local(async move {
+            let result = rest_post::<VerifyConfirmParams, GenericStatusResponse>(
+                "/api/auth/verify/confirm",
+                &VerifyConfirmParams {
+                    token: token_value,
+                },
+                None,
+                Some(tenant_value),
+            )
+            .await;
+
+            match result {
+                Ok(_) => {
+                    set_error.set(None);
+                    set_status.set(Some(translate("register.verifyConfirmed").to_string()));
+                }
+                Err(err) => {
+                    let message = match err {
+                        ApiError::Unauthorized => {
+                            translate("register.verifyTokenInvalid").to_string()
+                        }
+                        ApiError::Http(_) => translate("errors.http").to_string(),
+                        ApiError::Network => translate("errors.network").to_string(),
+                        ApiError::Graphql(_) => translate("errors.unknown").to_string(),
+                    };
+                    set_error.set(Some(message));
+                    set_status.set(None);
+                }
+            }
+        });
     };
 
     view! {
@@ -301,6 +409,18 @@ pub fn Register() -> impl IntoView {
                         class="w-full border border-indigo-200 bg-transparent text-blue-600 hover:bg-blue-50"
                     >
                         {move || translate("register.verifySubmit")}
+                    </Button>
+                    <Input
+                        value=verification_token
+                        set_value=set_verification_token
+                        placeholder="VERIFY-2024-0001"
+                        label=move || translate("register.verifyTokenLabel")
+                    />
+                    <Button
+                        on_click=on_confirm_verification
+                        class="w-full border border-emerald-200 bg-transparent text-emerald-700 hover:bg-emerald-50"
+                    >
+                        {move || translate("register.verifyConfirm")}
                     </Button>
                 </div>
             </div>
