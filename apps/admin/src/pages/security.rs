@@ -13,6 +13,7 @@ struct SessionItem {
     ip_address: Option<String>,
     created_at: String,
     current: bool,
+    status_key: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -348,6 +349,10 @@ pub fn Security() -> impl IntoView {
                                         .ip_address
                                         .clone()
                                         .unwrap_or_else(|| "Unknown IP".to_string());
+                                    let status_key = event
+                                        .status_key
+                                        .clone()
+                                        .unwrap_or_else(|| "security.history.success".to_string());
                                     view! {
                                         <div class="session-item">
                                             <div>
@@ -359,14 +364,14 @@ pub fn Security() -> impl IntoView {
                                                 </p>
                                             </div>
                                             <span class="status-pill">{event.created_at}</span>
+                                            <span class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-1 text-xs text-slate-600">
+                                                {move || translate(locale.locale.get(), status_key.clone())}
+                                            </span>
                                         </div>
-                                        <span class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-1 text-xs text-slate-600">
-                                            {move || translate(locale.locale.get(), event.status_key)}
-                                        </span>
-                                    </div>
-                                }
-                            })
-                            .collect_view()}
+                                    }
+                                })
+                                .collect_view()
+                        }}
                     </div>
                 </div>
             </div>
