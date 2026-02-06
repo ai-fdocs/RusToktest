@@ -20,6 +20,19 @@ struct SessionsResponse {
     sessions: Vec<SessionItem>,
 }
 
+#[derive(Clone, Deserialize)]
+struct HistoryItem {
+    user_agent: Option<String>,
+    ip_address: Option<String>,
+    created_at: String,
+    status_key: Option<String>,
+}
+
+#[derive(Deserialize)]
+struct HistoryResponse {
+    sessions: Vec<HistoryItem>,
+}
+
 #[derive(Serialize)]
 struct ChangePasswordParams {
     current_password: String,
@@ -39,7 +52,7 @@ pub fn Security() -> impl IntoView {
     let (status, set_status) = signal(Option::<String>::None);
     let (error, set_error) = signal(Option::<String>::None);
     let (sessions, set_sessions) = signal(Vec::<SessionItem>::new());
-    let (history, set_history) = signal(Vec::<SessionItem>::new());
+    let (history, set_history) = signal(Vec::<HistoryItem>::new());
 
     let load_sessions = move || {
         let token = auth.token.get();
@@ -85,8 +98,7 @@ pub fn Security() -> impl IntoView {
         let locale_signal = locale.locale;
 
         spawn_local(async move {
-            let result =
-                rest_get::<SessionsResponse>("/api/auth/history", token, tenant_slug).await;
+            let result = rest_get::<HistoryResponse>("/api/auth/history", token, tenant_slug).await;
             match result {
                 Ok(response) => {
                     set_error.set(None);
@@ -348,6 +360,10 @@ pub fn Security() -> impl IntoView {
                                         .ip_address
                                         .clone()
                                         .unwrap_or_else(|| "Unknown IP".to_string());
+                                    let status_key = event
+                                        .status_key
+                                        .clone()
+                                        .unwrap_or_else(|| "security.history.success".to_string());
                                     view! {
                                         <div class="session-item">
                                             <div>
@@ -359,14 +375,14 @@ pub fn Security() -> impl IntoView {
                                                 </p>
                                             </div>
                                             <span class="status-pill">{event.created_at}</span>
+                                            <span class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-1 text-xs text-slate-600">
+                                                {move || translate(locale.locale.get(), status_key.clone())}
+                                            </span>
                                         </div>
-                                        <span class="inline-flex items-center rounded-full bg-slate-200 px-2.5 py-1 text-xs text-slate-600">
-                                            {move || translate(locale.locale.get(), event.status_key)}
-                                        </span>
-                                    </div>
-                                }
-                            })
-                            .collect_view()}
+                                    }
+                                })
+                                .collect_view()
+                        }}
                     </div>
                 </div>
             </div>
