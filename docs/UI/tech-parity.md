@@ -37,6 +37,8 @@ feature parity **in behavior and integration**, independent of UI design.
 | GraphQL kit helpers (`leptos-graphql`) | ✅ | ✅ | ✅ | ✅ | Standardize `/api/graphql` headers and request shapes across all apps.
 | Form kit helpers (`leptos-hook-form`) | ✅ | ✅ | ✅ | ✅ | Standardize form state + errors across admin/storefront.
 | Validation kit helpers (`leptos-zod`) | ✅ | ✅ | ✅ | ✅ | Standardize zod-style validation errors across stacks.
+| Table kit helpers (`leptos-table`) | ✅ | ✅ | ✅ | ✅ | Standardize pagination/sort/filter state across stacks.
+| Store kit helpers (`leptos-zustand`) | ✅ | ✅ | ✅ | ✅ | Standardize store snapshot/update shapes across stacks.
 
 Legend: ✅ implemented, ⚠️ pending, ❌ not planned.
 

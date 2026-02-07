@@ -31,19 +31,29 @@
 - Стабильная форма ошибок для UI
 - Rust + TS реализации
 
+### 5) Leptos Table
+- Контракт для таблиц (pagination/sort/filter)
+- Единые структуры `TableState`, `SortRule`, `FilterRule`
+- Rust + TS реализации
+
+### 6) Leptos Zustand
+- Контракт для стор‑снимков и обновлений
+- Упрощённый parity со `zustand` в Next.js
+- Rust + TS реализации
+
 ## Что ещё можно закрывать мини-китами (по мере надобности)
 
 ### Формы и валидация
 - **Next.js:** react-hook-form + zod
-- **Leptos:** нет 1:1 аналога → делаем тонкий контракт (FormState + errors)
+- **Leptos:** покрыто `leptos-hook-form` + `leptos-zod` (контракт FormState + errors)
 
 ### Таблицы
 - **Next.js:** @tanstack/react-table
-- **Leptos:** обёртка над базовыми таблицами (минимальный API для sorting/filter)
+- **Leptos:** покрыто `leptos-table` (контракт pagination/sort/filter)
 
 ### State
 - **Next.js:** zustand
-- **Leptos:** signals + минимальные store-хелперы
+- **Leptos:** покрыто `leptos-zustand` (контракт store snapshots/updates)
 
 ## Принцип расширения
 
