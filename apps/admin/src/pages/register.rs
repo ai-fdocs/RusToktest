@@ -255,9 +255,7 @@ pub fn Register() -> impl IntoView {
         spawn_local(async move {
             let result = rest_post::<VerifyConfirmParams, GenericStatusResponse>(
                 "/api/auth/verify/confirm",
-                &VerifyConfirmParams {
-                    token: token_value,
-                },
+                &VerifyConfirmParams { token: token_value },
                 None,
                 Some(tenant_value),
             )
