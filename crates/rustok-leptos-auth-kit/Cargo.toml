@@ -1,10 +1,8 @@
 [package]
-name = "rustok-graphql-kit"
+name = "rustok-leptos-auth-kit"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
 
 [dependencies]
 serde = { workspace = true, features = ["derive"] }
-serde_json = { workspace = true }
-

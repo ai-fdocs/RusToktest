@@ -1,9 +1,11 @@
-# RusTok Admin Auth Kit
+# RusTok Leptos Auth Kit
 
 Specialized internal library that standardizes authentication flows, storage keys,
-error mapping, and UX contracts across **both admin frontends**:
+error mapping, and UX contracts across **both admin and storefront frontends**:
 - `apps/admin` (Leptos CSR)
 - `apps/next-admin` (Next.js App Router)
+- `apps/storefront` (Leptos)
+- `apps/next-frontend` (Next.js)
 
 This kit is **intentionally narrow and opinionated** for RusTok: it mirrors the
 current `/api/auth/*` REST contract and the Phase 3 admin architecture decisions.
@@ -13,7 +15,7 @@ It is **not** a general-purpose auth framework.
 
 ## Why this exists
 
-We need identical admin auth behavior in two different UI stacks. The kit provides
+We need identical auth behavior in two different UI stacks. The kit provides
 one shared contract for:
 - storage keys (token, tenant, user)
 - error mapping and status handling
@@ -40,7 +42,7 @@ custom code on each page.
 
 - SSO/OIDC/SAML, passwordless, 2FA/TOTP (explicitly out of Phase 3 scope).
 - Replacing the existing REST endpoints or server auth logic.
-- Acting as a universal auth framework for non-admin UIs.
+- Acting as a universal auth framework for non-RusTok UIs.
 
 ---
 
@@ -64,7 +66,7 @@ All endpoints live under `/api/auth`:
 - `POST /sessions/revoke-all`
 
 ### Auth storage keys
-These keys are **fixed** and used in both admin apps:
+These keys are **fixed** and used in both admin and storefront apps:
 - `rustok-admin-token`
 - `rustok-admin-tenant`
 - `rustok-admin-user`
@@ -83,8 +85,8 @@ These keys are **fixed** and used in both admin apps:
 ## Runtime implementations
 
 ### 1) Leptos (Rust)
-Rust helpers live in `crates/rustok-admin-auth` and are meant to be used in
-`apps/admin` (or other Rust-based admin frontends).
+Rust helpers live in `crates/rustok-leptos-auth-kit` and are meant to be used in
+`apps/admin` or `apps/storefront` (or other Rust-based frontends).
 
 Exports:
 - `AuthUser`, `AuthSession`
@@ -92,8 +94,8 @@ Exports:
 - storage key constants
 
 ### 2) Next.js (TypeScript)
-TypeScript helpers live in `packages/admin-auth-kit/next` and are meant to be used in
-`apps/next-admin` (or other React-based admin frontends).
+TypeScript helpers live in `packages/leptos-auth-kit/next` and are meant to be used in
+`apps/next-admin` or `apps/next-frontend` (or other React-based frontends).
 
 Exports:
 - `AuthUser`, `AuthSession`
@@ -102,7 +104,7 @@ Exports:
 - storage key constants
 
 To consume in Next.js, add a path alias or import it via a relative path from the
-monorepo (e.g. by wiring `tsconfig` paths to `packages/admin-auth-kit/next`).
+monorepo (e.g. by wiring `tsconfig` paths to `packages/leptos-auth-kit/next`).
 
 ---
 
@@ -110,14 +112,14 @@ monorepo (e.g. by wiring `tsconfig` paths to `packages/admin-auth-kit/next`).
 
 ### Leptos
 ```rust
-use rustok_admin_auth::{AuthError, AuthSession, ADMIN_TENANT_KEY};
+use rustok_leptos_auth_kit::{AuthError, AuthSession, ADMIN_TENANT_KEY};
 
 let error = AuthError::from_status(401, true);
 ```
 
 ### Next.js
 ```ts
-import { getClientAuth, mapAuthError } from "@/lib/admin-auth-kit";
+import { getClientAuth, mapAuthError } from "@/lib/leptos-auth-kit";
 
 const { token, tenant } = getClientAuth();
 const error = mapAuthError(401, true);
@@ -141,8 +143,8 @@ This keeps parity between Leptos and Next and avoids hidden behavior drift.
 ## Repo layout
 
 ```
-crates/rustok-admin-auth/   # Rust helper crate for Leptos admin
-packages/admin-auth-kit/    # TS helper module for Next.js admin
+crates/rustok-leptos-auth-kit/   # Rust helper crate for Leptos frontends
+packages/leptos-auth-kit/        # TS helper module for Next.js frontends
 ```
 
 ---
