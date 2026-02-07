@@ -9,10 +9,6 @@
 См. базовые источники:
 - [UI parity (admin + storefront)](./ui-parity.md)
 - [Admin libraries parity](./admin-libraries-parity.md)
-- [Admin template integration plan](./admin-template-integration-plan.md)
-- [Admin auth phase 3 scope](./admin-auth-phase3.md)
-- [Admin Phase 3 architecture](./admin-phase3-architecture.md)
-- [Admin Phase 3 gap analysis](./admin-phase3-gap-analysis.md)
 - [Admin reuse matrix](./admin-reuse-matrix.md)
 - [Tech parity tracker](./tech-parity.md)
 - [Storefront overview](./storefront.md)
@@ -100,5 +96,39 @@
    - [ ] Leptos
    - [ ] Next
 6. Shared UI/UX (layout/nav, breadcrumbs, toasts, form patterns).
+   - [ ] Leptos
+   - [ ] Next
+
+---
+
+## Phase 3 — Admin Auth & User Security (только работы)
+
+> Формат: 1) пункт → Leptos / Next
+
+1. Admin auth middleware/guard (требовать auth на приватных маршрутах).
+   - [ ] Leptos
+   - [ ] Next
+2. Login flow (REST: `POST /api/auth/login`).
+   - [ ] Leptos
+   - [ ] Next
+3. Session bootstrap (REST: `GET /api/auth/me`).
+   - [ ] Leptos
+   - [ ] Next
+4. Token storage + refresh strategy (cookie/localStorage).
+   - [ ] Leptos
+   - [ ] Next
+5. Logout flow (очистка токена/сессии).
+   - [ ] Leptos
+   - [ ] Next
+6. Password reset flow (request + confirm).
+   - [ ] Leptos
+   - [ ] Next
+7. Security settings screen (пароли, сессии, 2FA placeholder).
+   - [ ] Leptos
+   - [ ] Next
+8. RBAC checks for admin-only GraphQL/REST.
+   - [ ] Leptos
+   - [ ] Next
+9. Error mapping для auth (errors.*).
    - [ ] Leptos
    - [ ] Next
