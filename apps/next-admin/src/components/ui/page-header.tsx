@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 import { Breadcrumbs } from "./breadcrumbs";
 
 type BreadcrumbItem = {
@@ -9,7 +11,7 @@ type PageHeaderProps = {
   eyebrow?: string;
   title: string;
   subtitle?: string;
-  actions?: React.ReactNode;
+  actions?: ReactNode;
   breadcrumbs?: BreadcrumbItem[];
 };
 

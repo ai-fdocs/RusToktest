@@ -220,9 +220,9 @@ export default async function UsersPage({ searchParams }: UsersPageProps) {
             { label: t("title") },
           ]}
           actions={
-            <a className="btn btn-outline" href={`/${locale}`}>
+            <Link className="btn btn-outline" href={`/${locale}`}>
               {t("back")}
-            </a>
+            </Link>
           }
         />
 
