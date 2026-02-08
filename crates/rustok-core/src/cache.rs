@@ -131,7 +131,7 @@ impl CacheBackend for RedisCacheBackend {
             .arg(value)
             .arg("EX")
             .arg(self.ttl.as_secs())
-            .query_async::<_, ()>(&mut conn)
+            .query_async::<()>(&mut conn)
             .await
             .map_err(|err| crate::Error::Cache(err.to_string()))?;
         Ok(())
@@ -145,7 +145,7 @@ impl CacheBackend for RedisCacheBackend {
             .map_err(|err| crate::Error::Cache(err.to_string()))?;
         redis::cmd("DEL")
             .arg(self.key(key))
-            .query_async::<_, ()>(&mut conn)
+            .query_async::<()>(&mut conn)
             .await
             .map_err(|err| crate::Error::Cache(err.to_string()))?;
         Ok(())
