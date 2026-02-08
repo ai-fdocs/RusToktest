@@ -66,6 +66,12 @@ chrono = { version = "0.4", features = ["serde"] }
 leptos = "0.8.11"
 leptos_axum = "0.8.11"
 leptos_router = "0.8.11"
+leptos-auth = { path = "crates/leptos-auth" }
+leptos-graphql = { path = "crates/leptos-graphql" }
+leptos-hook-form = { path = "crates/leptos-hook-form" }
+leptos-zod = { path = "crates/leptos-zod" }
+leptos-table = { path = "crates/leptos-table" }
+leptos-zustand = { path = "crates/leptos-zustand" }
 
 # Logging
 tracing = "0.1"
