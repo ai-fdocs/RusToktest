@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::sync::OnceLock;
 
 use async_trait::async_trait;
 use chrono::Utc;
@@ -51,8 +52,14 @@ impl EventTransport for MockTransport {
 
 type TestResult<T> = std::result::Result<T, Box<dyn std::error::Error + Send + Sync>>;
 
+async fn test_guard() -> tokio::sync::MutexGuard<'static, ()> {
+    static TEST_MUTEX: OnceLock<Mutex<()>> = OnceLock::new();
+    TEST_MUTEX.get_or_init(|| Mutex::new(())).lock().await
+}
+
 #[tokio::test]
 async fn relay_delivers_successfully() -> TestResult<()> {
+    let _guard = test_guard().await;
     let Some(db) = setup_db().await? else {
         return Ok(());
     };
@@ -82,6 +89,7 @@ async fn relay_delivers_successfully() -> TestResult<()> {
 
 #[tokio::test]
 async fn relay_retries_then_succeeds() -> TestResult<()> {
+    let _guard = test_guard().await;
     let Some(db) = setup_db().await? else {
         return Ok(());
     };
@@ -130,6 +138,7 @@ async fn relay_retries_then_succeeds() -> TestResult<()> {
 
 #[tokio::test]
 async fn relay_moves_to_dlq_on_max_retry() -> TestResult<()> {
+    let _guard = test_guard().await;
     let Some(db) = setup_db().await? else {
         return Ok(());
     };
