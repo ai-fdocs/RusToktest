@@ -202,9 +202,20 @@ fn default_relay_interval_ms() -> u64 {
 #[cfg(test)]
 mod tests {
     use super::{EventTransportKind, RustokSettings};
+    use std::sync::{Mutex, OnceLock};
+
+    fn env_lock() -> &'static Mutex<()> {
+        static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+        LOCK.get_or_init(|| Mutex::new(()))
+    }
 
     #[test]
     fn reads_transport_from_config() {
+        let _guard = env_lock().lock().expect("env lock poisoned");
+        unsafe {
+            std::env::remove_var("RUSTOK_EVENT_TRANSPORT");
+        }
+
         let raw = serde_json::json!({
             "rustok": {
                 "events": {
@@ -219,6 +230,7 @@ mod tests {
 
     #[test]
     fn rejects_invalid_env_transport() {
+        let _guard = env_lock().lock().expect("env lock poisoned");
         unsafe {
             std::env::set_var("RUSTOK_EVENT_TRANSPORT", "broken");
         }
