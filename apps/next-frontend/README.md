@@ -41,3 +41,17 @@ This is an alpha version and requires clarification. Be careful, there may be er
 ## Документация
 - Локальная документация: `./docs/`
 - Общая документация платформы: `/docs`
+
+## Паспорт компонента
+- **Роль в системе:** Next.js storefront для клиентской витрины и пользовательских сценариев.
+- **Основные данные/ответственность:** бизнес-логика и API данного компонента; структура кода и документации в корне компонента.
+- **Взаимодействует с:**
+  - apps/server (витринный API)
+  - crates/rustok-commerce и rustok-content через backend
+  - общая дизайн-система с apps/admin
+- **Точки входа:**
+  - `apps/next-frontend/app/*`
+  - `apps/next-frontend/components/*`
+- **Локальная документация:** `./docs/`
+- **Глобальная документация платформы:** `/docs/`
+
