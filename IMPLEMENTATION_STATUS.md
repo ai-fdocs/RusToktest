@@ -1,5 +1,7 @@
 # RusToK Implementation Status - February 11, 2026
 
+> ⚠️ **NOTE**: This document is now legacy. Please use **[PROJECT_STATUS.md](PROJECT_STATUS.md)** for current status and consolidated plan.
+
 ## Current Session Progress
 
 ### 🎯 Objectives

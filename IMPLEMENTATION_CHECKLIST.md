@@ -1,5 +1,7 @@
 # RusToK — Implementation Checklist
 
+> ⚠️ **NOTE**: This document is now legacy. Please use **[PROJECT_STATUS.md](PROJECT_STATUS.md)** for current status and consolidated plan.
+
 Практический чеклист для отслеживания прогресса по внедрению рекомендаций.
 
 ---
