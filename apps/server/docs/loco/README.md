@@ -8,8 +8,9 @@
 
 1. Этот файл (`apps/server/docs/loco/README.md`);
 2. `apps/server/docs/loco/changes.md`;
-3. `apps/server/docs/loco/upstream/VERSION` (актуальность snapshot);
-4. Текущие паттерны в `apps/server/src/**` и `apps/server/migration/**`.
+3. `apps/server/docs/library-stack.md` (основные библиотеки сервера и роли);
+4. `apps/server/docs/loco/upstream/VERSION` (актуальность snapshot);
+5. Текущие паттерны в `apps/server/src/**` и `apps/server/migration/**`.
 
 Короткое правило: **реальный код в `apps/server` важнее абстрактных рекомендаций из интернета**.
 
