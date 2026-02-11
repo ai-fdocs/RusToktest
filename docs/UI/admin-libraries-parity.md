@@ -21,7 +21,7 @@
 | I18n | `leptos_i18n` | Многоязычность интерфейса |
 | Metadata/SEO | `leptos-next-metadata` | Управление metadata/head в Next-like стиле |
 | Forms | `leptos-hook-form`, `leptos-zod` | Управление формами и валидация |
-| Tables/listing | `leptos-struct-table`, `leptos-shadcn-pagination` | Таблицы и пагинация для админских списков |
+| Tables/listing | `leptos-struct-table`, `leptos-shadcn-pagination` | Таблицы и пагинация для админских списков (из shadcn-слоя используем именно pagination crate) |
 | Browser/reactive utils | `leptos-use` | LocalStorage/hooks/observer и прочие browser utilities |
 | Styling | `tailwind-rs` | Tailwind pipeline для Leptos-UI |
 | DX/debug | `console_error_panic_hook`, `console_log`, `log` | Диагностика ошибок и логирование в браузере |
@@ -30,6 +30,7 @@
 
 - `graphql-client` — подключаем в приложении, когда реально включаем typed `.graphql` codegen flow.
 - `leptos-query` — подключаем точечно, когда нужен кэш/стратегии refetch/stale beyond базовых `Resource`/actions.
+- `leptos-shadcn-ui` как полный набор примитивов сейчас **не является обязательным core**; в согласованном baseline используем `leptos-shadcn-pagination` и локальные UI-компоненты.
 
 ## Обязательный набор библиотек (подключаем в фронтендах)
 
