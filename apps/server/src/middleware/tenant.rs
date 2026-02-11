@@ -311,41 +311,42 @@ impl TenantCacheInfrastructure {
         loop {
             let notify = {
                 let mut in_flight = self.in_flight.lock().await;
-                
+
                 if let Some(existing) = in_flight.get(cache_key) {
                     let notify = existing.clone();
                     drop(in_flight);
-                    
+
                     self.metrics
                         .incr("coalesced_requests", &self.metrics.coalesced_requests)
                         .await;
-                    
+
                     notify.notified().await;
-                    
+
                     if let Some(cached) = self.get_cached_tenant(cache_key).await? {
                         return Ok(cached);
                     }
-                    
+
                     continue;
                 }
-                
+
                 let notify = Arc::new(Notify::new());
                 in_flight.insert(cache_key.to_string(), notify.clone());
                 notify
             };
-            
+
             let result = loader().await;
-            
+
             {
                 let mut in_flight = self.in_flight.lock().await;
                 in_flight.remove(cache_key);
             }
-            
+
             notify.notify_waiters();
-            
+
             match result {
                 Ok(Some(context)) => {
-                    self.set_cached_tenant(cache_key.to_string(), &context).await?;
+                    self.set_cached_tenant(cache_key.to_string(), &context)
+                        .await?;
                     return Ok(context);
                 }
                 Ok(None) => return Err(StatusCode::NOT_FOUND),
@@ -533,8 +534,7 @@ pub async fn resolve(
         })
         .await?;
 
-    req.extensions_mut()
-        .insert(TenantContextExtension(context));
+    req.extensions_mut().insert(TenantContextExtension(context));
     Ok(next.run(req).await)
 }
 

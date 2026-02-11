@@ -7,12 +7,12 @@ use uuid::Uuid;
 
 async fn setup_test_db() -> (DatabaseConnection, Pool<Sqlite>) {
     let database_url = "sqlite::memory:";
-    
+
     // Setup SeaORM connection
     let sea_orm_db = Database::connect(database_url)
         .await
         .expect("Failed to connect SeaORM to test database");
-        
+
     // Setup sqlx connection for manual queries
     let sqlx_pool = sqlx::Sqlite::create(&database_url).await.unwrap();
 
@@ -30,7 +30,7 @@ async fn test_transactional_event_publishing_rollback() {
 
     // Start a transaction and publish event
     let mut txn = sea_orm_db.begin().await.unwrap();
-    
+
     let event = DomainEvent::NodeCreated {
         node_id: Uuid::new_v4(),
         kind: "post".to_string(),
@@ -38,7 +38,8 @@ async fn test_transactional_event_publishing_rollback() {
     };
 
     // Publish event in transaction
-    event_bus.publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
+    event_bus
+        .publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
         .await
         .expect("Failed to publish event in transaction");
 
@@ -52,7 +53,10 @@ async fn test_transactional_event_publishing_rollback() {
         .unwrap()
         .get(0);
 
-    assert_eq!(count, 0, "Events should not be persisted after transaction rollback");
+    assert_eq!(
+        count, 0,
+        "Events should not be persisted after transaction rollback"
+    );
 }
 
 #[tokio::test]
@@ -67,7 +71,7 @@ async fn test_transactional_event_publishing_commit() {
 
     // Start a transaction and publish event
     let mut txn = sea_orm_db.begin().await.unwrap();
-    
+
     let event = DomainEvent::NodeCreated {
         node_id,
         kind: "post".to_string(),
@@ -75,7 +79,8 @@ async fn test_transactional_event_publishing_commit() {
     };
 
     // Publish event in transaction
-    event_bus.publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
+    event_bus
+        .publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
         .await
         .expect("Failed to publish event in transaction");
 
@@ -89,7 +94,10 @@ async fn test_transactional_event_publishing_commit() {
         .unwrap()
         .get(0);
 
-    assert_eq!(count, 1, "Event should be persisted after transaction commit");
+    assert_eq!(
+        count, 1,
+        "Event should be persisted after transaction commit"
+    );
 
     // Verify event content
     let persisted_event: (String, i32, String, Option<String>, Uuid, Option<Uuid>, String, serde_json::Value) = sqlx::query(
@@ -125,20 +133,22 @@ async fn test_mixed_transactional_and_non_transactional_events() {
         author_id: Some(user_id),
     };
 
-    event_bus.publish(tenant_id, Some(user_id), non_tx_event.clone())
+    event_bus
+        .publish(tenant_id, Some(user_id), non_tx_event.clone())
         .await
         .expect("Failed to publish non-transactional event");
 
     // Publish transactional event in transaction
     let mut txn = sea_orm_db.begin().await.unwrap();
-    
+
     let tx_event = DomainEvent::NodeCreated {
         node_id,
         kind: "post".to_string(),
         author_id: Some(user_id),
     };
 
-    event_bus.publish_in_tx(&txn, tenant_id, Some(user_id), tx_event.clone())
+    event_bus
+        .publish_in_tx(&txn, tenant_id, Some(user_id), tx_event.clone())
         .await
         .expect("Failed to publish transactional event");
 
@@ -151,7 +161,10 @@ async fn test_mixed_transactional_and_non_transactional_events() {
         .unwrap()
         .get(0);
 
-    assert_eq!(count, 2, "Both transactional and non-transactional events should be persisted");
+    assert_eq!(
+        count, 2,
+        "Both transactional and non-transactional events should be persisted"
+    );
 }
 
 #[tokio::test]
@@ -166,7 +179,7 @@ async fn test_multiple_events_in_single_transaction() {
 
     // Start transaction and publish multiple events
     let mut txn = sea_orm_db.begin().await.unwrap();
-    
+
     let events = vec![
         DomainEvent::NodeCreated {
             node_id,
@@ -184,7 +197,8 @@ async fn test_multiple_events_in_single_transaction() {
     ];
 
     for event in &events {
-        event_bus.publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
+        event_bus
+            .publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
             .await
             .expect("Failed to publish event in transaction");
     }
@@ -212,7 +226,7 @@ async fn test_event_persistence_on_db_failure() {
 
     // Start transaction
     let mut txn = sea_orm_db.begin().await.unwrap();
-    
+
     let event = DomainEvent::NodeCreated {
         node_id: Uuid::new_v4(),
         kind: "post".to_string(),
@@ -220,7 +234,8 @@ async fn test_event_persistence_on_db_failure() {
     };
 
     // Publish event in transaction
-    event_bus.publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
+    event_bus
+        .publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
         .await
         .expect("Failed to publish event in transaction");
 
@@ -230,5 +245,8 @@ async fn test_event_persistence_on_db_failure() {
 
     // Transaction should fail to commit due to connection loss
     let result = txn.commit().await;
-    assert!(result.is_err(), "Transaction commit should fail on connection loss");
+    assert!(
+        result.is_err(),
+        "Transaction commit should fail on connection loss"
+    );
 }

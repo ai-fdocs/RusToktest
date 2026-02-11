@@ -543,7 +543,10 @@ impl ProductFixture {
     pub fn new() -> Self {
         Self {
             id: Uuid::new_v4(),
-            sku: format!("SKU-{}", Uuid::new_v4().to_string().split('-').next().unwrap()),
+            sku: format!(
+                "SKU-{}",
+                Uuid::new_v4().to_string().split('-').next().unwrap()
+            ),
             name: "Test Product".to_string(),
             description: Some("A test product description".to_string()),
             price: 99.99,
@@ -659,9 +662,7 @@ mod tests {
 
     #[test]
     fn test_user_fixture() {
-        let user = UserFixture::admin()
-            .with_email("admin@test.com")
-            .build();
+        let user = UserFixture::admin().with_email("admin@test.com").build();
 
         assert_eq!(user.email, "admin@test.com");
         assert!(matches!(user.role, UserRole::Admin));
@@ -680,9 +681,7 @@ mod tests {
 
     #[test]
     fn test_node_fixture() {
-        let node = NodeFixture::post()
-            .with_title("My Post")
-            .build();
+        let node = NodeFixture::post().with_title("My Post").build();
 
         assert_eq!(node.kind, "post");
         assert_eq!(node.translations[0].title, "My Post");

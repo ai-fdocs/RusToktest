@@ -217,7 +217,10 @@ pub fn unique_test_id(prefix: &str) -> String {
 /// // email might be "test-550e8400@example.com"
 /// ```
 pub fn unique_email() -> String {
-    format!("test-{}@example.com", Uuid::new_v4().to_string().split('-').next().unwrap())
+    format!(
+        "test-{}@example.com",
+        Uuid::new_v4().to_string().split('-').next().unwrap()
+    )
 }
 
 /// Generates a unique slug for testing.
@@ -231,7 +234,11 @@ pub fn unique_email() -> String {
 /// // slug might be "post-550e8400"
 /// ```
 pub fn unique_slug(prefix: &str) -> String {
-    format!("{}-{}", prefix, Uuid::new_v4().to_string().split('-').next().unwrap())
+    format!(
+        "{}-{}",
+        prefix,
+        Uuid::new_v4().to_string().split('-').next().unwrap()
+    )
 }
 
 /// Creates a test JSON payload.
@@ -267,7 +274,11 @@ macro_rules! assert_permission_scope {
     ($scope:expr, $expected:ident) => {
         match $scope {
             PermissionScope::$expected => (),
-            other => panic!("Expected PermissionScope::{}, got {:?}", stringify!($expected), other),
+            other => panic!(
+                "Expected PermissionScope::{}, got {:?}",
+                stringify!($expected),
+                other
+            ),
         }
     };
 }
