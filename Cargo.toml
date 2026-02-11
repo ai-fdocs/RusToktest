@@ -2,8 +2,8 @@
 resolver = "2"
 members = [
     "apps/server",
-    "apps/admin",
-    "apps/storefront",
+    "apps/admin",      # Note: Currently blocked by parcel_css v1.0.0-alpha.32 compilation issue (see CODE_AUDIT_REPORT)
+    "apps/storefront", # Note: Currently blocked by parcel_css v1.0.0-alpha.32 compilation issue (see CODE_AUDIT_REPORT)
     "apps/mcp",
     "crates/*",
 ]
