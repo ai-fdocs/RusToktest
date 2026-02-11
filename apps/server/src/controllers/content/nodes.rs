@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 use crate::context::TenantContext;
 use crate::extractors::auth::CurrentUser;
-use crate::services::event_bus::transactional_transactional_event_bus_from_context;
+use crate::services::event_bus::transactional_event_bus_from_context;
 
 /// List content nodes
 #[utoipa::path(
