@@ -1,9 +1,8 @@
 /// Input validation for content module DTOs
 ///
 /// Provides validation rules and custom validators for all content-related inputs.
-/// 
+///
 /// FIXED: Added i18n support for error messages
-
 use validator::ValidationError;
 
 /// Custom validator for body format
@@ -22,8 +21,8 @@ pub fn validate_kind(kind: &str) -> Result<(), ValidationError> {
     }
 }
 
-/// Custom validator for locale format (e.g., "en", "en-US", "ru-RU")
-/// 
+/// Custom validator for locale format (e.g., "en", "en-US", "ru-RU", "es-419")
+///
 /// FIXED: More robust locale validation
 pub fn validate_locale(locale: &str) -> Result<(), ValidationError> {
     if locale.len() < 2 || locale.len() > 10 {
@@ -32,7 +31,7 @@ pub fn validate_locale(locale: &str) -> Result<(), ValidationError> {
 
     // Check format: letters-letters or just letters
     let parts: Vec<&str> = locale.split('-').collect();
-    
+
     match parts.len() {
         1 => {
             // Just language code (e.g., "en", "ru")
@@ -41,11 +40,17 @@ pub fn validate_locale(locale: &str) -> Result<(), ValidationError> {
             }
         }
         2 => {
-            // Language-Country (e.g., "en-US", "zh-CN")
+            // Language-Region (e.g., "en-US", "zh-CN", "es-419")
             if parts[0].len() != 2 || !parts[0].chars().all(|c| c.is_ascii_alphabetic()) {
                 return Err(ValidationError::new("invalid_locale_format"));
             }
-            if parts[1].len() != 2 || !parts[1].chars().all(|c| c.is_ascii_alphabetic() || c.is_ascii_digit()) {
+
+            let region = parts[1];
+            let is_alpha_region =
+                region.len() == 2 && region.chars().all(|c| c.is_ascii_alphabetic());
+            let is_numeric_region = region.len() == 3 && region.chars().all(|c| c.is_ascii_digit());
+
+            if !(is_alpha_region || is_numeric_region) {
                 return Err(ValidationError::new("invalid_locale_format"));
             }
         }
@@ -88,7 +93,7 @@ pub fn validate_reply_count(count: &i32) -> Result<(), ValidationError> {
 }
 
 /// Custom validator for slug format
-/// 
+///
 /// FIXED: More comprehensive slug validation
 pub fn validate_slug(slug: &str) -> Result<(), ValidationError> {
     // Slug should be lowercase alphanumeric with hyphens
@@ -112,7 +117,7 @@ pub fn validate_slug(slug: &str) -> Result<(), ValidationError> {
     if slug.starts_with('-') || slug.ends_with('-') {
         return Err(ValidationError::new("slug_hyphen_boundary"));
     }
-    
+
     // Should not contain consecutive hyphens
     if slug.contains("--") {
         return Err(ValidationError::new("slug_consecutive_hyphens"));
@@ -162,6 +167,7 @@ mod tests {
         assert!(validate_locale("ru-RU").is_ok());
         assert!(validate_locale("zh-CN").is_ok());
         assert!(validate_locale("pt-BR").is_ok());
+        assert!(validate_locale("es-419").is_ok());
     }
 
     #[test]
@@ -172,6 +178,8 @@ mod tests {
         assert!(validate_locale("en123").is_err()); // Numbers in language part
         assert!(validate_locale("en-").is_err()); // Missing country
         assert!(validate_locale("-US").is_err()); // Missing language
+        assert!(validate_locale("en-1").is_err()); // Region too short
+        assert!(validate_locale("en-U1").is_err()); // Region must be all alpha or all digits
         assert!(validate_locale("en-US-extra").is_err()); // Too many parts
     }
 
@@ -225,7 +233,7 @@ mod tests {
         assert!(validate_slug("my--post").is_err()); // Consecutive hyphens
         assert!(validate_slug(&"a".repeat(256)).is_err()); // Too long
     }
-    
+
     #[test]
     fn test_validate_reply_count() {
         assert!(validate_reply_count(&0).is_ok());

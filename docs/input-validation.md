@@ -142,16 +142,35 @@ pub fn validate_body_format(format: &str) -> Result<(), ValidationError> {
     }
 }
 
-/// Validate locale format (e.g., "en", "en-US")
+/// Validate locale format (e.g., "en", "en-US", "es-419")
 pub fn validate_locale(locale: &str) -> Result<(), ValidationError> {
     if locale.len() < 2 || locale.len() > 10 {
         return Err(ValidationError::new("invalid_locale_length"));
     }
-    
-    if !locale.chars().all(|c| c.is_ascii_alphabetic() || c == '-') {
-        return Err(ValidationError::new("invalid_locale_format"));
+
+    let parts: Vec<&str> = locale.split('-').collect();
+    match parts.len() {
+        1 => {
+            if parts[0].len() != 2 || !parts[0].chars().all(|c| c.is_ascii_alphabetic()) {
+                return Err(ValidationError::new("invalid_locale_format"));
+            }
+        }
+        2 => {
+            if parts[0].len() != 2 || !parts[0].chars().all(|c| c.is_ascii_alphabetic()) {
+                return Err(ValidationError::new("invalid_locale_format"));
+            }
+
+            let region = parts[1];
+            let is_alpha_region = region.len() == 2 && region.chars().all(|c| c.is_ascii_alphabetic());
+            let is_numeric_region = region.len() == 3 && region.chars().all(|c| c.is_ascii_digit());
+
+            if !(is_alpha_region || is_numeric_region) {
+                return Err(ValidationError::new("invalid_locale_format"));
+            }
+        }
+        _ => return Err(ValidationError::new("invalid_locale_format")),
     }
-    
+
     Ok(())
 }
 
@@ -510,7 +529,7 @@ mod tests {
 
 - `validate_kind`: post, page, article, custom
 - `validate_body_format`: markdown, html, plain, json
-- `validate_locale`: en, en-US, ru-RU, etc.
+- `validate_locale`: en, en-US, ru-RU, es-419, etc.
 - `validate_slug`: lowercase-with-hyphens
 - `validate_position`: 0-100,000
 - `validate_depth`: 0-100

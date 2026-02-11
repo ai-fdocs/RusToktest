@@ -8,6 +8,29 @@
 - **Приоритет:** сначала фронтенды (storefront + admin), затем расширение в смежные приложения.
 - **Ссылки:** [UI документы](./) • [UI parity](./ui-parity.md) • [IU библиотеки](../../IU/README.md)
 
+## Согласованный core-стек для старта админки
+
+Ниже — актуальный перечень, который мы согласовали для старта без лишнего усложнения.
+
+| Категория | Библиотека/модуль | Что делает у нас |
+| --- | --- | --- |
+| UI core | `leptos`, `leptos_router` | Основа UI, реактивность и маршрутизация страниц админки |
+| API transport | `leptos-graphql` | Внутренний GraphQL transport-слой (headers, extensions, error mapping) |
+| HTTP/serialization | `reqwest`, `serde`, `serde_json` | Вызовы API и сериализация payload'ов |
+| Auth | `leptos-auth` | Auth-flow для админки (наша Leptos-альтернатива NextAuth-подходу) |
+| I18n | `leptos_i18n` | Многоязычность интерфейса |
+| Metadata/SEO | `leptos-next-metadata` | Управление metadata/head в Next-like стиле |
+| Forms | `leptos-hook-form`, `leptos-zod` | Управление формами и валидация |
+| Tables/listing | `leptos-struct-table`, `leptos-shadcn-pagination` | Таблицы и пагинация для админских списков |
+| Browser/reactive utils | `leptos-use` | LocalStorage/hooks/observer и прочие browser utilities |
+| Styling | `tailwind-rs` | Tailwind pipeline для Leptos-UI |
+| DX/debug | `console_error_panic_hook`, `console_log`, `log` | Диагностика ошибок и логирование в браузере |
+
+## Что считаем опциональным
+
+- `graphql-client` — подключаем в приложении, когда реально включаем typed `.graphql` codegen flow.
+- `leptos-query` — подключаем точечно, когда нужен кэш/стратегии refetch/stale beyond базовых `Resource`/actions.
+
 ## Обязательный набор библиотек (подключаем в фронтендах)
 
 | Категория | Библиотека | Где используем | Примечание |
