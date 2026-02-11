@@ -34,6 +34,7 @@ app = "rustok-server"
 [build]
 target = "x86_64-unknown-linux-gnu"
 profile = "release"
+deployment_profile = "monolith" # monolith | headless
 
 [modules]
 # slug = { crate = "...", source = "...", version = "...", features = [...] }
@@ -55,6 +56,7 @@ default_enabled = ["content", "commerce", "pages"]
 | `app` | string | да | Целевое приложение/бинарник. |
 | `build.target` | string | нет | Целевой triple сборки. |
 | `build.profile` | string | нет | Профиль сборки (`release`/`debug`). |
+| `build.deployment_profile` | string | нет | Режим деплоя: `monolith` (единый релиз server+admin+storefront) или `headless` (раздельные сервисы). |
 | `modules` | table | да | Карта `slug -> module spec`. |
 | `settings.default_enabled` | array | нет | Какие модули включать по умолчанию после сборки. |
 
@@ -72,6 +74,18 @@ default_enabled = ["content", "commerce", "pages"]
 
 > Сами метаданные модуля (slug/name/description/version/deps) всё равно берутся
 > из `RusToKModule` во время сборки и регистрации в `ModuleRegistry`.
+
+
+## Режимы деплоя (monolith/headless)
+
+### `monolith`
+- один release-id и один оркестрируемый pipeline для `apps/server`, `apps/admin`, `apps/storefront`;
+- откат — на единый release.
+
+### `headless`
+- backend и UI деплоятся на разных серверах/сервисах;
+- rebuild от одного `modules.toml` запускает раздельные pipeline-ветки;
+- перед деплоем UI обязателен preflight compatibility-check с целевой версией backend.
 
 ## Жизненный цикл install/uninstall
 
