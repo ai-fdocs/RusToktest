@@ -49,23 +49,26 @@ Total: 3/22 tasks (14%)
 
 ---
 
-### ⏳ Issue #2: Transactional Event Publishing
-**Status:** ⏳ PENDING  
+### 🟡 Issue #2: Transactional Event Publishing
+**Status:** 🟡 IN PROGRESS  
 **Priority:** CRITICAL  
 **Time Estimate:** 3-5 days  
-**Assigned:** Unassigned
+**Assigned:** AI Agent  
+**Started:** 2026-02-11
 
 **Tasks:**
-- [ ] Add write_to_outbox method
-- [ ] Create TransactionalEventBus
-- [ ] Update EventTransport trait
-- [ ] Update NodeService
+- [x] Add write_to_outbox method to OutboxTransport
+- [x] Create TransactionalEventBus
+- [x] Update EventTransport trait (add as_any method)
+- [x] Update MemoryTransport for new trait
+- [x] Update OutboxTransport for new trait
+- [x] Add transactional module to events
+- [ ] Update NodeService to use TransactionalEventBus
 - [ ] Update app initialization
-- [ ] Update controllers
 - [ ] Add integration tests
 - [ ] Update documentation
 
-**Progress:** 0/8 (0%)
+**Progress:** 6/10 (60%)
 
 ---
 

@@ -286,7 +286,7 @@ impl DomainEvent {
 
     /// Returns the schema version for this event type.
     /// Increment this version when making breaking changes to the event structure.
-    /// 
+    ///
     /// Version History:
     /// - v1: Initial schema for all events
     pub fn schema_version(&self) -> u16 {
