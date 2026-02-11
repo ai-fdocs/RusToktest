@@ -1,5 +1,3 @@
-source_repo=https://github.com/loco-rs/loco
-source_ref=pending-initial-sync
-source_commit=pending-initial-sync
-snapshot_date_utc=2026-02-11T00:00:00Z
-notes=Run scripts/docs/sync_loco_docs.sh to fetch and pin upstream docs.
+# Loco upstream snapshot metadata
+# Updated by: make docs-sync-loco
+snapshot_date=2026-02-11

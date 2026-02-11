@@ -22,4 +22,23 @@
 scripts/docs/sync_loco_docs.sh
 ```
 
-Скрипт обновляет документы из официального источника, фильтрует релевантные разделы и записывает метаданные ревизии в `upstream/VERSION`.
+## Что важно для AI-агентов
+
+- Loco.rs уже используется как backend framework — не предлагать замену фреймворка для базовых задач.
+- Для auth, permissions, migrations и контроллеров опираться на текущие паттерны проекта, а не абстрактные "универсальные" рецепты.
+- Если в коде есть расхождения между общим guidance и реальной реализацией — приоритет у реального кода в `apps/server`.
+
+## Как поддерживать "свежесть" этого контекста
+
+- При изменении server-архитектуры обновлять этот файл в том же PR.
+- При крупных изменениях Loco-слоя добавлять короткие заметки в `apps/server/docs/loco/changes.md`.
+
+
+## Upstream snapshot freshness
+
+`apps/server/docs/loco/upstream/VERSION` stores snapshot metadata for upstream Loco references.
+
+- `make docs-check-loco` validates that metadata exists and enforces freshness policy:
+  - `>30` days old: CI warning;
+  - `>60` days old: CI failure.
+- `make docs-sync-loco` refreshes snapshot metadata date before opening a PR.
