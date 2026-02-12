@@ -6,6 +6,7 @@ license.workspace = true
 
 [dependencies]
 rustok-core.workspace = true
+rustok-outbox.workspace = true
 async-trait.workspace = true
 rust_decimal.workspace = true
 sea-orm.workspace = true

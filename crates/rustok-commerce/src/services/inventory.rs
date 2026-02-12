@@ -1,9 +1,12 @@
 use chrono::Utc;
-use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set};
+use sea_orm::{
+    ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set, TransactionTrait,
+};
 use tracing::instrument;
 use uuid::Uuid;
 
-use rustok_core::{DomainEvent, EventBus};
+use rustok_core::DomainEvent;
+use rustok_outbox::TransactionalEventBus;
 
 use crate::dto::AdjustInventoryInput;
 use crate::entities;
@@ -11,12 +14,12 @@ use crate::error::{CommerceError, CommerceResult};
 
 pub struct InventoryService {
     db: DatabaseConnection,
-    event_bus: EventBus,
+    event_bus: TransactionalEventBus,
     low_stock_threshold: i32,
 }
 
 impl InventoryService {
-    pub fn new(db: DatabaseConnection, event_bus: EventBus) -> Self {
+    pub fn new(db: DatabaseConnection, event_bus: TransactionalEventBus) -> Self {
         Self {
             db,
             event_bus,
@@ -36,9 +39,11 @@ impl InventoryService {
         actor_id: Uuid,
         input: AdjustInventoryInput,
     ) -> CommerceResult<i32> {
+        let txn = self.db.begin().await?;
+        
         let variant = entities::product_variant::Entity::find_by_id(input.variant_id)
             .filter(entities::product_variant::Column::TenantId.eq(tenant_id))
-            .one(&self.db)
+            .one(&txn)
             .await?
             .ok_or(CommerceError::VariantNotFound(input.variant_id))?;
 
@@ -55,33 +60,40 @@ impl InventoryService {
         let mut variant_active: entities::product_variant::ActiveModel = variant.clone().into();
         variant_active.inventory_quantity = Set(new_quantity);
         variant_active.updated_at = Set(Utc::now().into());
-        variant_active.update(&self.db).await?;
+        variant_active.update(&txn).await?;
 
-        let _ = self.event_bus.publish(
-            tenant_id,
-            Some(actor_id),
-            DomainEvent::InventoryUpdated {
-                variant_id: input.variant_id,
-                product_id: variant.product_id,
-                location_id: Uuid::nil(),
-                old_quantity,
-                new_quantity,
-            },
-        );
-
-        if new_quantity <= self.low_stock_threshold && new_quantity > 0 {
-            let _ = self.event_bus.publish(
+        self.event_bus
+            .publish_in_tx(
+                &txn,
                 tenant_id,
                 Some(actor_id),
-                DomainEvent::InventoryLow {
+                DomainEvent::InventoryUpdated {
                     variant_id: input.variant_id,
                     product_id: variant.product_id,
-                    remaining: new_quantity,
-                    threshold: self.low_stock_threshold,
+                    location_id: Uuid::nil(),
+                    old_quantity,
+                    new_quantity,
                 },
-            );
+            )
+            .await?;
+
+        if new_quantity <= self.low_stock_threshold && new_quantity > 0 {
+            self.event_bus
+                .publish_in_tx(
+                    &txn,
+                    tenant_id,
+                    Some(actor_id),
+                    DomainEvent::InventoryLow {
+                        variant_id: input.variant_id,
+                        product_id: variant.product_id,
+                        remaining: new_quantity,
+                        threshold: self.low_stock_threshold,
+                    },
+                )
+                .await?;
         }
 
+        txn.commit().await?;
         Ok(new_quantity)
     }
 
@@ -93,9 +105,11 @@ impl InventoryService {
         variant_id: Uuid,
         quantity: i32,
     ) -> CommerceResult<i32> {
+        let txn = self.db.begin().await?;
+        
         let variant = entities::product_variant::Entity::find_by_id(variant_id)
             .filter(entities::product_variant::Column::TenantId.eq(tenant_id))
-            .one(&self.db)
+            .one(&txn)
             .await?
             .ok_or(CommerceError::VariantNotFound(variant_id))?;
 
@@ -104,20 +118,24 @@ impl InventoryService {
         let mut variant_active: entities::product_variant::ActiveModel = variant.clone().into();
         variant_active.inventory_quantity = Set(quantity);
         variant_active.updated_at = Set(Utc::now().into());
-        variant_active.update(&self.db).await?;
+        variant_active.update(&txn).await?;
 
-        let _ = self.event_bus.publish(
-            tenant_id,
-            Some(actor_id),
-            DomainEvent::InventoryUpdated {
-                variant_id,
-                product_id: variant.product_id,
-                location_id: Uuid::nil(),
-                old_quantity,
-                new_quantity: quantity,
-            },
-        );
+        self.event_bus
+            .publish_in_tx(
+                &txn,
+                tenant_id,
+                Some(actor_id),
+                DomainEvent::InventoryUpdated {
+                    variant_id,
+                    product_id: variant.product_id,
+                    location_id: Uuid::nil(),
+                    old_quantity,
+                    new_quantity: quantity,
+                },
+            )
+            .await?;
 
+        txn.commit().await?;
         Ok(quantity)
     }
 
