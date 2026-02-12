@@ -52,7 +52,7 @@ This is an alpha version and requires clarification. Be careful, there may be er
 | `sonner` | Toast-уведомления | ⚠️ Частично | Использовать существующий notification слой; при нехватке — сделать `leptos-sonner`-совместимый wrapper |
 | `@dnd-kit/*` | Drag-and-drop (kanban) | ⚠️ Candidate found | Кандидат: `leptos_dnd` (`docs.rs/crate/leptos_dnd/0.1.4`). Проверить production-ready критерии; fallback: `crates/leptos-dnd` |
 | `kbar` / `cmdk` | Command palette / быстрый поиск | ❌ Gap | Поиск готовой Leptos command palette; fallback: `crates/leptos-command-palette` |
-| `react-dropzone` | Upload/dropzone | ⚠️ Candidate found | Кандидат: Rust-UI Dropzone (`rust-ui.com/docs/components/dropzone`). Проверить интеграцию с нашим стеком; fallback: `crates/leptos-dropzone` |
+| `react-dropzone` | Upload/dropzone | ⚠️ Gap (есть implementation guide) | Rust/UI Dropzone — это не готовая crates.io библиотека, а инструкция/шаблон компонента. Берем как reference implementation и выносим в `crates/leptos-dropzone`. |
 | `react-day-picker` | Date picker/calendar | ⚠️ Частично | Проверить существующий date UI в `leptos-shadcn`; при отсутствии — выделить отдельный date-picker crate |
 | `vaul` | Drawer/Sheet UX | ⚠️ Частично | Проверить покрытие текущими UI primitives; если не хватает — добавить shared drawer primitive |
 | `@sentry/nextjs` | Monitoring/trace | ⚠️ Частично | Проверить текущий Rust/FE telemetry контур; для web-клиента зафиксировать единый Sentry adapter |
@@ -73,6 +73,16 @@ This is an alpha version and requires clarification. Be careful, there may be er
 - DnD: `leptos_dnd` — https://docs.rs/crate/leptos_dnd/0.1.4
 - Dropzone: Rust UI Dropzone — https://www.rust-ui.com/docs/components/dropzone
 
+### Важно: Rust/UI — это не "готовая библиотека", а система инструкций/дистрибуции компонентов
+
+Согласно документации Rust/UI, это подход "how you build your component library", а не пакет, который просто ставится и импортируется.
+
+Практическое правило для RusTok:
+
+- Rust/UI используем как source шаблонов/паттернов и reference implementation.
+- Production-реализацию компонентов размещаем в наших shared crates (`crates/*`).
+- В parity-матрице Rust/UI не считаем прямой библиотечной заменой 1:1.
+
 Мини-чек перед принятием в стек:
 
 1. Поддержка текущей версии `leptos` в workspace.
@@ -91,7 +101,7 @@ This is an alpha version and requires clarification. Be careful, there may be er
 1. Снять список доступных Rust UI компонентов.
 2. Сопоставить его с нашим gap-логом (DnD, Dropzone, Date picker, Drawer, Command palette, Toast).
 3. Для каждого совпадения зафиксировать решение: `adopt` / `pilot` / `reject`.
-4. Если `adopt` — добавить thin-wrapper в shared crate и пример использования в обоих UI (Next+Leptos).
+4. Если `adopt`/`pilot` — переносим код компонента в наш shared crate и подключаем в оба UI (Next+Leptos).
 
 Шаблон строки для gap-log:
 
