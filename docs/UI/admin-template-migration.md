@@ -243,6 +243,7 @@
 - [`docs/UI/admin-server-connection-quickstart.md`](./admin-server-connection-quickstart.md)
 - В том числе целевой full-dev сценарий: одной командой поднимаются server + 2 админки + 2 storefront на отдельных портах.
 - И нейтральный список методов установки/запуска: Docker Compose, VPS+Docker, Kubernetes (k8s), Railway/Fly/Render, а также ручная установка и one-command install-скрипт (план).
+- Сверка паритета библиотек Next Starter ↔ Leptos: [`docs/UI/admin-libraries-parity.md`](./admin-libraries-parity.md) (включая gap-лог и явные замены).
 
 ### 3.0 Dependency policy (обязательное правило для агентов и разработчиков)
 

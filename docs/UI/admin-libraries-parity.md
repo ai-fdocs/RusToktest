@@ -33,3 +33,44 @@
 3. Если добавляется новая библиотека, обновляем этот документ и `Cargo.toml` фронтендов в одном PR.
 
 This is an alpha version and requires clarification. Be careful, there may be errors in the text. So that no one thinks that this is an immutable rule.
+
+## Аудит паритета со starter `apps/next-admin` (2026-02)
+
+Источник для сверки: `apps/next-admin/package.json`.
+Цель: понять, что уже закрыто нашими библиотеками, а где нужен явный поиск/разработка замены.
+
+### Матрица ключевых библиотек Next Starter → RusTok/Leptos
+
+| Next starter библиотека | Назначение | Текущий статус в RusTok | Явная замена/действие |
+| --- | --- | --- | --- |
+| `react-hook-form` + `@hookform/resolvers` + `zod` | Формы и валидация | ✅ Закрыто | `leptos-hook-form` + `leptos-zod` |
+| `@tanstack/react-table` | Таблицы | ✅ Закрыто | `leptos-struct-table` + `leptos-shadcn-pagination` |
+| `zustand` | Локальные сторы | ✅ Закрыто | `leptos-zustand` |
+| `recharts` | Графики на dashboard | ✅/⚠️ Частично | Основной путь: `leptos-chartistry`; если нужен parity по конкретному chart-type — фиксировать gap |
+| `next-themes` | Тема/переключение dark-light | ✅ Закрыто | Theme слой через Leptos + Tailwind токены |
+| `nuqs` | Синхронизация состояния с query params | ⚠️ Частично | `leptos_router` + `leptos-use` + утилиты сериализации; при сложных кейсах добавить shared helper crate |
+| `sonner` | Toast-уведомления | ⚠️ Частично | Использовать существующий notification слой; при нехватке — сделать `leptos-sonner`-совместимый wrapper |
+| `@dnd-kit/*` | Drag-and-drop (kanban) | ❌ Gap | Найти готовую Leptos DnD-библиотеку; если не подходит — разработать `crates/leptos-dnd` |
+| `kbar` / `cmdk` | Command palette / быстрый поиск | ❌ Gap | Поиск готовой Leptos command palette; fallback: `crates/leptos-command-palette` |
+| `react-dropzone` | Upload/dropzone | ❌ Gap | Поиск готовой Leptos dropzone; fallback: `crates/leptos-dropzone` |
+| `react-day-picker` | Date picker/calendar | ⚠️ Частично | Проверить существующий date UI в `leptos-shadcn`; при отсутствии — выделить отдельный date-picker crate |
+| `vaul` | Drawer/Sheet UX | ⚠️ Частично | Проверить покрытие текущими UI primitives; если не хватает — добавить shared drawer primitive |
+| `@sentry/nextjs` | Monitoring/trace | ⚠️ Частично | Проверить текущий Rust/FE telemetry контур; для web-клиента зафиксировать единый Sentry adapter |
+| `@clerk/nextjs` | Auth provider в шаблоне | ✅ Не переносим | В RusTok используем `leptos-auth` + backend `/api/auth/*` |
+
+### Явные parity-gap задачи (чтобы не упустить)
+
+1. **DnD/kanban gap**: выбрать библиотеку или создать `leptos-dnd`.
+2. **Command palette gap**: выбрать библиотеку или создать `leptos-command-palette`.
+3. **Dropzone gap**: выбрать библиотеку или создать `leptos-dropzone`.
+4. **Date picker parity**: определить единый shared date picker.
+5. **Toast parity**: формализовать единый notification API для Next и Leptos.
+6. **URL-state parity (`nuqs`-подобно)**: добавить shared helper для query-state.
+7. **Monitoring parity**: утвердить единый adapter для frontend telemetry/Sentry.
+
+### Правило внедрения по gap-задачам
+
+- Нельзя закрывать gap ad-hoc кодом в `apps/next-admin` или `apps/admin`.
+- Каждая замена/реализация делается в shared crate (`crates/*`) и затем подключается в оба UI.
+- Для каждой gap-задачи фиксируем: `owner`, `target crate`, `deadline`, `fallback`.
+
