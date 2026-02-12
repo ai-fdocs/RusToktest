@@ -252,19 +252,17 @@ server {
 
 ### Production
 
-- **Вариант A: Managed PaaS (Railway/Fly/Render)**
-  - Плюсы: быстро, меньше DevOps.
-  - Минусы: меньше контроля и гибкости на масштабе.
-- **Вариант B: VPS + Docker (+ Nginx/Traefik)**
+- **Вариант A (по умолчанию): VPS + Docker (+ Nginx/Traefik)**
   - Плюсы: дешево и полный контроль.
   - Минусы: инфраструктура и поддержка на вашей стороне.
-- **Вариант C: Kubernetes (k8s)**
+- **Вариант B (стандарт при росте): Kubernetes (k8s)**
   - Плюсы: масштаб и зрелые SRE-практики.
   - Минусы: высокий порог сложности/стоимости.
+- **Managed PaaS (Railway/Fly/Render)**
+  - Рассматривать как ускорение для staging/раннего production, но не как целевой «стандарт по умолчанию».
 
 ### Рекомендация для RusTok
 
 1. **Dev:** Docker Compose (one-command).
 2. **Staging:** Railway (или Fly/Render) для скорости.
-3. **Prod:** начать с PaaS, переходить на VPS/k8s при росте нагрузки и требований.
-
+3. **Prod (default):** VPS + Docker или сразу k8s (в зависимости от команды и SLA).
