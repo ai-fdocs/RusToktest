@@ -93,6 +93,12 @@ This is an alpha version and requires clarification. Be careful, there may be er
 
 ### Rust UI каталог (`/docs/components`) — план проверки
 
+Локальный рабочий snapshot каталога и таблица решений:
+
+- [`docs/UI/rust-ui-component-catalog.md`](./rust-ui-component-catalog.md)
+- Исходный snapshot навигации: [`docs/UI/rust-ui-nav-snapshot.txt`](./rust-ui-nav-snapshot.txt)
+- Генератор: [`docs/UI/tools/rust_ui_catalog_parser.py`](./tools/rust_ui_catalog_parser.py)
+
 В текущем container-сценарии прямой запрос к `https://www.rust-ui.com/docs/components/` блокируется сетью (`CONNECT tunnel failed, response 403`),
 поэтому полный auto-audit каталога здесь не выполнен.
 

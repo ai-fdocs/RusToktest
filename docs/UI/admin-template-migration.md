@@ -104,6 +104,23 @@
 
 Это не strict Atomic Design naming, но по сути покрывает Atom→Molecule→Organism и при этом лучше совпадает с module-first delivery.
 
+### Нужно ли "доворачивать" до атомарной архитектуры
+
+Короткий ответ: **да, но эволюционно и без религиозного рефакторинга**.
+
+Принцип принятия решений:
+
+- Если компонент переиспользуется в 2+ модулях, поднимаем его в `ui/primitives` или `ui/composites`.
+- Если логика доменная (RBAC, tenant, billing rules), она остается в `features/<module>` и backend/shared crates.
+- `apps/*` не становятся местом хранения бизнес-компонентов "на потом" — только screen composition.
+
+Definition of Done для атомарности в RusTok:
+
+1. Любой новый UI-элемент привязан к одному из уровней: `tokens` / `primitives` / `composites` / `features` / `app-shell`.
+2. Нет дубликатов одного и того же компонента в Next и Leptos без причины (фиксируем parity-task).
+3. API-компонентов документирован в `IU/docs/api-contracts.md` при выходе из локального модуля в shared слой.
+4. Перенос в shared слой делается маленькими шагами в рамках feature delivery, а не отдельным "большим переписыванием".
+
 ## 2.2 Zero-config запуск админки для локальной отладки (без ручной настройки)
 
 Чтобы админка "сама понимала", к какому серверу подключаться и какие ключи использовать, фиксируем bootstrap-правила.
@@ -244,6 +261,8 @@
 - В том числе целевой full-dev сценарий: одной командой поднимаются server + 2 админки + 2 storefront на отдельных портах.
 - И нейтральный список методов установки/запуска: Docker Compose, VPS+Docker, Kubernetes (k8s), Railway/Fly/Render, а также ручная установка и one-command install-скрипт (план).
 - Сверка паритета библиотек Next Starter ↔ Leptos: [`docs/UI/admin-libraries-parity.md`](./admin-libraries-parity.md) (включая gap-лог и явные замены).
+- Snapshot каталога Rust/UI компонентов для внутреннего парсинга/решений: [`docs/UI/rust-ui-component-catalog.md`](./rust-ui-component-catalog.md).
+- PR workflow: если текущий PR был обновлен вне Codex и не поддерживает апдейт из сессии, создаем **новый PR** с отдельным коммитом и ссылкой на предыдущий.
 
 ### 3.0 Dependency policy (обязательное правило для агентов и разработчиков)
 
