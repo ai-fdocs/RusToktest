@@ -84,19 +84,19 @@ impl PricingService {
         let old_cents = old_amount.and_then(decimal_to_cents);
         let new_cents = decimal_to_cents(amount).unwrap_or(0);
 
+        // Create and validate event
+        let event = DomainEvent::PriceUpdated {
+            variant_id,
+            product_id: variant.product_id,
+            currency: currency_code.to_string(),
+            old_amount: old_cents,
+            new_amount: new_cents,
+        };
+        event.validate()
+            .map_err(|e| CommerceError::Validation(format!("Invalid price event: {}", e)))?;
+
         self.event_bus
-            .publish_in_tx(
-                &txn,
-                tenant_id,
-                Some(actor_id),
-                DomainEvent::PriceUpdated {
-                    variant_id,
-                    product_id: variant.product_id,
-                    currency: currency_code.to_string(),
-                    old_amount: old_cents,
-                    new_amount: new_cents,
-                },
-            )
+            .publish_in_tx(&txn, tenant_id, Some(actor_id), event)
             .await?;
 
         txn.commit().await?;

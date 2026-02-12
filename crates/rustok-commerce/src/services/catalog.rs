@@ -578,14 +578,50 @@ impl CatalogService {
     }
 
     fn slugify(text: &str) -> String {
-        text.to_lowercase()
+        use unicode_normalization::UnicodeNormalization;
+        
+        const MAX_LENGTH: usize = 255;
+        const RESERVED_NAMES: &[&str] = &["admin", "api", "null", "undefined", "new", "edit", "delete"];
+        
+        // 1. Unicode normalization (NFC) to prevent homograph attacks
+        let normalized: String = text.nfc().collect();
+        
+        // 2. Convert to lowercase and filter valid characters
+        // Allow: a-z, 0-9, hyphen, space (will become hyphen)
+        let slug: String = normalized
+            .to_lowercase()
             .chars()
-            .map(|c| if c.is_alphanumeric() { c } else { '-' })
-            .collect::<String>()
+            .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == ' ' || *c == '_')
+            .map(|c| if c == ' ' || c == '_' { '-' } else { c })
+            .collect();
+        
+        // 3. Remove consecutive hyphens and trim
+        let slug = slug
             .split('-')
             .filter(|s| !s.is_empty())
             .collect::<Vec<_>>()
-            .join("-")
+            .join("-");
+        
+        // 4. Limit length
+        let slug = if slug.len() > MAX_LENGTH {
+            slug[..MAX_LENGTH].to_string()
+        } else {
+            slug
+        };
+        
+        // 5. Prevent reserved names by adding suffix
+        let slug = if RESERVED_NAMES.contains(&slug.as_str()) {
+            format!("{}-1", slug)
+        } else {
+            slug
+        };
+        
+        // 6. Ensure non-empty
+        if slug.is_empty() {
+            "untitled".to_string()
+        } else {
+            slug
+        }
     }
 
     fn generate_variant_title(variant: &entities::product_variant::Model) -> String {

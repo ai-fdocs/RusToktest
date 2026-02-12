@@ -62,34 +62,35 @@ impl InventoryService {
         variant_active.updated_at = Set(Utc::now().into());
         variant_active.update(&txn).await?;
 
+        // Create and validate event
+        let event = DomainEvent::InventoryUpdated {
+            variant_id: input.variant_id,
+            product_id: variant.product_id,
+            location_id: Uuid::nil(),
+            old_quantity,
+            new_quantity,
+        };
+        event.validate()
+            .map_err(|e| CommerceError::Validation(format!("Invalid inventory event: {}", e)))?;
+
         self.event_bus
-            .publish_in_tx(
-                &txn,
-                tenant_id,
-                Some(actor_id),
-                DomainEvent::InventoryUpdated {
-                    variant_id: input.variant_id,
-                    product_id: variant.product_id,
-                    location_id: Uuid::nil(),
-                    old_quantity,
-                    new_quantity,
-                },
-            )
+            .publish_in_tx(&txn, tenant_id, Some(actor_id), event)
             .await?;
 
         if new_quantity <= self.low_stock_threshold && new_quantity > 0 {
+            // Create and validate low inventory event
+            let low_event = DomainEvent::InventoryLow {
+                variant_id: input.variant_id,
+                product_id: variant.product_id,
+                remaining: new_quantity,
+                threshold: self.low_stock_threshold,
+            };
+            low_event
+                .validate()
+                .map_err(|e| CommerceError::Validation(format!("Invalid low inventory event: {}", e)))?;
+
             self.event_bus
-                .publish_in_tx(
-                    &txn,
-                    tenant_id,
-                    Some(actor_id),
-                    DomainEvent::InventoryLow {
-                        variant_id: input.variant_id,
-                        product_id: variant.product_id,
-                        remaining: new_quantity,
-                        threshold: self.low_stock_threshold,
-                    },
-                )
+                .publish_in_tx(&txn, tenant_id, Some(actor_id), low_event)
                 .await?;
         }
 
@@ -120,19 +121,19 @@ impl InventoryService {
         variant_active.updated_at = Set(Utc::now().into());
         variant_active.update(&txn).await?;
 
+        // Create and validate event
+        let event = DomainEvent::InventoryUpdated {
+            variant_id,
+            product_id: variant.product_id,
+            location_id: Uuid::nil(),
+            old_quantity,
+            new_quantity: quantity,
+        };
+        event.validate()
+            .map_err(|e| CommerceError::Validation(format!("Invalid inventory event: {}", e)))?;
+
         self.event_bus
-            .publish_in_tx(
-                &txn,
-                tenant_id,
-                Some(actor_id),
-                DomainEvent::InventoryUpdated {
-                    variant_id,
-                    product_id: variant.product_id,
-                    location_id: Uuid::nil(),
-                    old_quantity,
-                    new_quantity: quantity,
-                },
-            )
+            .publish_in_tx(&txn, tenant_id, Some(actor_id), event)
             .await?;
 
         txn.commit().await?;

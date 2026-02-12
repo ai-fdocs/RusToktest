@@ -65,6 +65,9 @@ anyhow = "1.0"
 # Time
 chrono = { version = "0.4", features = ["serde"] }
 
+# Text Processing
+unicode-normalization = "0.1"
+
 # Leptos
 leptos = "0.8.11"
 leptos_axum = "0.8.11"
