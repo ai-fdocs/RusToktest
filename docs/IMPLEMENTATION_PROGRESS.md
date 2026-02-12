@@ -256,7 +256,7 @@
 1. 🚧 **Task 2.1:** Simplified tenant resolver with moka (IN PROGRESS)
 2. 🚧 **Task 2.2:** Circuit breaker implementation (IN PROGRESS)
 3. Type-safe state machines
-4. Error handling policy
+4. ✅ **Task 2.4:** Error handling policy (COMPLETE)
 5. Module README updates
 6. Test coverage increase to 40%+
 
@@ -564,5 +564,122 @@ let state = cache.circuit_breaker().get_state();
 
 ---
 
-**Last Updated:** 2026-02-12 (Sprint 2 Task 2.2 complete with Redis integration)  
-**Next Review:** Sprint 2 remaining tasks
+### Task 2.4: Error Handling Policy (✅ Complete)
+
+**Date Completed:** 2026-02-12  
+**Status:** ✅ Complete
+
+#### Objective:
+Define and document comprehensive error handling standards for the entire codebase.
+
+#### Deliverables Completed:
+- ✅ Created `docs/ERROR_HANDLING_POLICY.md` - comprehensive error handling guide
+  - Error architecture and core types
+  - Error categories with HTTP status mapping
+  - Detailed handling patterns for each error type
+  - Conversion guidelines (thiserror, anyhow, SeaORM)
+  - API error response formats (REST & GraphQL)
+  - Logging best practices
+  - Testing guidelines
+  - Metrics and observability
+  - Migration checklist
+  - Complete working examples
+
+#### Key Sections:
+
+**1. Error Categories (9 types):**
+- `Validation` - Invalid input (400)
+- `Authentication` - Auth required/failed (401)
+- `Authorization` - Permission denied (403)
+- `NotFound` - Resource not found (404)
+- `Conflict` - Resource exists (409)
+- `Database` - DB errors (500)
+- `Cache` - Cache errors (500, non-critical)
+- `ExternalService` - External API failures (502)
+- `Internal` - Unexpected errors (500)
+
+**2. Error Handling Patterns:**
+- Input validation (validate early, fail fast)
+- Database errors (catch and categorize)
+- External service errors (wrap and add context)
+- Cache errors (fallback and warn)
+- Authorization errors (check explicitly, security-first)
+- Internal errors (log and sanitize)
+
+**3. API Integration:**
+- REST error responses with error codes
+- GraphQL error extensions
+- Proper HTTP status code mapping
+- User-friendly error messages
+- Security-conscious (no info leakage)
+
+**4. Logging Best Practices:**
+- Appropriate log levels (TRACE to ERROR)
+- Structured logging with `tracing`
+- Context-rich error logs
+- No sensitive data in logs
+- Request ID tracking
+
+**5. Testing & Observability:**
+- Unit test patterns for errors
+- Integration test examples
+- Metrics counters for error rates
+- Alert-worthy error types
+
+#### Usage Example:
+```rust
+#[instrument(skip(ctx, dto))]
+pub async fn create_order(
+    ctx: &AppContext,
+    tenant_id: Uuid,
+    dto: CreateOrderDto,
+) -> Result<Order> {
+    // 1. Validate input
+    dto.validate()
+        .map_err(|e| Error::Validation(format!("Invalid order: {}", e)))?;
+    
+    // 2. Check authorization
+    let user = get_user(&ctx.db, user_id).await?;
+    if !user.has_permission("orders:create") {
+        return Err(Error::Authorization("Permission denied".to_string()));
+    }
+    
+    // 3. External service with error handling
+    let shipping = get_shipping_quote(&dto.address).await
+        .map_err(|e| Error::ExternalService("Shipping unavailable".to_string()))?;
+    
+    // 4. Database operation
+    let order = create_order_in_db(&ctx.db, dto).await
+        .map_err(|e| Error::Database("Failed to create order".to_string()))?;
+    
+    // 5. Best-effort cache (don't fail on cache errors)
+    let _ = ctx.cache.set(format!("order:{}", order.id), &order).await;
+    
+    Ok(order)
+}
+```
+
+#### Benefits:
+- **Consistency** - Standardized error handling across codebase
+- **Debuggability** - Rich context in logs
+- **User Experience** - Clear, actionable error messages
+- **Security** - No sensitive data or internal details leaked
+- **Observability** - Proper logging levels and metrics
+- **Testability** - Clear patterns for error testing
+
+#### Impact:
+- **Developer Productivity:** Clear guidelines reduce decision fatigue
+- **Reliability:** Consistent error handling improves robustness
+- **Observability:** Structured logging enables better monitoring
+- **Security:** Policy prevents info leakage in errors
+- **User Experience:** Better error messages for end users
+
+#### Related:
+- [REFACTORING_ROADMAP.md](./REFACTORING_ROADMAP.md) - Sprint 2, Task 2.4
+- [CIRCUIT_BREAKER_GUIDE.md](./CIRCUIT_BREAKER_GUIDE.md) - External service patterns
+- [REDIS_CIRCUIT_BREAKER.md](./REDIS_CIRCUIT_BREAKER.md) - Cache error handling
+
+---
+
+**Last Updated:** 2026-02-12 (Sprint 2 Tasks 2.2 & 2.4 complete)  
+**Next Review:** Sprint 2 remaining tasks (2.3, 2.5, 2.6)
