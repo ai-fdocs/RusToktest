@@ -1,3 +1,4 @@
+pub mod backpressure;
 mod bus;
 mod handler;
 mod memory;
@@ -6,6 +7,10 @@ mod transport;
 mod types;
 pub mod validation;
 
+pub use backpressure::{
+    BackpressureConfig, BackpressureController, BackpressureError, BackpressureMetrics,
+    BackpressureState,
+};
 pub use bus::{EventBus, EventBusStats};
 pub use handler::{
     DispatcherConfig, EventDispatcher, EventHandler, HandlerBuilder, HandlerResult,
