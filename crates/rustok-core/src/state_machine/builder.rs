@@ -1,7 +1,6 @@
 /// Builder pattern for state machines
 ///
 /// Provides a fluent API for constructing state machines with validation.
-
 use super::{State, TransitionGuard};
 use std::marker::PhantomData;
 
@@ -41,15 +40,16 @@ impl<From, To> TransitionBuilder<From, To> {
             guards: Vec::new(),
         }
     }
-    
+
     pub fn guard<G>(mut self, guard: G) -> Self
     where
         G: TransitionGuard<From> + 'static,
     {
-        self.guards.push(Box::new(move |state| guard.can_transition(state)));
+        self.guards
+            .push(Box::new(move |state| guard.can_transition(state)));
         self
     }
-    
+
     pub fn can_transition(&self, from: &From) -> bool {
         self.guards.iter().all(|g| g(from))
     }
