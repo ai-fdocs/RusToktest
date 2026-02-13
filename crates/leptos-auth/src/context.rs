@@ -102,7 +102,7 @@ impl AuthContext {
 
     pub async fn refresh_session(&self) -> Result<(), AuthError> {
         if let Some(session) = self.session.get() {
-            let new_token = api::refresh_token(&session.token).await?;
+            let new_token = api::refresh_token(&session.token, &session.tenant).await?;
             let mut new_session = session.clone();
             new_session.token = new_token;
             storage::save_session(&new_session)?;
@@ -115,7 +115,7 @@ impl AuthContext {
 
     pub async fn fetch_current_user(&self) -> Result<(), AuthError> {
         if let Some(session) = self.session.get() {
-            let user = api::get_current_user(&session.token).await?;
+            let user = api::get_current_user(&session.token, &session.tenant).await?;
             storage::save_user(&user)?;
             self.user.set(Some(user));
             Ok(())

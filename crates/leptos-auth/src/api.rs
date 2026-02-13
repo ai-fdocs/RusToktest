@@ -1,7 +1,4 @@
 use serde::{Deserialize, Serialize};
-use wasm_bindgen::JsValue;
-use wasm_bindgen_futures::JsFuture;
-use web_sys::{Request, RequestInit, RequestMode, Response};
 
 use crate::{AuthError, AuthSession, AuthUser};
 
@@ -15,6 +12,7 @@ pub struct SignInRequest {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignInResponse {
+    #[serde(rename = "access_token")]
     pub token: String,
     pub user: AuthUser,
 }
@@ -29,6 +27,7 @@ pub struct SignUpRequest {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SignUpResponse {
     pub user: AuthUser,
+    #[serde(rename = "access_token")]
     pub token: String,
 }
 
@@ -48,38 +47,32 @@ async fn fetch_json<T: for<'de> Deserialize<'de>>(
     method: &str,
     body: Option<String>,
     token: Option<String>,
+    tenant: Option<String>,
 ) -> Result<T, AuthError> {
-    let window = web_sys::window().ok_or(AuthError::Network)?;
+    let client = reqwest::Client::new();
     
-    let mut opts = RequestInit::new();
-    opts.method(method);
-    opts.mode(RequestMode::Cors);
-    
-    if let Some(body_data) = body {
-        opts.body(Some(&JsValue::from_str(&body_data)));
-    }
-    
-    let request = Request::new_with_str_and_init(url, &opts)
-        .map_err(|_| AuthError::Network)?;
-    
-    request
-        .headers()
-        .set("Content-Type", "application/json")
-        .map_err(|_| AuthError::Network)?;
+    let mut req = match method {
+        "GET" => client.get(url),
+        "POST" => {
+            let mut r = client.post(url);
+            if let Some(body_data) = body {
+                r = r.header("Content-Type", "application/json").body(body_data);
+            }
+            r
+        }
+        _ => return Err(AuthError::Network),
+    };
     
     if let Some(token_val) = token {
-        request
-            .headers()
-            .set("Authorization", &format!("Bearer {}", token_val))
-            .map_err(|_| AuthError::Network)?;
+        req = req.header("Authorization", format!("Bearer {}", token_val));
     }
     
-    let resp_value = JsFuture::from(window.fetch_with_request(&request))
-        .await
-        .map_err(|_| AuthError::Network)?;
+    if let Some(tenant_val) = tenant {
+        req = req.header("X-Tenant-Slug", tenant_val);
+    }
     
-    let resp: Response = resp_value.dyn_into().map_err(|_| AuthError::Network)?;
-    let status = resp.status();
+    let resp = req.send().await.map_err(|_| AuthError::Network)?;
+    let status = resp.status().as_u16();
     
     if status == 401 {
         return Err(if method == "POST" && url.contains("/login") {
@@ -89,31 +82,29 @@ async fn fetch_json<T: for<'de> Deserialize<'de>>(
         });
     }
     
-    if !resp.ok() {
+    if !resp.status().is_success() {
         return Err(AuthError::Http(status));
     }
     
-    let json = JsFuture::from(resp.json().map_err(|_| AuthError::Network)?)
-        .await
-        .map_err(|_| AuthError::Network)?;
-    
-    let data: T = serde_wasm_bindgen::from_value(json)
-        .map_err(|_| AuthError::Network)?;
-    
-    Ok(data)
+    resp.json().await.map_err(|_| AuthError::Network)
 }
 
-pub async fn sign_in(email: String, password: String, tenant: String) -> Result<(AuthUser, AuthSession), AuthError> {
+pub async fn sign_in(
+    email: String,
+    password: String,
+    tenant: String,
+) -> Result<(AuthUser, AuthSession), AuthError> {
     let body = SignInRequest { email, password };
-    let body_str = serde_json::to_string(&body)
-        .map_err(|_| AuthError::Network)?;
+    let body_str = serde_json::to_string(&body).map_err(|_| AuthError::Network)?;
     
     let resp: SignInResponse = fetch_json(
         &format!("{}/login", API_BASE),
         "POST",
         Some(body_str),
         None,
-    ).await?;
+        Some(tenant.clone()),
+    )
+    .await?;
     
     let session = AuthSession {
         token: resp.token,
@@ -134,15 +125,16 @@ pub async fn sign_up(
         password,
         name,
     };
-    let body_str = serde_json::to_string(&body)
-        .map_err(|_| AuthError::Network)?;
+    let body_str = serde_json::to_string(&body).map_err(|_| AuthError::Network)?;
     
     let resp: SignUpResponse = fetch_json(
         &format!("{}/register", API_BASE),
         "POST",
         Some(body_str),
         None,
-    ).await?;
+        Some(tenant.clone()),
+    )
+    .await?;
     
     let session = AuthSession {
         token: resp.token,
@@ -158,31 +150,36 @@ pub async fn sign_out(token: &str) -> Result<(), AuthError> {
         "POST",
         None,
         Some(token.to_string()),
-    ).await?;
+        None,
+    )
+    .await?;
     
     Ok(())
 }
 
-pub async fn get_current_user(token: &str) -> Result<AuthUser, AuthError> {
+pub async fn get_current_user(token: &str, tenant: &str) -> Result<AuthUser, AuthError> {
     fetch_json(
         &format!("{}/me", API_BASE),
         "GET",
         None,
         Some(token.to_string()),
-    ).await
+        Some(tenant.to_string()),
+    )
+    .await
 }
 
 pub async fn forgot_password(email: String) -> Result<(), AuthError> {
     let body = ForgotPasswordRequest { email };
-    let body_str = serde_json::to_string(&body)
-        .map_err(|_| AuthError::Network)?;
+    let body_str = serde_json::to_string(&body).map_err(|_| AuthError::Network)?;
     
     let _: serde_json::Value = fetch_json(
         &format!("{}/forgot-password", API_BASE),
         "POST",
         Some(body_str),
         None,
-    ).await?;
+        None,
+    )
+    .await?;
     
     Ok(())
 }
@@ -192,22 +189,24 @@ pub async fn reset_password(token: String, new_password: String) -> Result<(), A
         token,
         new_password,
     };
-    let body_str = serde_json::to_string(&body)
-        .map_err(|_| AuthError::Network)?;
+    let body_str = serde_json::to_string(&body).map_err(|_| AuthError::Network)?;
     
     let _: serde_json::Value = fetch_json(
         &format!("{}/reset-password", API_BASE),
         "POST",
         Some(body_str),
         None,
-    ).await?;
+        None,
+    )
+    .await?;
     
     Ok(())
 }
 
-pub async fn refresh_token(token: &str) -> Result<String, AuthError> {
+pub async fn refresh_token(token: &str, tenant: &str) -> Result<String, AuthError> {
     #[derive(Deserialize)]
     struct RefreshResponse {
+        #[serde(rename = "access_token")]
         token: String,
     }
     
@@ -216,7 +215,9 @@ pub async fn refresh_token(token: &str) -> Result<String, AuthError> {
         "POST",
         None,
         Some(token.to_string()),
-    ).await?;
+        Some(tenant.to_string()),
+    )
+    .await?;
     
     Ok(resp.token)
 }
