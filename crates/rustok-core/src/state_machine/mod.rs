@@ -55,7 +55,6 @@
 ///     }
 /// }
 /// ```
-
 pub mod builder;
 pub mod transition;
 
@@ -66,7 +65,7 @@ pub use transition::{Transition, TransitionGuard, TransitionResult};
 pub trait State: Sized {
     /// State name for debugging/logging
     fn name() -> &'static str;
-    
+
     /// State description
     fn description() -> &'static str {
         ""
@@ -77,7 +76,7 @@ pub trait State: Sized {
 pub trait StateMachine {
     /// The current state type
     type State: State;
-    
+
     /// Get the current state
     fn state(&self) -> &Self::State;
 }
@@ -120,24 +119,24 @@ macro_rules! state_machine {
         $(
             #[derive(Debug, Clone)]
             pub struct $state $({ $(pub $field: $ty),* })?;
-            
+
             impl $crate::state_machine::State for $state {
                 fn name() -> &'static str {
                     stringify!($state)
                 }
             }
         )+
-        
+
         // Define machine struct
         #[derive(Debug, Clone)]
         pub struct $machine<S> {
             pub id: uuid::Uuid,
             pub state: S,
         }
-        
+
         impl<S: $crate::state_machine::State> $crate::state_machine::StateMachine for $machine<S> {
             type State = S;
-            
+
             fn state(&self) -> &Self::State {
                 &self.state
             }
