@@ -1,10 +1,9 @@
-use std::sync::Arc;
 use std::time::Duration;
 
 use async_trait::async_trait;
 use moka::future::Cache;
 
-use crate::circuit_breaker::{CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError};
+use crate::resilience::{CircuitBreaker, CircuitBreakerConfig, CircuitBreakerError};
 use crate::context::CacheBackend;
 use crate::Result;
 
@@ -181,7 +180,7 @@ impl CacheBackend for RedisCacheBackend {
                     .query_async::<()>(&mut conn)
                     .await
                     .map_err(|err| crate::Error::Cache(err.to_string()))?;
-                Ok(())
+                Ok::<(), crate::Error>(())
             })
             .await
             .map_err(|e| match e {
@@ -208,7 +207,7 @@ impl CacheBackend for RedisCacheBackend {
                     .query_async::<()>(&mut conn)
                     .await
                     .map_err(|err| crate::Error::Cache(err.to_string()))?;
-                Ok(())
+                Ok::<(), crate::Error>(())
             })
             .await
             .map_err(|e| match e {

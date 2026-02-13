@@ -1,29 +1,53 @@
-use schemars::JsonSchema;
-use serde::Serialize;
-
 use rustok_core::registry::ModuleRegistry;
+use schemars::JsonSchema;
+use serde::{Deserialize, Serialize};
 
+/// State for MCP tools
 #[derive(Clone)]
 pub struct McpState {
     pub registry: ModuleRegistry,
 }
 
-#[derive(Debug, Serialize, JsonSchema)]
+/// Information about a RusToK module
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ModuleInfo {
+    /// Unique slug identifier for the module
     pub slug: String,
+    /// Human-readable name of the module
     pub name: String,
+    /// Description of the module's functionality
     pub description: String,
+    /// Version of the module
     pub version: String,
+    /// List of module dependencies
     pub dependencies: Vec<String>,
 }
 
-#[derive(Debug, Serialize, JsonSchema)]
+/// Response containing a list of modules
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
 pub struct ModuleListResponse {
+    /// List of available modules
     pub modules: Vec<ModuleInfo>,
 }
 
-#[rmcp::tool]
-pub async fn list_modules(state: &'static McpState) -> ModuleListResponse {
+/// Request to check if a module exists
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ModuleLookupRequest {
+    /// The slug of the module to look up
+    pub slug: String,
+}
+
+/// Response indicating whether a module exists
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ModuleLookupResponse {
+    /// The slug that was queried
+    pub slug: String,
+    /// Whether the module exists
+    pub exists: bool,
+}
+
+/// List all registered modules
+pub async fn list_modules(state: &McpState) -> ModuleListResponse {
     let modules = state
         .registry
         .list()
@@ -44,26 +68,12 @@ pub async fn list_modules(state: &'static McpState) -> ModuleListResponse {
     ModuleListResponse { modules }
 }
 
-#[derive(Debug, Serialize, JsonSchema)]
-pub struct ModuleLookupResponse {
-    pub slug: String,
-    pub exists: bool,
-}
-
-#[derive(Debug, Serialize, JsonSchema)]
-pub struct ModuleLookupRequest {
-    pub slug: String,
-}
-
-#[rmcp::tool]
-pub async fn module_exists(
-    state: &'static McpState,
-    input: ModuleLookupRequest,
-) -> ModuleLookupResponse {
-    let exists = state.registry.contains(&input.slug);
+/// Check if a module exists by slug
+pub async fn module_exists(state: &McpState, request: ModuleLookupRequest) -> ModuleLookupResponse {
+    let exists = state.registry.contains(&request.slug);
 
     ModuleLookupResponse {
-        slug: input.slug,
+        slug: request.slug,
         exists,
     }
 }

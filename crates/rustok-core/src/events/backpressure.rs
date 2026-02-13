@@ -117,7 +117,7 @@ pub struct BackpressureMetrics {
 }
 
 /// Controller for managing backpressure based on queue depth
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct BackpressureController {
     config: BackpressureConfig,
     current_depth: Arc<AtomicUsize>,
@@ -125,6 +125,19 @@ pub struct BackpressureController {
     events_rejected: Arc<AtomicU64>,
     warning_count: Arc<AtomicU64>,
     critical_count: Arc<AtomicU64>,
+}
+
+impl std::fmt::Debug for BackpressureController {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("BackpressureController")
+            .field("config", &self.config)
+            .field("current_depth", &self.current_depth.load(Ordering::Relaxed))
+            .field("events_accepted", &self.events_accepted.load(Ordering::Relaxed))
+            .field("events_rejected", &self.events_rejected.load(Ordering::Relaxed))
+            .field("warning_count", &self.warning_count.load(Ordering::Relaxed))
+            .field("critical_count", &self.critical_count.load(Ordering::Relaxed))
+            .finish()
+    }
 }
 
 impl BackpressureController {
