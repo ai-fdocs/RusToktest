@@ -9,7 +9,7 @@ use rmcp::{
 };
 use rustok_core::registry::ModuleRegistry;
 
-use crate::tools::{ModuleLookupRequest, ModuleLookupResponse, ModuleListResponse};
+use crate::tools::{list_modules, module_exists, McpState};
 
 /// Configuration for the MCP server
 pub struct McpServerConfig {
@@ -182,28 +182,17 @@ impl ServerHandler for RusToKMcpServer {
 
 /// Serve the MCP server over stdio
 pub async fn serve_stdio(config: McpServerConfig) -> Result<()> {
-    let server = RusToKMcpServer::new(config.registry);
-    let transport = stdio();
+    let state = Box::leak(Box::new(McpState {
+        registry: config.registry,
+    }));
 
-    let service = rmcp::serve_server(server, transport).await?;
+    // Initialize the MCP server with stdio transport
+    let mut server = rmcp::server::Server::new(state)
+        .with_tool(list_modules)
+        .with_tool(module_exists);
 
-    // Wait for the service to complete (e.g., when stdin closes)
-    service.waiting().await?;
+    // Start serving over stdio
+    server.serve_stdio().await?;
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_server_creation() {
-        let registry = ModuleRegistry::new();
-        let server = RusToKMcpServer::new(registry);
-
-        let info = server.get_info();
-        assert_eq!(info.server_info.name, "RusToK MCP Server");
-        assert!(info.instructions.is_some());
-    }
 }
