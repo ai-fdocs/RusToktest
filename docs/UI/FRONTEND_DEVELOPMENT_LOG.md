@@ -184,39 +184,97 @@
 
 **Файл:** `crates/leptos-auth/src/lib.rs`
 
-**API (ожидаемый):**
+**Статус:** ✅ **РЕАЛИЗОВАНО** (2026-02-13)
+
+**Модули:**
+- ✅ `api.rs` — HTTP функции (sign_in, sign_up, sign_out, get_current_user, refresh_token, forgot_password, reset_password)
+- ✅ `context.rs` — AuthContext + AuthProvider component
+- ✅ `hooks.rs` — 8 хуков (use_auth, use_current_user, use_session, use_is_authenticated, use_is_loading, use_auth_error, use_token, use_tenant)
+- ✅ `components.rs` — ProtectedRoute, GuestRoute, RequireAuth
+- ✅ `storage.rs` — localStorage helpers (save/load/clear session/user)
+
+**API (реализовано):**
 ```rust
 // Хуки
-pub fn use_auth() -> AuthContext { ... }
-pub fn use_current_user() -> Signal<Option<User>> { ... }
+pub fn use_auth() -> AuthContext
+pub fn use_current_user() -> Signal<Option<AuthUser>>
+pub fn use_session() -> Signal<Option<AuthSession>>
+pub fn use_is_authenticated() -> Signal<bool>
+pub fn use_is_loading() -> Signal<bool>
+pub fn use_auth_error() -> Signal<Option<String>>
+pub fn use_token() -> Signal<Option<String>>
+pub fn use_tenant() -> Signal<Option<String>>
 
 // Компоненты
 #[component]
-pub fn AuthProvider(children: Children) -> impl IntoView { ... }
+pub fn AuthProvider(children: Children) -> impl IntoView
 
 #[component]
 pub fn ProtectedRoute(
     children: Children,
-    fallback: impl Fn() -> View + 'static
-) -> impl IntoView { ... }
+    #[prop(optional)] redirect_path: Option<String>,
+) -> impl IntoView
 
-// Функции
-pub async fn sign_in(email: String, password: String) -> Result<Token> { ... }
-pub async fn sign_out() -> Result<()> { ... }
-pub async fn sign_up(data: SignUpData) -> Result<User> { ... }
+#[component]
+pub fn GuestRoute(
+    children: Children,
+    #[prop(optional)] redirect_path: Option<String>,
+) -> impl IntoView
+
+#[component]
+pub fn RequireAuth(
+    children: Children,
+    #[prop(optional)] fallback: Option<View>,
+) -> impl IntoView
+
+// API функции
+pub async fn sign_in(email: String, password: String, tenant: String) 
+    -> Result<(AuthUser, AuthSession), AuthError>
+pub async fn sign_up(email: String, password: String, name: Option<String>, tenant: String)
+    -> Result<(AuthUser, AuthSession), AuthError>
+pub async fn sign_out(token: &str) -> Result<(), AuthError>
+pub async fn get_current_user(token: &str) -> Result<AuthUser, AuthError>
+pub async fn forgot_password(email: String) -> Result<(), AuthError>
+pub async fn reset_password(token: String, new_password: String) -> Result<(), AuthError>
+pub async fn refresh_token(token: &str) -> Result<String, AuthError>
+
+// Storage helpers
+pub fn save_session(session: &AuthSession) -> Result<(), AuthError>
+pub fn load_session() -> Result<AuthSession, AuthError>
+pub fn save_user(user: &AuthUser) -> Result<(), AuthError>
+pub fn load_user() -> Result<AuthUser, AuthError>
+pub fn clear_session()
+pub fn get_token() -> Option<String>
+pub fn get_tenant() -> Option<String>
 ```
 
-**Статус:**
-- [ ] API проверен
-- [ ] Примеры использования протестированы
-- [ ] Интеграция с leptos-graphql работает
-- [ ] Документация обновлена (если нужно)
+**Зависимости:**
+- `leptos` — core framework
+- `leptos_router` — routing (для use_navigate в ProtectedRoute)
+- `serde` + `serde_json` — serialization
+- `gloo-storage` — localStorage API
+- `thiserror` — error handling
+- `wasm-bindgen` + `wasm-bindgen-futures` — WASM bindings
+- `serde-wasm-bindgen` — WASM serialization
+- `web-sys` — browser APIs (fetch, localStorage)
+
+**Документация:**
+- ✅ `README.md` создан (12.7KB) с полным API reference и примерами
+
+**Тестирование:**
+- ⬜ Manual testing (после интеграции в apps/admin)
+- ⬜ Компиляция проверена (будет при finish)
 
 **Проблемы:**
-- _(пусто пока)_
+- _(нет пока)_
 
 **Workaround:**
-- _(если понадобится)_
+- _(не требуется)_
+
+**Next Steps:**
+1. Проверить компиляцию при finish
+2. Интегрировать в `apps/admin`
+3. Manual testing
 
 ---
 
@@ -294,16 +352,56 @@ pub fn use_mutation(
 
 ## ✅ Completed Tasks
 
-_(Будет заполняться по мере выполнения)_
-
 ### 2026-02-13
 
-**Task:** Initial audit  
+#### Task 1: Initial audit
 **Status:** ✅ Done  
+**Time:** 1 hour  
 **Details:**
 - Проверена структура обоих приложений
 - Подтверждено наличие библиотек в crates/
 - Создан FRONTEND_DEVELOPMENT_LOG.md
+- Создан PHASE_1_START.md с детальным планом
+
+#### Task 2: Реализация leptos-auth (CRITICAL PATH)
+**Status:** ✅ Done  
+**Time:** 2 hours  
+**Details:**
+
+**Что реализовано:**
+- ✅ Создан `src/api.rs` (5.5KB) — 7 API функций для работы с backend
+- ✅ Создан `src/context.rs` (4.4KB) — AuthContext + AuthProvider component
+- ✅ Создан `src/hooks.rs` (1.1KB) — 8 reactive hooks
+- ✅ Создан `src/components.rs` (2.2KB) — ProtectedRoute, GuestRoute, RequireAuth
+- ✅ Создан `src/storage.rs` (1.5KB) — localStorage helpers
+- ✅ Обновлён `src/lib.rs` (1.5KB) — экспорты + types + errors
+- ✅ Обновлён `Cargo.toml` — добавлены зависимости (leptos, gloo-storage, thiserror, wasm-bindgen, web-sys)
+- ✅ Создан `README.md` (12.7KB) — полная API документация с примерами
+
+**Структура:**
+```
+crates/leptos-auth/
+├── Cargo.toml          (обновлён)
+├── README.md           (новый, 12.7KB)
+└── src/
+    ├── lib.rs          (обновлён)
+    ├── api.rs          (новый, 5.5KB)
+    ├── context.rs      (новый, 4.4KB)
+    ├── hooks.rs        (новый, 1.1KB)
+    ├── components.rs   (новый, 2.2KB)
+    └── storage.rs      (новый, 1.5KB)
+```
+
+**API:**
+- 8 hooks: use_auth, use_current_user, use_session, use_is_authenticated, use_is_loading, use_auth_error, use_token, use_tenant
+- 3 components: AuthProvider, ProtectedRoute, GuestRoute, RequireAuth
+- 7 API functions: sign_in, sign_up, sign_out, get_current_user, forgot_password, reset_password, refresh_token
+- 7 storage helpers: save_session, load_session, save_user, load_user, clear_session, get_token, get_tenant
+
+**Следующие шаги:**
+1. Проверка компиляции (при finish)
+2. Интеграция в `apps/admin`
+3. Manual testing
 
 ---
 
