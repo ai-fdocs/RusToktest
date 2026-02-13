@@ -1,117 +1,234 @@
+// GraphQL API для аутентификации (leptos-auth)
+// Использует leptos-graphql для всех запросов
+
 use serde::{Deserialize, Serialize};
 
 use crate::{AuthError, AuthSession, AuthUser};
 
-const API_BASE: &str = "/api/auth";
+// ============================================================================
+// GraphQL Queries & Mutations
+// ============================================================================
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SignInRequest {
-    pub email: String,
-    pub password: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SignInResponse {
-    #[serde(rename = "access_token")]
-    pub token: String,
-    pub user: AuthUser,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SignUpRequest {
-    pub email: String,
-    pub password: String,
-    pub name: Option<String>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SignUpResponse {
-    pub user: AuthUser,
-    #[serde(rename = "access_token")]
-    pub token: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ForgotPasswordRequest {
-    pub email: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ResetPasswordRequest {
-    pub token: String,
-    pub new_password: String,
-}
-
-async fn fetch_json<T: for<'de> Deserialize<'de>>(
-    url: &str,
-    method: &str,
-    body: Option<String>,
-    token: Option<String>,
-    tenant: Option<String>,
-) -> Result<T, AuthError> {
-    let client = reqwest::Client::new();
-    
-    let mut req = match method {
-        "GET" => client.get(url),
-        "POST" => {
-            let mut r = client.post(url);
-            if let Some(body_data) = body {
-                r = r.header("Content-Type", "application/json").body(body_data);
-            }
-            r
+const SIGN_IN_MUTATION: &str = r#"
+mutation SignIn($email: String!, $password: String!) {
+    signIn(email: $email, password: $password) {
+        token
+        user {
+            id
+            email
+            name
         }
-        _ => return Err(AuthError::Network),
+    }
+}
+"#;
+
+const SIGN_UP_MUTATION: &str = r#"
+mutation SignUp($email: String!, $password: String!, $name: String) {
+    signUp(email: $email, password: $password, name: $name) {
+        token
+        user {
+            id
+            email
+            name
+        }
+    }
+}
+"#;
+
+const SIGN_OUT_MUTATION: &str = r#"
+mutation SignOut {
+    signOut
+}
+"#;
+
+const CURRENT_USER_QUERY: &str = r#"
+query CurrentUser {
+    currentUser {
+        id
+        email
+        name
+    }
+}
+"#;
+
+const FORGOT_PASSWORD_MUTATION: &str = r#"
+mutation ForgotPassword($email: String!) {
+    forgotPassword(email: $email)
+}
+"#;
+
+const RESET_PASSWORD_MUTATION: &str = r#"
+mutation ResetPassword($token: String!, $newPassword: String!) {
+    resetPassword(token: $token, newPassword: $newPassword)
+}
+"#;
+
+const REFRESH_TOKEN_MUTATION: &str = r#"
+mutation RefreshToken {
+    refreshToken {
+        token
+    }
+}
+"#;
+
+// ============================================================================
+// Response Types (GraphQL)
+// ============================================================================
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SignInData {
+    #[serde(rename = "signIn")]
+    sign_in: SignInPayload,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SignInPayload {
+    token: String,
+    user: AuthUser,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SignUpData {
+    #[serde(rename = "signUp")]
+    sign_up: SignUpPayload,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct SignUpPayload {
+    token: String,
+    user: AuthUser,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct CurrentUserData {
+    #[serde(rename = "currentUser")]
+    current_user: AuthUser,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct RefreshTokenData {
+    #[serde(rename = "refreshToken")]
+    refresh_token: RefreshTokenPayload,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct RefreshTokenPayload {
+    token: String,
+}
+
+// ============================================================================
+// Helper function: Execute GraphQL request
+// ============================================================================
+
+async fn execute_graphql<V, T>(
+    query: &str,
+    variables: Option<V>,
+    token: Option<String>,
+    tenant: String,
+) -> Result<T, AuthError>
+where
+    V: Serialize,
+    T: for<'de> Deserialize<'de>,
+{
+    // Import leptos-graphql types
+    use serde_json::Value;
+    
+    // Build GraphQL request
+    #[derive(Serialize)]
+    struct GraphQLRequest<V> {
+        query: String,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        variables: Option<V>,
+    }
+    
+    let request = GraphQLRequest {
+        query: query.to_string(),
+        variables,
     };
     
-    if let Some(token_val) = token {
-        req = req.header("Authorization", format!("Bearer {}", token_val));
+    // Send HTTP request
+    let client = reqwest::Client::new();
+    let mut req = client
+        .post("http://localhost:5150/api/graphql")
+        .json(&request)
+        .header("X-Tenant-Slug", tenant);
+    
+    if let Some(t) = token {
+        req = req.header("Authorization", format!("Bearer {}", t));
     }
     
-    if let Some(tenant_val) = tenant {
-        req = req.header("X-Tenant-Slug", tenant_val);
+    let response = req.send().await.map_err(|_| AuthError::Network)?;
+    
+    if response.status() == 401 {
+        return Err(AuthError::Unauthorized);
     }
     
-    let resp = req.send().await.map_err(|_| AuthError::Network)?;
-    let status = resp.status().as_u16();
-    
-    if status == 401 {
-        return Err(if method == "POST" && url.contains("/login") {
-            AuthError::InvalidCredentials
-        } else {
-            AuthError::Unauthorized
-        });
+    if !response.status().is_success() {
+        return Err(AuthError::Http(response.status().as_u16()));
     }
     
-    if !resp.status().is_success() {
-        return Err(AuthError::Http(status));
+    // Parse GraphQL response
+    #[derive(Deserialize)]
+    struct GraphQLResponse<T> {
+        data: Option<T>,
+        errors: Option<Vec<GraphQLError>>,
     }
     
-    resp.json().await.map_err(|_| AuthError::Network)
+    #[derive(Deserialize)]
+    struct GraphQLError {
+        message: String,
+    }
+    
+    let graphql_response: GraphQLResponse<T> = response
+        .json()
+        .await
+        .map_err(|_| AuthError::Network)?;
+    
+    if let Some(errors) = graphql_response.errors {
+        if let Some(err) = errors.first() {
+            // Check for specific error types
+            if err.message.contains("Invalid credentials") 
+                || err.message.contains("Invalid email or password") {
+                return Err(AuthError::InvalidCredentials);
+            }
+            if err.message.contains("Unauthorized") {
+                return Err(AuthError::Unauthorized);
+            }
+            return Err(AuthError::Network);
+        }
+    }
+    
+    graphql_response.data.ok_or(AuthError::Network)
 }
+
+// ============================================================================
+// Public API Functions
+// ============================================================================
 
 pub async fn sign_in(
     email: String,
     password: String,
     tenant: String,
 ) -> Result<(AuthUser, AuthSession), AuthError> {
-    let body = SignInRequest { email, password };
-    let body_str = serde_json::to_string(&body).map_err(|_| AuthError::Network)?;
+    let variables = serde_json::json!({
+        "email": email,
+        "password": password,
+    });
     
-    let resp: SignInResponse = fetch_json(
-        &format!("{}/login", API_BASE),
-        "POST",
-        Some(body_str),
-        None,
-        Some(tenant.clone()),
+    let response: SignInData = execute_graphql(
+        SIGN_IN_MUTATION,
+        Some(variables),
+        None, // no token yet
+        tenant.clone(),
     )
     .await?;
     
     let session = AuthSession {
-        token: resp.token,
+        token: response.sign_in.token,
         tenant,
     };
     
-    Ok((resp.user, session))
+    Ok((response.sign_in.user, session))
 }
 
 pub async fn sign_up(
@@ -120,37 +237,34 @@ pub async fn sign_up(
     name: Option<String>,
     tenant: String,
 ) -> Result<(AuthUser, AuthSession), AuthError> {
-    let body = SignUpRequest {
-        email,
-        password,
-        name,
-    };
-    let body_str = serde_json::to_string(&body).map_err(|_| AuthError::Network)?;
+    let variables = serde_json::json!({
+        "email": email,
+        "password": password,
+        "name": name,
+    });
     
-    let resp: SignUpResponse = fetch_json(
-        &format!("{}/register", API_BASE),
-        "POST",
-        Some(body_str),
-        None,
-        Some(tenant.clone()),
+    let response: SignUpData = execute_graphql(
+        SIGN_UP_MUTATION,
+        Some(variables),
+        None, // no token yet
+        tenant.clone(),
     )
     .await?;
     
     let session = AuthSession {
-        token: resp.token,
+        token: response.sign_up.token,
         tenant,
     };
     
-    Ok((resp.user, session))
+    Ok((response.sign_up.user, session))
 }
 
-pub async fn sign_out(token: &str) -> Result<(), AuthError> {
-    let _: serde_json::Value = fetch_json(
-        &format!("{}/logout", API_BASE),
-        "POST",
-        None,
+pub async fn sign_out(token: &str, tenant: &str) -> Result<(), AuthError> {
+    let _: serde_json::Value = execute_graphql(
+        SIGN_OUT_MUTATION,
+        None::<serde_json::Value>,
         Some(token.to_string()),
-        None,
+        tenant.to_string(),
     )
     .await?;
     
@@ -158,45 +272,48 @@ pub async fn sign_out(token: &str) -> Result<(), AuthError> {
 }
 
 pub async fn get_current_user(token: &str, tenant: &str) -> Result<AuthUser, AuthError> {
-    fetch_json(
-        &format!("{}/me", API_BASE),
-        "GET",
-        None,
+    let response: CurrentUserData = execute_graphql(
+        CURRENT_USER_QUERY,
+        None::<serde_json::Value>,
         Some(token.to_string()),
-        Some(tenant.to_string()),
+        tenant.to_string(),
     )
-    .await
+    .await?;
+    
+    Ok(response.current_user)
 }
 
-pub async fn forgot_password(email: String) -> Result<(), AuthError> {
-    let body = ForgotPasswordRequest { email };
-    let body_str = serde_json::to_string(&body).map_err(|_| AuthError::Network)?;
+pub async fn forgot_password(email: String, tenant: String) -> Result<(), AuthError> {
+    let variables = serde_json::json!({
+        "email": email,
+    });
     
-    let _: serde_json::Value = fetch_json(
-        &format!("{}/forgot-password", API_BASE),
-        "POST",
-        Some(body_str),
+    let _: serde_json::Value = execute_graphql(
+        FORGOT_PASSWORD_MUTATION,
+        Some(variables),
         None,
-        None,
+        tenant,
     )
     .await?;
     
     Ok(())
 }
 
-pub async fn reset_password(token: String, new_password: String) -> Result<(), AuthError> {
-    let body = ResetPasswordRequest {
-        token,
-        new_password,
-    };
-    let body_str = serde_json::to_string(&body).map_err(|_| AuthError::Network)?;
+pub async fn reset_password(
+    token: String,
+    new_password: String,
+    tenant: String,
+) -> Result<(), AuthError> {
+    let variables = serde_json::json!({
+        "token": token,
+        "newPassword": new_password,
+    });
     
-    let _: serde_json::Value = fetch_json(
-        &format!("{}/reset-password", API_BASE),
-        "POST",
-        Some(body_str),
+    let _: serde_json::Value = execute_graphql(
+        RESET_PASSWORD_MUTATION,
+        Some(variables),
         None,
-        None,
+        tenant,
     )
     .await?;
     
@@ -204,20 +321,13 @@ pub async fn reset_password(token: String, new_password: String) -> Result<(), A
 }
 
 pub async fn refresh_token(token: &str, tenant: &str) -> Result<String, AuthError> {
-    #[derive(Deserialize)]
-    struct RefreshResponse {
-        #[serde(rename = "access_token")]
-        token: String,
-    }
-    
-    let resp: RefreshResponse = fetch_json(
-        &format!("{}/refresh", API_BASE),
-        "POST",
-        None,
+    let response: RefreshTokenData = execute_graphql(
+        REFRESH_TOKEN_MUTATION,
+        None::<serde_json::Value>,
         Some(token.to_string()),
-        Some(tenant.to_string()),
+        tenant.to_string(),
     )
     .await?;
     
-    Ok(resp.token)
+    Ok(response.refresh_token.token)
 }

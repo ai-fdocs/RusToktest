@@ -1,32 +1,44 @@
 # leptos-auth
 
-Authentication library for Leptos applications with JWT support, localStorage persistence, and React Context-like state management.
+## Назначение
 
-## Features
+`crates/leptos-auth` — Leptos authentication library для RusToK, использующая **GraphQL** для всех операций.
 
-- 🔐 **JWT Authentication** — Full auth flow with token management
-- 💾 **Persistent Storage** — Auto-save to localStorage
-- 🎣 **React-like Hooks** — `use_auth()`, `use_current_user()`, `use_session()`
-- 🛡️ **Protected Routes** — `<ProtectedRoute>` and `<GuestRoute>` components
-- 🔄 **Auto Refresh** — Token refresh support
-- 🌐 **Multi-tenant** — Built-in tenant support
-- ⚡ **Reactive** — Leptos signals for real-time updates
+## Архитектура
 
-## Installation
+**Главное правило:** ✅ **Только GraphQL, никакого REST API!**
 
-Add to your `Cargo.toml`:
+Эта библиотека предоставляет:
+- Компоненты для защищённых маршрутов (`ProtectedRoute`, `GuestRoute`)
+- Hooks для работы с аутентификацией (`use_auth`, `use_token`, `use_tenant`)
+- GraphQL API для auth operations (`sign_in`, `sign_up`, `sign_out`)
+- LocalStorage helpers для сохранения сессии
 
-```toml
-[dependencies]
-leptos-auth = { path = "../../crates/leptos-auth" }
+## Взаимодействие
+
+- `apps/admin` — использует для аутентификации
+- `apps/storefront` — использует для аутентификации
+- `leptos-graphql` — низкоуровневый transport layer
+- `apps/server` — GraphQL mutations/queries на backend
+
+## Структура
+
+```
+src/
+├── lib.rs          ← Public API, типы (AuthUser, AuthSession, AuthError)
+├── api.rs          ← GraphQL mutations (sign_in, sign_up, sign_out)
+├── context.rs      ← AuthProvider component, AuthContext
+├── hooks.rs        ← use_auth(), use_token(), use_tenant(), etc.
+├── storage.rs      ← LocalStorage helpers
+└── components.rs   ← ProtectedRoute, GuestRoute, RequireAuth
 ```
 
-## Quick Start
+## Использование
 
-### 1. Wrap your app with `AuthProvider`
+### 1. Обернуть приложение в AuthProvider
 
 ```rust
-use leptos::*;
+// apps/admin/src/app.rs
 use leptos_auth::AuthProvider;
 
 #[component]
@@ -34,42 +46,54 @@ pub fn App() -> impl IntoView {
     view! {
         <AuthProvider>
             <Router>
-                <Routes>
-                    // Your routes here
-                </Routes>
+                {/* routes */}
             </Router>
         </AuthProvider>
     }
 }
 ```
 
-### 2. Use auth hooks in components
+### 2. Login page
 
 ```rust
 use leptos::*;
-use leptos_auth::{use_auth, use_current_user};
+use leptos_auth::api;
 
 #[component]
-pub fn Profile() -> impl IntoView {
-    let auth = use_auth();
-    let user = use_current_user();
-
+pub fn Login() -> impl IntoView {
+    let (email, set_email) = create_signal(String::new());
+    let (password, set_password) = create_signal(String::new());
+    
+    let login_action = create_action(|_| async move {
+        match api::sign_in(
+            email.get(),
+            password.get(),
+            "demo".to_string(), // tenant
+        ).await {
+            Ok((user, session)) => {
+                // Success - AuthContext updated automatically
+                navigate("/dashboard");
+            }
+            Err(e) => {
+                // Handle error
+            }
+        }
+    });
+    
     view! {
-        <div>
-            <h1>"Welcome, " {move || user.get().map(|u| u.email).unwrap_or_default()}</h1>
-            <button on:click=move |_| {
-                spawn_local(async move {
-                    let _ = auth.sign_out().await;
-                });
-            }>
-                "Sign Out"
-            </button>
-        </div>
+        <form on:submit=|ev| {
+            ev.prevent_default();
+            login_action.dispatch(());
+        }>
+            <input type="email" value=email />
+            <input type="password" value=password />
+            <button type="submit">"Login"</button>
+        </form>
     }
 }
 ```
 
-### 3. Protect routes
+### 3. Protected routes
 
 ```rust
 use leptos::*;
@@ -79,278 +103,235 @@ use leptos_auth::ProtectedRoute;
 #[component]
 pub fn App() -> impl IntoView {
     view! {
-        <Routes>
-            <Route path="/login" view=LoginPage />
+        <Router>
+            <Routes>
+                <Route path="/login" view=Login />
+                
+                <ParentRoute path="" view=ProtectedRoute>
+                    <Route path="/dashboard" view=Dashboard />
+                    <Route path="/profile" view=Profile />
+                </ParentRoute>
+            </Routes>
+        </Router>
+    }
+}
+```
+
+### 4. Use auth hooks
+
+```rust
+use leptos::*;
+use leptos_auth::{use_auth, use_token, use_tenant, use_current_user};
+
+#[component]
+pub fn Dashboard() -> impl IntoView {
+    let auth = use_auth();
+    let user = use_current_user();
+    let token = use_token();
+    let tenant = use_tenant();
+    
+    view! {
+        <div>
+            <p>"Welcome, " {move || user.get().map(|u| u.email)}</p>
             
-            // Protected route - redirects to /login if not authenticated
-            <Route path="/dashboard" view=move || view! {
-                <ProtectedRoute>
-                    <DashboardPage />
-                </ProtectedRoute>
-            } />
-        </Routes>
+            <button on:click=move |_| {
+                spawn_local(async move {
+                    let _ = auth.sign_out().await;
+                });
+            }>
+                "Logout"
+            </button>
+        </div>
     }
 }
 ```
 
-## API Reference
-
-### Context & Provider
-
-#### `AuthProvider`
-
-Provides auth context to the component tree.
+### 5. Domain operations (using token)
 
 ```rust
-#[component]
-pub fn AuthProvider(children: Children) -> impl IntoView
-```
+use leptos::*;
+use leptos_graphql::{execute, GraphqlRequest, GRAPHQL_ENDPOINT};
+use leptos_auth::{use_token, use_tenant};
 
-**Example:**
-```rust
-view! {
-    <AuthProvider>
-        <App />
-    </AuthProvider>
-}
-```
-
----
-
-### Hooks
-
-#### `use_auth()`
-
-Returns the `AuthContext` with full control over authentication.
-
-```rust
-pub fn use_auth() -> AuthContext
-```
-
-**Methods:**
-- `sign_in(email, password, tenant) -> Result<(), AuthError>` — Sign in user
-- `sign_up(email, password, name, tenant) -> Result<(), AuthError>` — Register new user
-- `sign_out() -> Result<(), AuthError>` — Sign out and clear session
-- `refresh_session() -> Result<(), AuthError>` — Refresh JWT token
-- `fetch_current_user() -> Result<(), AuthError>` — Fetch user info from API
-- `is_authenticated() -> bool` — Check if user is logged in
-- `get_token() -> Option<String>` — Get current JWT token
-- `get_tenant() -> Option<String>` — Get current tenant
-
-**Signals:**
-- `user: RwSignal<Option<AuthUser>>` — Current user data
-- `session: RwSignal<Option<AuthSession>>` — Current session (token + tenant)
-- `is_loading: RwSignal<bool>` — Loading state
-- `error: RwSignal<Option<String>>` — Error message
-
-**Example:**
-```rust
-let auth = use_auth();
-
-let sign_in_action = create_action(move |input: &(String, String)| {
-    let (email, password) = input.clone();
-    let auth = auth.clone();
-    async move {
-        auth.sign_in(email, password, "default".to_string()).await
+const GET_USERS_QUERY: &str = r#"
+query GetUsers {
+    users {
+        items { id email name }
     }
-});
-```
+}
+"#;
 
----
-
-#### `use_current_user()`
-
-Returns a reactive signal with current user data.
-
-```rust
-pub fn use_current_user() -> Signal<Option<AuthUser>>
-```
-
-**Example:**
-```rust
-let user = use_current_user();
-
-view! {
-    <Show when=move || user.get().is_some()>
-        <p>"Email: " {move || user.get().unwrap().email}</p>
-    </Show>
+#[component]
+pub fn Users() -> impl IntoView {
+    let token = use_token();
+    let tenant = use_tenant();
+    
+    let users = create_resource(
+        move || (token.get(), tenant.get()),
+        |(token, tenant)| async move {
+            let request = GraphqlRequest::new(GET_USERS_QUERY, None);
+            execute(GRAPHQL_ENDPOINT, request, token, tenant).await
+        },
+    );
+    
+    view! {
+        <Suspense fallback=|| view! { <p>"Loading..."</p> }>
+            {move || users.get().map(|data| /* render */)}
+        </Suspense>
+    }
 }
 ```
 
----
+## GraphQL Mutations/Queries
 
-#### `use_session()`
+### Authentication
 
-Returns a reactive signal with current session (token + tenant).
+```graphql
+# Login
+mutation SignIn($email: String!, $password: String!) {
+    signIn(email: $email, password: $password) {
+        token
+        user { id email name }
+    }
+}
 
-```rust
-pub fn use_session() -> Signal<Option<AuthSession>>
-```
+# Register
+mutation SignUp($email: String!, $password: String!, $name: String) {
+    signUp(email: $email, password: $password, name: $name) {
+        token
+        user { id email name }
+    }
+}
 
----
+# Logout
+mutation SignOut {
+    signOut
+}
 
-#### `use_is_authenticated()`
+# Current user
+query CurrentUser {
+    currentUser { id email name }
+}
 
-Returns a reactive boolean signal indicating auth status.
+# Refresh token
+mutation RefreshToken {
+    refreshToken { token }
+}
 
-```rust
-pub fn use_is_authenticated() -> Signal<bool>
-```
+# Password reset
+mutation ForgotPassword($email: String!) {
+    forgotPassword(email: $email)
+}
 
-**Example:**
-```rust
-let is_authenticated = use_is_authenticated();
-
-view! {
-    <Show when=move || is_authenticated.get()>
-        <DashboardLink />
-    </Show>
+mutation ResetPassword($token: String!, $newPassword: String!) {
+    resetPassword(token: $token, newPassword: $newPassword)
 }
 ```
 
----
+## API Functions
 
-#### `use_is_loading()`
+### `api::sign_in(email, password, tenant)`
+Login через GraphQL mutation `signIn`.
 
-Returns loading state signal.
+**Returns:** `(AuthUser, AuthSession)`
+
+### `api::sign_up(email, password, name, tenant)`
+Register через GraphQL mutation `signUp`.
+
+**Returns:** `(AuthUser, AuthSession)`
+
+### `api::sign_out(token, tenant)`
+Logout через GraphQL mutation `signOut`.
+
+### `api::get_current_user(token, tenant)`
+Get current user через GraphQL query `currentUser`.
+
+**Returns:** `AuthUser`
+
+### `api::refresh_token(token, tenant)`
+Refresh JWT token через GraphQL mutation `refreshToken`.
+
+**Returns:** `String` (new token)
+
+### `api::forgot_password(email, tenant)`
+Send password reset email.
+
+### `api::reset_password(token, new_password, tenant)`
+Reset password with token.
+
+## Hooks
+
+### `use_auth() -> AuthContext`
+Get full auth context with methods.
+
+### `use_current_user() -> Signal<Option<AuthUser>>`
+Get current user (reactive).
+
+### `use_token() -> Signal<Option<String>>`
+Get JWT token (reactive).
+
+### `use_tenant() -> Signal<Option<String>>`
+Get tenant slug (reactive).
+
+### `use_is_authenticated() -> Signal<bool>`
+Check if user is authenticated (reactive).
+
+### `use_is_loading() -> Signal<bool>`
+Check if auth is loading (reactive).
+
+### `use_session() -> Signal<Option<AuthSession>>`
+Get full session (token + tenant).
+
+## Components
+
+### `<ProtectedRoute>`
+Redirect to `/login` if not authenticated.
 
 ```rust
-pub fn use_is_loading() -> Signal<bool>
+<ParentRoute path="" view=ProtectedRoute>
+    <Route path="/dashboard" view=Dashboard />
+</ParentRoute>
 ```
 
----
-
-#### `use_auth_error()`
-
-Returns error message signal.
+### `<GuestRoute>`
+Redirect to `/dashboard` if already authenticated.
 
 ```rust
-pub fn use_auth_error() -> Signal<Option<String>>
+<Route path="/login" view=GuestRoute>
+    <Login />
+</Route>
 ```
 
----
-
-#### `use_token()`
-
-Returns current JWT token.
+### `<RequireAuth>`
+Show fallback if not authenticated (inline).
 
 ```rust
-pub fn use_token() -> Signal<Option<String>>
-```
-
----
-
-#### `use_tenant()`
-
-Returns current tenant slug.
-
-```rust
-pub fn use_tenant() -> Signal<Option<String>>
-```
-
----
-
-### Components
-
-#### `ProtectedRoute`
-
-Redirects unauthenticated users to login page.
-
-```rust
-#[component]
-pub fn ProtectedRoute(
-    children: Children,
-    #[prop(optional)] redirect_path: Option<String>,
-) -> impl IntoView
-```
-
-**Props:**
-- `children` — Content to show when authenticated
-- `redirect_path` — Where to redirect (default: `/login`)
-
-**Example:**
-```rust
-<ProtectedRoute redirect_path="/auth/signin".to_string()>
-    <AdminPanel />
-</ProtectedRoute>
-```
-
----
-
-#### `GuestRoute`
-
-Redirects authenticated users to dashboard (opposite of `ProtectedRoute`).
-
-```rust
-#[component]
-pub fn GuestRoute(
-    children: Children,
-    #[prop(optional)] redirect_path: Option<String>,
-) -> impl IntoView
-```
-
-**Example:**
-```rust
-<GuestRoute redirect_path="/dashboard".to_string()>
-    <LoginPage />
-</GuestRoute>
-```
-
----
-
-#### `RequireAuth`
-
-Shows children only if authenticated, otherwise shows fallback.
-
-```rust
-#[component]
-pub fn RequireAuth(
-    children: Children,
-    #[prop(optional)] fallback: Option<View>,
-) -> impl IntoView
-```
-
-**Example:**
-```rust
-<RequireAuth fallback=view! { <p>"Please sign in"</p> }.into_view()>
+<RequireAuth fallback=|| view! { <p>"Please login"</p> }>
     <SecretContent />
 </RequireAuth>
 ```
 
----
+## Types
 
-### Types
-
-#### `AuthUser`
-
+### `AuthUser`
 ```rust
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AuthUser {
     pub id: String,
     pub email: String,
     pub name: Option<String>,
-    pub role: String,
 }
 ```
 
----
-
-#### `AuthSession`
-
+### `AuthSession`
 ```rust
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct AuthSession {
     pub token: String,
     pub tenant: String,
 }
 ```
 
----
-
-#### `AuthError`
-
+### `AuthError`
 ```rust
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, thiserror::Error)]
 pub enum AuthError {
     Unauthorized,
     InvalidCredentials,
@@ -359,212 +340,88 @@ pub enum AuthError {
 }
 ```
 
----
+## Backend Requirements
 
-### Storage Helpers
+Backend должен реализовать GraphQL mutations/queries в `apps/server/src/graphql/`:
 
-Low-level functions for manual storage management (usually not needed).
+- `mutation signIn(email, password) -> SignInPayload`
+- `mutation signUp(email, password, name) -> SignUpPayload`
+- `mutation signOut -> Boolean`
+- `query currentUser -> User`
+- `mutation refreshToken -> RefreshTokenPayload`
+- `mutation forgotPassword(email) -> Boolean`
+- `mutation resetPassword(token, newPassword) -> Boolean`
 
-```rust
-pub fn save_session(session: &AuthSession) -> Result<(), AuthError>
-pub fn load_session() -> Result<AuthSession, AuthError>
-pub fn save_user(user: &AuthUser) -> Result<(), AuthError>
-pub fn load_user() -> Result<AuthUser, AuthError>
-pub fn clear_session()
-pub fn get_token() -> Option<String>
-pub fn get_tenant() -> Option<String>
+См. полную документацию: `/docs/UI/GRAPHQL_ARCHITECTURE.md`
+
+## Dependencies
+
+```toml
+[dependencies]
+leptos = { workspace = true }
+leptos_router = { workspace = true }
+serde = { workspace = true, features = ["derive"] }
+serde_json = { workspace = true }
+gloo-storage = { workspace = true }
+thiserror = { workspace = true }
+reqwest = { version = "0.13", default-features = false, features = ["json"] }
 ```
 
----
+## Best Practices
 
-### API Functions
+1. **Всегда используйте константы для GraphQL queries**
+   ```rust
+   const SIGN_IN_MUTATION: &str = r#"..."#;
+   ```
 
-Low-level HTTP functions (usually not needed, use `AuthContext` instead).
+2. **Типизируйте ответы**
+   ```rust
+   #[derive(Deserialize)]
+   struct SignInData { sign_in: SignInPayload }
+   ```
 
-```rust
-pub async fn sign_in(email: String, password: String, tenant: String) 
-    -> Result<(AuthUser, AuthSession), AuthError>
+3. **Обрабатывайте ошибки**
+   ```rust
+   match api::sign_in(...).await {
+       Ok(_) => { /* success */ },
+       Err(AuthError::InvalidCredentials) => { /* show error */ },
+       Err(_) => { /* network error */ },
+   }
+   ```
 
-pub async fn sign_up(email: String, password: String, name: Option<String>, tenant: String)
-    -> Result<(AuthUser, AuthSession), AuthError>
+4. **Используйте hooks для реактивности**
+   ```rust
+   let user = use_current_user();
+   view! { <p>{move || user.get().map(|u| u.email)}</p> }
+   ```
 
-pub async fn sign_out(token: &str) -> Result<(), AuthError>
+## Documentation
 
-pub async fn get_current_user(token: &str) -> Result<AuthUser, AuthError>
+- Локальная: `./docs/` (пока нет)
+- Общая: `/docs/UI/GRAPHQL_ARCHITECTURE.md`
+- Backend GraphQL schema: `/apps/server/src/graphql/`
 
-pub async fn forgot_password(email: String) -> Result<(), AuthError>
+## Паспорт компонента
 
-pub async fn reset_password(token: String, new_password: String) -> Result<(), AuthError>
+- **Роль:** Authentication library для Leptos apps (GraphQL-only)
+- **Ответственность:** Auth state management, GraphQL auth operations, LocalStorage
+- **Взаимодействует с:**
+  - `leptos-graphql` (transport)
+  - `apps/server` (GraphQL backend)
+  - `apps/admin` (consumer)
+  - `apps/storefront` (consumer)
+- **Точки входа:** `src/lib.rs`
+- **Документация:** `/docs/UI/GRAPHQL_ARCHITECTURE.md`
 
-pub async fn refresh_token(token: &str) -> Result<String, AuthError>
-```
+## Status
 
----
+✅ **Реализовано** (GraphQL-only)
 
-## Complete Example: Login Page
-
-```rust
-use leptos::*;
-use leptos_router::*;
-use leptos_auth::{use_auth, GuestRoute};
-
-#[component]
-pub fn LoginPage() -> impl IntoView {
-    let auth = use_auth();
-    let navigate = use_navigate();
-    
-    let (email, set_email) = create_signal(String::new());
-    let (password, set_password) = create_signal(String::new());
-    let (error, set_error) = create_signal(None::<String>);
-    
-    let submit = create_action(move |_: &()| {
-        let auth = auth.clone();
-        let email = email.get();
-        let password = password.get();
-        
-        async move {
-            set_error.set(None);
-            
-            match auth.sign_in(email, password, "default".to_string()).await {
-                Ok(_) => {
-                    navigate("/dashboard", Default::default());
-                }
-                Err(e) => {
-                    set_error.set(Some(format!("{:?}", e)));
-                }
-            }
-        }
-    });
-    
-    view! {
-        <GuestRoute>
-            <div class="min-h-screen flex items-center justify-center">
-                <form on:submit=move |e| {
-                    e.prevent_default();
-                    submit.dispatch(());
-                } class="w-full max-w-md space-y-4">
-                    <h1 class="text-2xl font-bold">"Sign In"</h1>
-                    
-                    <Show when=move || error.get().is_some()>
-                        <div class="bg-red-100 text-red-700 p-3 rounded">
-                            {move || error.get().unwrap_or_default()}
-                        </div>
-                    </Show>
-                    
-                    <input
-                        type="email"
-                        placeholder="Email"
-                        class="w-full px-4 py-2 border rounded"
-                        on:input=move |e| set_email.set(event_target_value(&e))
-                        prop:value=email
-                    />
-                    
-                    <input
-                        type="password"
-                        placeholder="Password"
-                        class="w-full px-4 py-2 border rounded"
-                        on:input=move |e| set_password.set(event_target_value(&e))
-                        prop:value=password
-                    />
-                    
-                    <button
-                        type="submit"
-                        class="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
-                        disabled=move || submit.pending().get()
-                    >
-                        {move || if submit.pending().get() { "Signing in..." } else { "Sign In" }}
-                    </button>
-                </form>
-            </div>
-        </GuestRoute>
-    }
-}
-```
-
----
-
-## Backend API Requirements
-
-The library expects the following REST endpoints:
-
-| Method | Endpoint | Request Body | Response |
-|--------|----------|--------------|----------|
-| POST | `/api/auth/login` | `{ email, password }` | `{ token, user: { id, email, name, role } }` |
-| POST | `/api/auth/register` | `{ email, password, name? }` | `{ token, user }` |
-| POST | `/api/auth/logout` | — | `{}` |
-| GET | `/api/auth/me` | — | `{ id, email, name, role }` |
-| POST | `/api/auth/forgot-password` | `{ email }` | `{}` |
-| POST | `/api/auth/reset-password` | `{ token, new_password }` | `{}` |
-| POST | `/api/auth/refresh` | — | `{ token }` |
-
-**Authentication:**  
-All endpoints except `/login`, `/register`, `/forgot-password`, and `/reset-password` require `Authorization: Bearer <token>` header.
-
----
-
-## Storage Keys
-
-The library uses the following localStorage keys:
-
-- `rustok-admin-session` — Full session object (JSON)
-- `rustok-admin-token` — JWT token (string)
-- `rustok-admin-tenant` — Tenant slug (string)
-- `rustok-admin-user` — User object (JSON)
-
----
-
-## Multi-Tenant Support
-
-Pass tenant slug when signing in/up:
-
-```rust
-auth.sign_in(email, password, "acme-corp".to_string()).await?;
-```
-
-Tenant is stored in session and can be retrieved with:
-
-```rust
-let tenant = use_tenant();
-```
-
----
-
-## Error Handling
-
-```rust
-match auth.sign_in(email, password, tenant).await {
-    Ok(_) => {
-        // Success
-    }
-    Err(AuthError::InvalidCredentials) => {
-        // Wrong email/password
-    }
-    Err(AuthError::Unauthorized) => {
-        // Token expired or invalid
-    }
-    Err(AuthError::Network) => {
-        // Network/parsing error
-    }
-    Err(AuthError::Http(status)) => {
-        // Other HTTP error
-    }
-}
-```
-
----
-
-## License
-
-MIT
-
----
-
-## Contributing
-
-This library is part of the RusToK project. See main repository for contribution guidelines.
-
----
-
-**Version:** 0.1.0  
-**Last Updated:** 2026-02-13  
-**Status:** ✅ Production Ready
+**Требуется на backend:**
+- ⬜ Implement `mutation signIn`
+- ⬜ Implement `mutation signUp`
+- ⬜ Implement `mutation signOut`
+- ⬜ Implement `query currentUser`
+- ⬜ Implement `mutation refreshToken`
+- ⬜ Implement `mutation forgotPassword`
+- ⬜ Implement `mutation resetPassword`
