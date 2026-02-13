@@ -152,19 +152,19 @@ mod integration_tests {
     async fn test_middleware_with_uuid_header() {
         // Test that X-Tenant-ID header is resolved correctly
     }
-    
+
     #[tokio::test]
     #[ignore]
     async fn test_middleware_with_host_header() {
         // Test that Host header is resolved correctly
     }
-    
+
     #[tokio::test]
     #[ignore]
     async fn test_middleware_caching_behavior() {
         // Test that multiple requests use cached result
     }
-    
+
     #[tokio::test]
     #[ignore]
     async fn test_middleware_security_validation() {
@@ -176,22 +176,22 @@ mod integration_tests {
 #[cfg(test)]
 mod bench_tests {
     // These would compare performance of old vs new implementation
-    
+
     // #[bench]
     // fn bench_cache_hit_old() {
     //     // Benchmark old implementation
     // }
-    
+
     // #[bench]
     // fn bench_cache_hit_new() {
     //     // Benchmark new implementation
     // }
-    
+
     // #[bench]
     // fn bench_stampede_old() {
     //     // Test stampede protection of old implementation
     // }
-    
+
     // #[bench]
     // fn bench_stampede_new() {
     //     // Test stampede protection of new implementation (should be faster)

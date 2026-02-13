@@ -68,37 +68,37 @@ impl From<CommerceError> for RichError {
                     .with_field("variant_id", id.to_string())
                     .with_error_code("VARIANT_NOT_FOUND")
             }
-            CommerceError::DuplicateHandle { handle, locale } => {
-                RichError::new(
-                    ErrorKind::Conflict,
-                    format!("Handle '{}' already exists for locale '{}'", handle, locale),
-                )
-                .with_user_message("A product with this handle already exists")
-                .with_field("handle", handle)
-                .with_field("locale", locale)
-                .with_error_code("DUPLICATE_HANDLE")
-            }
+            CommerceError::DuplicateHandle { handle, locale } => RichError::new(
+                ErrorKind::Conflict,
+                format!("Handle '{}' already exists for locale '{}'", handle, locale),
+            )
+            .with_user_message("A product with this handle already exists")
+            .with_field("handle", handle)
+            .with_field("locale", locale)
+            .with_error_code("DUPLICATE_HANDLE"),
             CommerceError::DuplicateSku(sku) => {
                 RichError::new(ErrorKind::Conflict, format!("SKU '{}' already exists", sku))
                     .with_user_message("A product with this SKU already exists")
                     .with_field("sku", sku)
                     .with_error_code("DUPLICATE_SKU")
             }
-            CommerceError::InvalidPrice(msg) => {
-                RichError::new(ErrorKind::Validation, msg)
-                    .with_user_message("Invalid price value")
-                    .with_error_code("INVALID_PRICE")
-            }
-            CommerceError::InsufficientInventory { requested, available } => {
-                RichError::new(
-                    ErrorKind::BusinessLogic,
-                    format!("Insufficient inventory: requested {}, available {}", requested, available),
-                )
-                .with_user_message("Not enough items in stock")
-                .with_field("requested", requested.to_string())
-                .with_field("available", available.to_string())
-                .with_error_code("INSUFFICIENT_INVENTORY")
-            }
+            CommerceError::InvalidPrice(msg) => RichError::new(ErrorKind::Validation, msg)
+                .with_user_message("Invalid price value")
+                .with_error_code("INVALID_PRICE"),
+            CommerceError::InsufficientInventory {
+                requested,
+                available,
+            } => RichError::new(
+                ErrorKind::BusinessLogic,
+                format!(
+                    "Insufficient inventory: requested {}, available {}",
+                    requested, available
+                ),
+            )
+            .with_user_message("Not enough items in stock")
+            .with_field("requested", requested.to_string())
+            .with_field("available", available.to_string())
+            .with_error_code("INSUFFICIENT_INVENTORY"),
             CommerceError::InvalidOptionCombination => {
                 RichError::new(ErrorKind::Validation, "Invalid option combination")
                     .with_user_message("The selected product options are not available")
@@ -173,7 +173,7 @@ mod tests {
         let id = Uuid::new_v4();
         let err = CommerceError::product_not_found(id);
         let rich: RichError = err.into();
-    
+
         assert_eq!(rich.kind, ErrorKind::NotFound);
         assert_eq!(rich.status_code, 404);
         assert!(rich.fields.contains_key("product_id"));
@@ -183,7 +183,7 @@ mod tests {
     fn test_duplicate_handle_conversion() {
         let err = CommerceError::duplicate_handle("my-product", "en");
         let rich: RichError = err.into();
-    
+
         assert_eq!(rich.kind, ErrorKind::Conflict);
         assert_eq!(rich.status_code, 409);
         assert_eq!(rich.fields.get("handle"), Some(&"my-product".to_string()));
@@ -193,7 +193,7 @@ mod tests {
     fn test_insufficient_inventory_conversion() {
         let err = CommerceError::insufficient_inventory(10, 5);
         let rich: RichError = err.into();
-    
+
         assert_eq!(rich.kind, ErrorKind::BusinessLogic);
         assert_eq!(rich.fields.get("requested"), Some(&"10".to_string()));
         assert_eq!(rich.fields.get("available"), Some(&"5".to_string()));
