@@ -1,0 +1,137 @@
+// User Menu Dropdown Component
+use leptos::prelude::*;
+use leptos::task::spawn_local;
+use leptos_router::hooks::use_navigate;
+use leptos_router::components::A;
+
+use crate::providers::auth::use_auth;
+
+#[component]
+pub fn UserMenu() -> impl IntoView {
+    let auth = use_auth();
+    let navigate = use_navigate();
+
+    let (open, set_open) = signal(false);
+
+    let handle_logout = move |_| {
+        spawn_local(async move {
+            // Clear auth state
+            auth.set_token.set(None);
+            auth.set_user.set(None);
+            auth.set_tenant_slug.set(None);
+
+            // Navigate to login
+            navigate("/login", Default::default());
+        });
+    };
+
+    // Close dropdown when clicking outside (simplified version)
+    let toggle_menu = move |_| {
+        set_open.update(|v| *v = !*v);
+    };
+
+    view! {
+        <div class="relative">
+            // User Avatar Button
+            <button
+                on:click=toggle_menu
+                class="flex items-center gap-2 p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+                <div class="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                    <span class="text-white text-sm font-semibold">
+                        {move || {
+                            auth.user
+                                .get()
+                                .and_then(|u| u.name.clone())
+                                .and_then(|n| n.chars().next())
+                                .map(|c| c.to_string())
+                                .unwrap_or_else(|| "U".to_string())
+                        }}
+                    </span>
+                </div>
+                <div class="text-left hidden md:block">
+                    <p class="text-sm font-medium text-gray-900">
+                        {move || {
+                            auth.user
+                                .get()
+                                .and_then(|u| u.name.clone())
+                                .unwrap_or_else(|| "User".to_string())
+                        }}
+                    </p>
+                    <p class="text-xs text-gray-500">
+                        {move || {
+                            auth.user
+                                .get()
+                                .map(|u| u.role.clone())
+                                .unwrap_or_else(|| "user".to_string())
+                        }}
+                    </p>
+                </div>
+                <span class="text-gray-400 text-sm">
+                    {move || if open.get() { "▲" } else { "▼" }}
+                </span>
+            </button>
+
+            // Dropdown Menu
+            <Show when=move || open.get()>
+                <div class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                    // User Info Section
+                    <div class="px-4 py-3 border-b border-gray-200">
+                        <p class="text-sm font-medium text-gray-900">
+                            {move || {
+                                auth.user
+                                    .get()
+                                    .and_then(|u| u.name.clone())
+                                    .unwrap_or_else(|| "User".to_string())
+                            }}
+                        </p>
+                        <p class="text-xs text-gray-500 truncate">
+                            {move || {
+                                auth.user
+                                    .get()
+                                    .map(|u| u.email.clone())
+                                    .unwrap_or_else(|| "user@example.com".to_string())
+                            }}
+                        </p>
+                    </div>
+
+                    // Menu Items
+                    <div class="py-1">
+                        <DropdownLink href="/profile" icon="👤">
+                            "Profile"
+                        </DropdownLink>
+                        <DropdownLink href="/settings" icon="⚙️">
+                            "Settings"
+                        </DropdownLink>
+                        <DropdownLink href="/security" icon="🔒">
+                            "Security"
+                        </DropdownLink>
+                    </div>
+
+                    <div class="border-t border-gray-200 py-1">
+                        <button
+                            on:click=handle_logout
+                            class="w-full flex items-center gap-3 px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        >
+                            <span>"🚪"</span>
+                            <span>"Sign Out"</span>
+                        </button>
+                    </div>
+                </div>
+            </Show>
+        </div>
+    }
+}
+
+#[component]
+fn DropdownLink(href: &'static str, icon: &'static str, children: Children) -> impl IntoView {
+    view! {
+        <A
+            href=href
+            class="flex items-center gap-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors"
+        >
+            <span>{icon}</span>
+            <span>{children()}</span>
+        </A>
+    }
+}

@@ -222,6 +222,7 @@ pub async fn sign_in(
         id: payload.user.id,
         email: payload.user.email,
         name: payload.user.name,
+        role: payload.user.role,
     };
 
     let session = AuthSession {
@@ -264,6 +265,7 @@ pub async fn sign_up(
         id: payload.user.id,
         email: payload.user.email,
         name: payload.user.name,
+        role: payload.user.role,
     };
 
     let session = AuthSession {
@@ -358,6 +360,7 @@ pub async fn fetch_current_user(token: String, tenant: String) -> Result<Option<
         id: user.id,
         email: user.email,
         name: user.name,
+        role: user.role,
     }))
 }
 
