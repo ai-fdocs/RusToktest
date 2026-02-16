@@ -3,5 +3,6 @@ pub mod app;
 pub mod app_new;
 pub mod components;
 pub mod i18n;
+pub mod modules;
 pub mod pages;
 pub mod providers;
