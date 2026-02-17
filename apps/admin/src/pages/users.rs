@@ -3,8 +3,7 @@ use leptos::prelude::*;
 use leptos_auth::hooks::{use_tenant, use_token};
 use leptos_router::components::A;
 use leptos_router::hooks::{use_navigate, use_query_map};
-use leptos_ui::{Badge, BadgeVariant};
-use leptos_use::use_debounce_fn_with_arg;
+use leptos_use::use_debounce_fn;
 use serde::{Deserialize, Serialize};
 
 use crate::api::queries::{USERS_QUERY, USERS_QUERY_HASH};
@@ -114,39 +113,27 @@ pub fn Users() -> impl IntoView {
     let (page, set_page) = signal(initial_page);
     let (limit, _set_limit) = signal(12i64);
 
-    let (search_query, set_search_query) = signal(initial_search);
-    let (debounced_search, set_debounced_search) = signal(search_query.get_untracked());
+    let (search_query, set_search_query) = signal(initial_search.clone());
     let (role_filter, set_role_filter) = signal(initial_role);
     let (status_filter, set_status_filter) = signal(initial_status);
 
-    let update_debounced_search = use_debounce_fn_with_arg(
-        move |value: String| {
-            set_debounced_search.set(value);
-        },
+    // Debounced version of search_query — 300ms delay
+    let (debounced_search, set_debounced_search) = signal(initial_search);
+    let debounce_search = use_debounce_fn(
+        move || set_debounced_search.set(search_query.get_untracked()),
         300.0,
     );
-
     Effect::new(move |_| {
-        update_debounced_search(search_query.get());
+        let _ = search_query.get(); // track changes
+        debounce_search();
     });
 
-    let (filters_initialized, set_filters_initialized) = signal(false);
+    // Reset page to 1 when filters change
     Effect::new(move |_| {
-        let _ = (
-            debounced_search.get(),
-            role_filter.get(),
-            status_filter.get(),
-        );
-
-        if filters_initialized.get() {
-            set_page.update(|current| {
-                if *current != 1 {
-                    *current = 1;
-                }
-            });
-        } else {
-            set_filters_initialized.set(true);
-        }
+        let _ = debounced_search.get();
+        let _ = role_filter.get();
+        let _ = status_filter.get();
+        set_page.set(1);
     });
 
     Effect::new(move |_| {
@@ -189,11 +176,11 @@ pub fn Users() -> impl IntoView {
                 status_filter.get(),
             )
         },
-        move |_| {
+        move |(_, page_val, limit_val, search_val, role_val, status_val)| {
             let token_value = token.get();
             let tenant_value = tenant.get();
-            let after = if page.get() > 1 {
-                Some(cursor_for_page(page.get(), limit.get()))
+            let after = if page_val > 1 {
+                Some(cursor_for_page(page_val, limit_val))
             } else {
                 None
             };
@@ -202,26 +189,14 @@ pub fn Users() -> impl IntoView {
                     USERS_QUERY,
                     UsersVariables {
                         pagination: PaginationInput {
-                            first: limit.get(),
+                            first: limit_val,
                             after,
                         },
                         filter: Some(UsersFilterInput {
-                            role: if role_filter.get().is_empty() {
-                                None
-                            } else {
-                                Some(role_filter.get().to_uppercase())
-                            },
-                            status: if status_filter.get().is_empty() {
-                                None
-                            } else {
-                                Some(status_filter.get().to_uppercase())
-                            },
+                            role: if role_val.is_empty() { None } else { Some(role_val.to_uppercase()) },
+                            status: if status_val.is_empty() { None } else { Some(status_val.to_uppercase()) },
                         }),
-                        search: if debounced_search.get().is_empty() {
-                            None
-                        } else {
-                            Some(debounced_search.get())
-                        },
+                        search: if search_val.is_empty() { None } else { Some(search_val) },
                     },
                     USERS_QUERY_HASH,
                     token_value,
@@ -314,7 +289,9 @@ pub fn Users() -> impl IntoView {
                                         </thead>
                                         <tbody>
                                             {{
-                                                edges.into_iter().map(|edge| {
+                                                edges
+                                                    .iter()
+                                                    .map(|edge| {
                                                         let GraphqlUser {
                                                             id,
                                                             email,

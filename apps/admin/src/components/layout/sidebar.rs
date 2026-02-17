@@ -24,30 +24,40 @@ pub fn Sidebar() -> impl IntoView {
 
             // Navigation
             <nav class="flex-1 px-3 py-4 overflow-y-auto">
-                {NAV_SECTIONS
-                    .iter()
-                    .enumerate()
-                    .map(|(index, section)| {
-                        let wrapper_class = if index == 0 { "" } else { "pt-3" };
-                        let items = section.items;
+                <NavGroupLabel label=move || translate("app.nav.group.overview") />
+                <NavLink href="/dashboard" icon="grid">
+                    {move || translate("app.nav.dashboard")}
+                </NavLink>
+
+                // Management section — only visible to admins
+                {move || {
+                    let role = current_user.get()
+                        .map(|u| u.role.to_uppercase())
+                        .unwrap_or_default();
+                    let is_admin = role == "ADMIN" || role == "SUPER_ADMIN";
+                    if is_admin {
                         view! {
-                            <div class=wrapper_class>
-                                <NavGroupLabel label=section.label />
-                                {items
-                                    .iter()
-                                    .map(|item| {
-                                        let label_key = item.label_key;
-                                        view! {
-                                            <NavLink href=item.href icon=item.icon>
-                                                {move || translate(label_key)}
-                                            </NavLink>
-                                        }
-                                    })
-                                    .collect_view()}
+                            <div class="pt-3">
+                                <NavGroupLabel label=move || translate("app.nav.group.management") />
+                                <NavLink href="/users" icon="users">
+                                    {move || translate("app.nav.users")}
+                                </NavLink>
                             </div>
-                        }
-                    })
-                    .collect_view()}
+                        }.into_any()
+                    } else {
+                        view! { <div /> }.into_any()
+                    }
+                }}
+
+                <div class="pt-3">
+                    <NavGroupLabel label=move || translate("app.nav.group.account") />
+                    <NavLink href="/profile" icon="user">
+                        {move || translate("app.nav.profile")}
+                    </NavLink>
+                    <NavLink href="/security" icon="lock">
+                        {move || translate("app.nav.security")}
+                    </NavLink>
+                </div>
             </nav>
 
             // User footer
@@ -79,7 +89,7 @@ pub fn Sidebar() -> impl IntoView {
 }
 
 #[component]
-fn NavGroupLabel(label: &'static str) -> impl IntoView {
+fn NavGroupLabel(label: impl Fn() -> String + 'static) -> impl IntoView {
     view! {
         <div class="px-3 pb-1 text-xs font-semibold text-slate-500 uppercase tracking-wider">
             {label}
