@@ -26,82 +26,6 @@
 
 > **Важно:** Полная документация находится в `docs/`. См. ссылки ниже.
 
-| Document | Description |
-|----------|-------------|
-| [MODULE_MATRIX.md](docs/modules/MODULE_MATRIX.md) | Полная карта модулей, зависимости, типы |
-| [DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Все таблицы БД с колонками и связями |
-| [I18N_ARCHITECTURE.md](docs/I18N_ARCHITECTURE.md) | Comprehensive i18n/multi-language guide |
-| [architecture.md](docs/architecture.md) | Каноничный обзор архитектуры |
-| [ROADMAP.md](docs/ROADMAP.md) | Фазы разработки и стратегия |
-| [IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) | Статус реализации vs документация |
-| [DOCS_MAP.md](docs/DOCS_MAP.md) | Реестр документации |
-| [modules/flex.md](docs/modules/flex.md) | Спецификация Flex модуля (новый концепт) |
-| [modules/module-manifest.md](docs/modules/module-manifest.md) | Манифест модулей и rebuild (WordPress/NodeBB-style) |
-| [modules/MODULE_UI_PACKAGES_INSTALLATION.md](docs/modules/MODULE_UI_PACKAGES_INSTALLATION.md) | Полное руководство по установке модулей с UI пакетами для админки и фронтенда |
-| [templates/module_contract.md](docs/templates/module_contract.md) | Шаблон контракта модуля |
-| [CODE_AUDIT_VERIFICATION.md](CODE_AUDIT_VERIFICATION.md) | Результаты проверки реализации и согласование чеклистов |
-| [TESTING_PROGRESS.md](TESTING_PROGRESS.md) | Testing coverage progress and test suites |
-| [rbac-enforcement.md](docs/rbac-enforcement.md) | RBAC permission system documentation |
-| [BACKEND_FIXES_2026-02-11.md](docs/BACKEND_FIXES_2026-02-11.md) | Backend compilation fixes and TransactionalEventBus migration |
-| [transactional_event_publishing.md](docs/transactional_event_publishing.md) | Transactional event publishing guide with module migration status |
-| [SPRINT_1_COMPLETION.md](docs/SPRINT_1_COMPLETION.md) | Sprint 1 completion report with metrics and impact |
-| [IMPLEMENTATION_PROGRESS.md](docs/IMPLEMENTATION_PROGRESS.md) | Sprint progress tracking with detailed task breakdown |
-
-### 🧭 Governance Update (2026-02-13)
-
-**Architecture Improvement Plan COMPLETE** ✅ (17/17 tasks, 100% Production Ready)
-
-| Sprint | Tasks | Status | Key Deliverables |
-|--------|-------|--------|------------------|
-| Sprint 1 | 4/4 | ✅ Complete | Event validation, tenant sanitization, backpressure, EventBus audit |
-| Sprint 2 | 4/4 | ✅ Complete | Tenant cache v2, circuit breaker, state machines, error handling |
-| Sprint 3 | 3/3 | ✅ Complete | OpenTelemetry, distributed tracing, metrics dashboard |
-| Sprint 4 | 4/4 | ✅ Complete | Integration tests, property tests, benchmarks, security audit |
-
-**Final Metrics:**
-- 🏆 **Architecture Score:** 7.8/10 → **9.6/10** (+1.8 points)
-- 🚀 **Production Ready:** 72% → **100%** (+28 points)
-- 📊 **Test Coverage:** 31% → **80%** (+49 points)
-- 🔒 **Security Score:** 70% → **98%** (+28 points)
-
----
-
-**Sprint 1: P0 Critical Architecture Fixes COMPLETE** ✅
-
-- ✅ **Event Validation Framework** — 50+ DomainEvent variants (260 lines, 15 tests)
-- ✅ **Tenant Identifier Sanitization** — SQL/XSS/Path traversal prevention (505 lines, 30 tests)
-- ✅ **EventDispatcher Rate Limiting** — Backpressure control (464 lines, 12 tests)
-- ✅ **EventBus Consistency Audit** — 100% consistency across 5 modules
-
-**Sprint 2: Resilience COMPLETE** ✅
-
-- ✅ **Tenant Cache v2** — moka integration, -45% code reduction (724→400 LOC)
-- ✅ **Circuit Breaker** — Fail-fast resilience, 30s→0.1ms (-99.997% latency)
-- ✅ **State Machines** — Content & Order state machines (900+ lines, 14 tests)
-- ✅ **Error Handling** — RFC 7807 compatible errors (470+ lines)
-
-**Sprint 3: Observability COMPLETE** ✅
-
-- ✅ **OpenTelemetry** — Full observability stack (300+ lines)
-- ✅ **Distributed Tracing** — Span correlation across services (250+ lines)
-- ✅ **Metrics Dashboard** — 40+ SLO alerts, Grafana dashboards (500+ lines)
-
-**Sprint 4: Testing & Security COMPLETE** ✅
-
-- ✅ **Integration Tests** — 1100+ lines, 13 test cases, 36%→76% coverage
-- ✅ **Property-Based Tests** — 42 properties, 10,752+ test cases
-- ✅ **Performance Benchmarks** — 5 Criterion suites, 50+ benchmarks
-- ✅ **Security Audit** — OWASP Top 10 compliance, 25+ security tests
-
----
-
-**Documentation Status:**
-- ✅ [ARCHITECTURE_STATUS.md](../ARCHITECTURE_STATUS.md) — Current status (9.6/10 score)
-- ✅ [CHANGELOG.md](../CHANGELOG.md) — Complete change log with all sprints
-- ✅ Sprint guides: SPRINT_2_COMPLETED.md, SPRINT_3_COMPLETED.md
-- ✅ Technical guides: All 10+ implementation guides complete
-
----
 
 
 ### 1.1 Паспорт платформы (простым языком)
@@ -324,14 +248,6 @@ rustok/
     └── mcp/                   # MCP server (stdio)
 ```
 
-Admin docs:
-- `docs/UI/admin-auth-phase3.md`
-- `docs/UI/admin-phase3-architecture.md`
-- `docs/UI/admin-phase3-gap-analysis.md`
-- `docs/UI/ui-parity.md`
-- `docs/UI/tech-parity.md`
-- `docs/UI/admin-template-integration-plan.md`
-- `docs/UI/admin-libraries-parity.md`
 
 ---
 
