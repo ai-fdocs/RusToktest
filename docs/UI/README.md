@@ -107,6 +107,7 @@ These are the in-repo Leptos libraries that agents should prefer when building U
 - ✅ App Shell (Sidebar, Header, UserMenu)
 - ✅ Auth Pages (Login, Register)
 - ✅ Core Pages (Dashboard, Users List)
+- ✅ Route-aware breadcrumbs & document titles
 - ✅ Documentation (35+ files)
 
 ### What's Blocked
