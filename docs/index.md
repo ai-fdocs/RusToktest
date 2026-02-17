@@ -50,7 +50,7 @@ This index serves as the central navigation hub for RusToK documentation.
 
 ## UI (`docs/ui/`)
 
-- [UI Overview](./ui/README.md) - Entry point for UI documentation.
+- [UI Overview](./ui/README.md) - Entry point for UI documentation (layouts, navigation, breadcrumbs).
 - [GraphQL Architecture](./ui/graphql-architecture.md) - Frontend GraphQL usage.
 
 ## Application Documentation

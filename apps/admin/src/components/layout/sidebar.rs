@@ -3,6 +3,7 @@ use leptos::prelude::*;
 use leptos_auth::hooks::use_current_user;
 use leptos_router::components::A;
 
+use crate::components::layout::NAV_SECTIONS;
 use crate::providers::locale::translate;
 
 #[component]
@@ -23,27 +24,30 @@ pub fn Sidebar() -> impl IntoView {
 
             // Navigation
             <nav class="flex-1 px-3 py-4 overflow-y-auto">
-                <NavGroupLabel label="Overview" />
-                <NavLink href="/dashboard" icon="grid">
-                    {move || translate("app.nav.dashboard")}
-                </NavLink>
-
-                <div class="pt-3">
-                    <NavGroupLabel label="Management" />
-                    <NavLink href="/users" icon="users">
-                        {move || translate("app.nav.users")}
-                    </NavLink>
-                </div>
-
-                <div class="pt-3">
-                    <NavGroupLabel label="Account" />
-                    <NavLink href="/profile" icon="user">
-                        {move || translate("app.nav.profile")}
-                    </NavLink>
-                    <NavLink href="/security" icon="lock">
-                        {move || translate("app.nav.security")}
-                    </NavLink>
-                </div>
+                {NAV_SECTIONS
+                    .iter()
+                    .enumerate()
+                    .map(|(index, section)| {
+                        let wrapper_class = if index == 0 { "" } else { "pt-3" };
+                        let items = section.items;
+                        view! {
+                            <div class=wrapper_class>
+                                <NavGroupLabel label=section.label />
+                                {items
+                                    .iter()
+                                    .map(|item| {
+                                        let label_key = item.label_key;
+                                        view! {
+                                            <NavLink href=item.href icon=item.icon>
+                                                {move || translate(label_key)}
+                                            </NavLink>
+                                        }
+                                    })
+                                    .collect_view()}
+                            </div>
+                        }
+                    })
+                    .collect_view()}
             </nav>
 
             // User footer
