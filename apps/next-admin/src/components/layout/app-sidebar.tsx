@@ -31,39 +31,47 @@ import {
 import { UserAvatarProfile } from '@/components/user-avatar-profile';
 import { navItems } from '@/config/nav-config';
 import { useMediaQuery } from '@/hooks/use-media-query';
-import { useOrganization, useUser } from '@clerk/nextjs';
-import { useFilteredNavItems } from '@/hooks/use-nav';
+import { useAuthStore, useCurrentUser } from '@/store/auth-store';
 import {
   IconBell,
   IconChevronRight,
   IconChevronsDown,
-  IconCreditCard,
   IconLogout,
   IconUserCircle
 } from '@tabler/icons-react';
-import { SignOutButton } from '@clerk/nextjs';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import * as React from 'react';
 import { Icons } from '../icons';
-import { OrgSwitcher } from '../org-switcher';
 
 export default function AppSidebar() {
   const pathname = usePathname();
   const { isOpen } = useMediaQuery();
-  const { user } = useUser();
-  const { organization } = useOrganization();
   const router = useRouter();
-  const filteredItems = useFilteredNavItems(navItems);
+  const user = useCurrentUser();
+  const logout = useAuthStore((s) => s.logout);
 
   React.useEffect(() => {
     // Side effects based on sidebar state changes
   }, [isOpen]);
 
+  const handleLogout = async () => {
+    await logout();
+    router.push('/auth/sign-in');
+  };
+
+  // Filter nav items — show all for now (no org-based filtering needed)
+  const filteredItems = navItems.filter((item) => !item.access?.requireOrg);
+
   return (
     <Sidebar collapsible='icon'>
       <SidebarHeader>
-        <OrgSwitcher />
+        <div className='flex items-center gap-2 px-2 py-2'>
+          <div className='flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground'>
+            <Icons.logo className='h-4 w-4' />
+          </div>
+          <span className='font-semibold text-sm'>RusTok Admin</span>
+        </div>
       </SidebarHeader>
       <SidebarContent className='overflow-x-hidden'>
         <SidebarGroup>
@@ -162,7 +170,6 @@ export default function AppSidebar() {
                   </div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-
                 <DropdownMenuGroup>
                   <DropdownMenuItem
                     onClick={() => router.push('/dashboard/profile')}
@@ -170,23 +177,15 @@ export default function AppSidebar() {
                     <IconUserCircle className='mr-2 h-4 w-4' />
                     Profile
                   </DropdownMenuItem>
-                  {organization && (
-                    <DropdownMenuItem
-                      onClick={() => router.push('/dashboard/billing')}
-                    >
-                      <IconCreditCard className='mr-2 h-4 w-4' />
-                      Billing
-                    </DropdownMenuItem>
-                  )}
                   <DropdownMenuItem>
                     <IconBell className='mr-2 h-4 w-4' />
                     Notifications
                   </DropdownMenuItem>
                 </DropdownMenuGroup>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
                   <IconLogout className='mr-2 h-4 w-4' />
-                  <SignOutButton redirectUrl='/auth/sign-in' />
+                  Sign Out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

@@ -3,35 +3,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuthStore } from '@/store/auth-store';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-export default function UserAuthForm() {
+export default function UserRegisterForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard/overview';
-  const login = useAuthStore((s) => s.login);
+  const register = useAuthStore((s) => s.register);
   const isLoading = useAuthStore((s) => s.isLoading);
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [tenantSlug, setTenantSlug] = useState('demo');
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!email || !password || !tenantSlug) {
-      toast.error('Please fill in all fields');
+      toast.error('Please fill in all required fields');
       return;
     }
-
     try {
-      await login(email.trim(), password, tenantSlug.trim());
-      toast.success('Signed in successfully');
-      router.push(callbackUrl);
+      await register(email.trim(), password, tenantSlug.trim(), name.trim() || undefined);
+      toast.success('Account created successfully');
+      router.push('/dashboard/overview');
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Sign in failed';
+      const message = err instanceof Error ? err.message : 'Registration failed';
       toast.error(message);
     }
   };
@@ -47,6 +44,16 @@ export default function UserAuthForm() {
           onChange={(e) => setTenantSlug(e.target.value)}
           disabled={isLoading}
           required
+        />
+      </div>
+      <div className='space-y-2'>
+        <Label htmlFor='name'>Name (optional)</Label>
+        <Input
+          id='name'
+          placeholder='Your Name'
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          disabled={isLoading}
         />
       </div>
       <div className='space-y-2'>
@@ -74,7 +81,7 @@ export default function UserAuthForm() {
         />
       </div>
       <Button type='submit' className='w-full' disabled={isLoading}>
-        {isLoading ? 'Signing in...' : 'Sign In'}
+        {isLoading ? 'Creating account...' : 'Create Account'}
       </Button>
     </form>
   );

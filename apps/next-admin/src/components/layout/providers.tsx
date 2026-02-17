@@ -1,9 +1,21 @@
 'use client';
-import { ClerkProvider } from '@clerk/nextjs';
-import { dark } from '@clerk/themes';
-import { useTheme } from 'next-themes';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { ActiveThemeProvider } from '../themes/active-theme';
+import { useAuthStore } from '@/store/auth-store';
+
+function AuthInitializer() {
+  const loadCurrentUser = useAuthStore((s) => s.loadCurrentUser);
+  const token = useAuthStore((s) => s.token);
+
+  useEffect(() => {
+    if (token) {
+      loadCurrentUser();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return null;
+}
 
 export default function Providers({
   activeThemeValue,
@@ -12,20 +24,10 @@ export default function Providers({
   activeThemeValue: string;
   children: React.ReactNode;
 }) {
-  // we need the resolvedTheme value to set the baseTheme for clerk based on the dark or light theme
-  const { resolvedTheme } = useTheme();
-
   return (
-    <>
-      <ActiveThemeProvider initialTheme={activeThemeValue}>
-        <ClerkProvider
-          appearance={{
-            baseTheme: resolvedTheme === 'dark' ? dark : undefined
-          }}
-        >
-          {children}
-        </ClerkProvider>
-      </ActiveThemeProvider>
-    </>
+    <ActiveThemeProvider initialTheme={activeThemeValue}>
+      <AuthInitializer />
+      {children}
+    </ActiveThemeProvider>
   );
 }
