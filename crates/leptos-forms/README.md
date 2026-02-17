@@ -1,135 +1,50 @@
 # leptos-forms
 
-Form handling и validation для Leptos приложений.
+## Назначение
+`leptos-forms` — библиотека для работы с формами в Leptos-приложениях с валидацией и типобезопасностью.
 
-## Features
+## Что делает
+- Упрощает создание и управление формами в Leptos.
+- Предоставляет типобезопасный контекст для полей формы.
+- Реализует валидацию полей с поддержкой кастомных валидаторов.
+- Отслеживает состояние полей (dirty, touched, valid).
+- Поддерживает двустороннюю привязку данных.
 
-- **Form state management** — поля, значения, изменения
-- **Validation rules** — required, email, min_length, custom
-- **Error display** — per-field, form-level
-- **Submit handling** — loading, error states
-- **Reactive validation** — on blur, on change, on submit
+## Как работает (простыми словами)
+1. Создаётся `FormContext`, который содержит состояние всех полей.
+2. Каждое поле регистрируется в контексте с правилами валидации.
+3. При изменении значения поля автоматически запускается валидация.
+4. Форма отслеживает общее состояние валидности всех полей.
+5. При отправке формы данные сериализуются в структуру Rust.
 
-## Installation
+## Ключевые компоненты
+- `form/` — `FormContext` и основная логика управления формой.
+- `field/` — абстракция поля формы со состоянием и валидацией.
+- `validator/` — трейт `Validator` и встроенные валидаторы.
+- `error/` — типы ошибок валидации.
 
-```toml
-[dependencies]
-leptos-forms = { path = "../../crates/leptos-forms" }
-```
+## Кому нужен
+Для фронтенд-приложений на Leptos, работающих с формами:
+- `apps/admin` — формы создания/редактирования контента.
+- `apps/storefront` — формы заказа, регистрации.
 
-## Usage
+This is an alpha version and requires clarification. Be careful, there may be errors in the text. So that no one thinks that this is an immutable rule.
 
-### Basic Form
+## Взаимодействие
+- apps/admin
+- apps/storefront
 
-```rust
-use leptos::*;
-use leptos_forms::{use_form, Field, Validator};
+## Документация
+- Локальная документация: `./docs/`
+- Общая документация платформы: `/docs`
 
-#[derive(Default, Clone)]
-struct LoginData {
-    email: String,
-    password: String,
-}
-
-#[component]
-fn LoginForm() -> impl IntoView {
-    let form = use_form(|| LoginData::default())
-        .field("email", Validator::email().required())
-        .field("password", Validator::min_length(6).required())
-        .on_submit(|data| async move {
-            api::sign_in(&data.email, &data.password).await
-        });
-
-    view! {
-        <form on:submit=form.submit>
-            <Field 
-                form=form 
-                name="email" 
-                label="Email" 
-                placeholder="you@example.com"
-            />
-            <Field 
-                form=form 
-                name="password" 
-                label="Password" 
-                type="password"
-            />
-            
-            <button disabled=form.is_submitting>
-                {move || if form.is_submitting() { "Loading..." } else { "Login" }}
-            </button>
-            
-            {move || form.error().map(|err| view! {
-                <div class="text-red-500">{err}</div>
-            })}
-        </form>
-    }
-}
-```
-
-### Validators
-
-```rust
-use leptos_forms::Validator;
-
-// Required field
-Validator::required()
-
-// Email validation
-Validator::email().required()
-
-// Min/max length
-Validator::min_length(6)
-Validator::max_length(255)
-
-// Pattern (regex)
-Validator::pattern(r"^\d{3}-\d{3}-\d{4}$")
-
-// Custom validator
-Validator::custom(|value| {
-    if value.contains("@") {
-        Ok(())
-    } else {
-        Err("Must contain @".to_string())
-    }
-})
-```
-
-### Form API
-
-```rust
-// use_form hook returns FormContext
-let form = use_form(|| MyData::default());
-
-// Add field validators
-form.field("email", Validator::email().required());
-
-// Set submit handler
-form.on_submit(|data| async move {
-    // ... submit logic
-});
-
-// Check form state
-form.is_submitting() -> bool
-form.is_valid() -> bool
-form.error() -> Option<String>
-
-// Get field errors
-form.get_field_error("email") -> Option<String>
-
-// Set form-level error
-form.set_error("Invalid credentials");
-
-// Reset form
-form.reset();
-```
-
-## Compatibility
-
-- ✅ CSR (Client-Side Rendering)
-- ✅ SSR (Server-Side Rendering)
-- Leptos: 0.6+
-
-## License
-
-MIT OR Apache-2.0
+## Паспорт компонента
+- **Роль в системе:** Управление формами и валидация для Leptos.
+- **Основные данные/ответственность:** FormContext, поля, валидаторы, состояние формы.
+- **Взаимодействует с:**
+  - apps/admin
+  - apps/storefront
+- **Точки входа:**
+  - `crates/leptos-forms/src/lib.rs`
+- **Локальная документация:** `./docs/`
+- **Глобальная документация платформы:** `/docs/`
