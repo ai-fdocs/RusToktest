@@ -728,9 +728,8 @@ pub async fn create_order(
 
 ## Related Documentation
 
-- [REFACTORING_ROADMAP.md](./REFACTORING_ROADMAP.md) - Sprint 2, Task 2.4
 - [CIRCUIT_BREAKER_GUIDE.md](./CIRCUIT_BREAKER_GUIDE.md) - External service error handling
-- [IMPLEMENTATION_PROGRESS.md](./IMPLEMENTATION_PROGRESS.md) - Progress tracking
+- [docs/index.md](./index.md) - Documentation index
 
 ---
 

@@ -68,28 +68,18 @@
 | docs/QUICK_START.md | Docs Quick Start | Быстрый старт по документации | dev/ai | platform | изменения onboarding | stable |
 | docs/architecture/principles.md | Architecture Principles | Каноничные архитектурные принципы | dev/ai | platform | изменения архитектуры | stable |
 | docs/architecture/diagram.md | Architecture Diagram | Диаграммы архитектуры (дополнение) | dev/ai | platform | изменения архитектуры | stable |
-| docs/architecture/improvements-visual.md | Architecture Improvements (Visual) | Исторические визуальные улучшения | dev/ai | platform | изменения roadmap/архитектуры | archived |
-| docs/architecture/recommendations.md | Architecture Recommendations | Исторические рекомендации | dev/ai | platform | пересмотр архитектуры | archived |
-| docs/architecture/recommendations-extended.md | Architecture Recommendations (Extended) | Исторические расширенные рекомендации | dev/ai | platform | пересмотр архитектуры | archived |
-| docs/architecture/review-2026-02-12.md | Architecture Review | Архитектурный обзор на дату | dev/ai | platform | новые ревью | archived |
-| docs/architecture/review-summary.md | Architecture Review Summary | Сводка обзора архитектуры | dev/ai | platform | новые ревью | archived |
 | docs/DATABASE_SCHEMA.md | Database Schema | Текущее описание схемы БД | dev/ai | data | изменения схемы | stable |
 | docs/architecture/i18n.md | I18N Architecture | Локализация и i18n подход | dev/ai | platform | изменения i18n | stable |
 | docs/MANIFEST_ADDENDUM.md | Manifest Addendum | Историческое дополнение (перенесено в RUSTOK_MANIFEST) | dev/ai | platform | изменения манифеста | archived |
 | docs/architecture/state-machine-guide.md | State Machine Guide | Правила state machine | dev/ai | platform | изменения state machine | stable |
 | docs/transactional_event_publishing.md | Transactional Event Publishing | Публикация событий/transactional outbox | dev/ai | platform | изменения event/outbox | stable |
-| docs/architecture/events-consistency-audit.md | EventBus Consistency Audit | Исторический аудит согласованности событий | dev/ai | platform | новые аудиты | archived |
+
 | docs/TENANT_CACHE_V2_MIGRATION.md | Tenant Cache v2 Migration | Миграция tenant cache | dev/ops | platform | миграции cache | archived |
 | docs/TENANT_RESOLVER_V2_MIGRATION.md | Tenant Resolver v2 Migration | Миграция tenant resolver | dev/ops | platform | миграции tenancy | archived |
 | docs/architecture/core-stabilization.md | Core Stabilization | Рекомендации по стабилизации ядра | dev/ai | platform | пересмотр ядра | draft |
 | docs/architecture/module-improvements.md | Module Improvements | Улучшения модульной системы | dev/ai | platform | изменения модулей | draft |
-| docs/REFACTORING_ROADMAP.md | Refactoring Roadmap | Дорожная карта рефакторинга | dev/ai | platform | изменения roadmap | draft |
 | docs/ROADMAP.md | Roadmap | План работ по платформе | dev/product | platform | планирование | draft |
 | docs/IMMEDIATE_ACTIONS.md | Immediate Actions | Срочные действия/приоритеты | dev/ops | platform | пересмотр приоритетов | draft |
-| docs/IMPLEMENTATION_PROGRESS.md | Implementation Progress | Прогресс реализации | dev/product | platform | изменение статуса | draft |
-| docs/REVIEW_ACTION_CHECKLIST.md | Review Action Checklist | Чеклист ревью | dev/ai | platform | изменения стандартов | stable |
-| docs/REVIEW_SUMMARY.md | Review Summary | Итоговый обзор ревью | dev/product | platform | итоговые ревью | archived |
-| docs/SPRINT_1_COMPLETION.md | Sprint 1 Completion | Итоги спринта | dev/product | platform | итог спринта | archived |
 | docs/CRITICAL_FIXES_CHECKLIST.md | Critical Fixes Checklist | Критические фиксы и чеклист | dev/ops | platform | фиксы/постмортемы | draft |
 
 ---
@@ -181,17 +171,8 @@
 | docs/UI/LIBRARIES_IMPLEMENTATION_SUMMARY.md | Libraries Implementation Summary | Итог по библиотекам | dev/ui | ui | итоговые обновления | archived |
 | docs/UI/DESIGN_SYSTEM_ANALYSIS.md | Design System Analysis | Анализ дизайн-системы | dev/ui | ui | изменения дизайн-системы | draft |
 | docs/UI/DESIGN_SYSTEM_DECISION.md | Design System Decision | Решение по дизайн-системе | dev/ui | ui | изменения решения | stable |
-| docs/UI/ADMIN_DEVELOPMENT_PROGRESS.md | Admin Development Progress | Прогресс разработки админки | dev/product | ui | отчёты прогресса | archived |
 | docs/UI/PHASE_0_COMPLETE.md | Phase 0 Complete | Итоги фазы 0 | dev/product | ui | итог фазы | archived |
 | docs/UI/PHASE_1_IMPLEMENTATION_GUIDE.md | Phase 1 Implementation Guide | Гайд по фазе 1 | dev/ui | ui | изменения фазы | archived |
-| docs/UI/PHASE_1_PROGRESS.md | Phase 1 Progress | Прогресс фазы 1 | dev/product | ui | отчёт прогресса | archived |
-| docs/UI/SPRINT_2_PROGRESS.md | Sprint 2 Progress | Прогресс спринта 2 | dev/product | ui | отчёт спринта | archived |
-| docs/UI/SPRINT_3_PROGRESS.md | Sprint 3 Progress | Прогресс спринта 3 | dev/product | ui | отчёт спринта | archived |
-| docs/UI/README_SPRINT_3.md | Sprint 3 README | Сводка спринта 3 | dev/product | ui | итог спринта | archived |
-| docs/UI/FINAL_SPRINT_3_SUMMARY.md | Final Sprint 3 Summary | Итог спринта 3 | dev/product | ui | итог спринта | archived |
-| docs/UI/FINAL_STATUS.md | Final Status | Итоговый статус UI | dev/product | ui | итог проекта | archived |
-| docs/UI/TASK_COMPLETE_SUMMARY.md | Task Complete Summary | Итоги задач UI | dev/product | ui | итог проекта | archived |
-| docs/UI/IMPLEMENTATION_SUMMARY.md | Implementation Summary | Сводка реализации UI | dev/product | ui | итог проекта | archived |
 | docs/UI/MASTER_IMPLEMENTATION_PLAN.md | Master Implementation Plan | План реализации UI | dev/ui | ui | изменения плана | draft |
 | docs/UI/PARALLEL_DEVELOPMENT_WORKFLOW.md | Parallel Development Workflow | Процесс параллельной разработки | dev/ui | ui | изменения процесса | stable |
 | docs/UI/CRITICAL_WARNINGS.md | Critical Warnings | Важные предупреждения | dev/ui | ui | изменения рисков | draft |

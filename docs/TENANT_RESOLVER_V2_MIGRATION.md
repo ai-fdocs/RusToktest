@@ -434,7 +434,7 @@ lazy_static! {
 
 - [moka crate documentation](https://docs.rs/moka/)
 - [Cache stampede problem](https://en.wikipedia.org/wiki/Cache_stampede)
-- [REFACTORING_ROADMAP.md](./REFACTORING_ROADMAP.md) - Sprint 2, Task 2.1
+- [docs/index.md](./index.md) - Documentation index
 
 ---
 

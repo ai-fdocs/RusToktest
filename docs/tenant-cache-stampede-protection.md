@@ -155,7 +155,7 @@ rate(tenant_cache_misses[5m]) > 10 AND rate(tenant_cache_coalesced_requests[5m])
 
 ## References
 
-- [architecture/recommendations.md](../architecture/recommendations.md#14-tenant-cache-stampede-protection)
+- [Architecture overview](./architecture/overview.md)
 - [Singleflight Pattern (Go)](https://pkg.go.dev/golang.org/x/sync/singleflight)
 - [Request Coalescing at Cloudflare](https://blog.cloudflare.com/introducing-request-coalescing/)
 

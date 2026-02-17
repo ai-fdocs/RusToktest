@@ -33,7 +33,7 @@
 
 | Документ | Читать когда | Время |
 |----------|--------------|-------|
-| architecture/recommendations.md | Планируете архитектуру | 2 часа |
+| architecture/overview.md | Планируете архитектуру | 2 часа |
 | **IMPLEMENTATION_PLAN.md** | **Готовы писать код** | 1 час |
 
 ### ⚡ Практические примеры
@@ -78,7 +78,7 @@
 ### Вариант C: "Планирую на квартал" (12 недель)
 
 ```bash
-1. Читать: CODE_REVIEW_SUMMARY.md + architecture/recommendations.md
+1. Читать: CODE_REVIEW_SUMMARY.md + architecture/overview.md
 2. Создать: GitHub Project "RusToK v1.0"
 3. Issues: Из GITHUB_ISSUES_TEMPLATE.md
 4. Tracking: IMPLEMENTATION_CHECKLIST.md
@@ -113,7 +113,7 @@
 
 ### 5. RBAC Enforcement 🔴
 **Проблема:** Не все endpoints проверяют  
-**Решение:** architecture/recommendations.md §5.3  
+**Решение:** architecture/overview.md §5.3  
 **Время:** 3-4 дня
 
 **Total:** ~12-17 дней работы одного dev

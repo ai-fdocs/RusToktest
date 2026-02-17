@@ -510,8 +510,7 @@ Set up alerts for:
 ## Related Documentation
 
 - [CIRCUIT_BREAKER_GUIDE.md](./CIRCUIT_BREAKER_GUIDE.md) - General circuit breaker guide
-- [REFACTORING_ROADMAP.md](./REFACTORING_ROADMAP.md) - Sprint 2, Task 2.2
-- [IMPLEMENTATION_PROGRESS.md](./IMPLEMENTATION_PROGRESS.md) - Progress tracking
+- [docs/index.md](./index.md) - Documentation index
 
 ---
 

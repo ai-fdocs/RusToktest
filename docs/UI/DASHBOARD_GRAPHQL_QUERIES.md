@@ -477,8 +477,7 @@ async fn test_recent_activity_query() {
 
 ## Related Documentation
 
-- [FINAL_STATUS.md](./FINAL_STATUS.md) - Admin UI Phase 1 status
-- [ADMIN_DEVELOPMENT_PROGRESS.md](./ADMIN_DEVELOPMENT_PROGRESS.md) - Development progress
+- [README.md](./README.md) - UI documentation entry point
 - [PHASE_1_IMPLEMENTATION_GUIDE.md](./PHASE_1_IMPLEMENTATION_GUIDE.md) - Phase 1 guide
 - [LEPTOS_GRAPHQL_ENHANCEMENT.md](./LEPTOS_GRAPHQL_ENHANCEMENT.md) - GraphQL architecture
 

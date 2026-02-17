@@ -49,7 +49,7 @@
 |----------|---------|------|
 | [CODE_REVIEW_INDEX.md](CODE_REVIEW_INDEX.md) | **Навигация** по всем документам | 11KB |
 | [CODE_REVIEW_SUMMARY.md](CODE_REVIEW_SUMMARY.md) | Краткая сводка для executives | 7KB |
-| [architecture/recommendations.md](architecture/recommendations.md) | Детальные рекомендации с кодом | 27KB |
+| [architecture/overview.md](architecture/overview.md) | Детальные рекомендации с кодом | 27KB |
 | [QUICK_WINS.md](QUICK_WINS.md) | Готовые snippets для быстрого старта | 22KB |
 | [GITHUB_ISSUES_TEMPLATE.md](GITHUB_ISSUES_TEMPLATE.md) | Шаблоны issues для GitHub | 14KB |
 | [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) | Чеклист для tracking прогресса | 11KB |
@@ -110,7 +110,7 @@
 4. Write tests and create PR
 
 ### For Architects
-1. Read [architecture/recommendations.md](architecture/recommendations.md) (2 hours)
+1. Read [architecture/overview.md](architecture/overview.md) (2 hours)
 2. Review trade-offs and alternatives
 3. Create Architecture Decision Records
 4. Plan long-term evolution

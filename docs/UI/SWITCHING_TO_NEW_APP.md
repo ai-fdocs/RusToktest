@@ -510,8 +510,7 @@ use rustok_admin::app_new::App;  // ← Use this
 ## 📞 Support
 
 **Questions?** Check documentation:
-- [SPRINT_3_PROGRESS.md](./SPRINT_3_PROGRESS.md) — Latest progress
-- [IMPLEMENTATION_SUMMARY.md](./IMPLEMENTATION_SUMMARY.md) — Full overview
+- [README.md](./README.md) — UI documentation entry point
 - [PHASE_1_IMPLEMENTATION_GUIDE.md](./PHASE_1_IMPLEMENTATION_GUIDE.md) — Phase 1 guide
 
 **Issues?** Create a ticket with:

@@ -120,10 +120,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - 1 cleanup performed (unused import removed in query.rs)
 
 #### Documentation
-- Added `docs/SPRINT_1_COMPLETION.md` - Comprehensive Sprint 1 completion report with metrics
-- Added `docs/architecture/review-2026-02-12.md` - Complete architecture review with security analysis
-- Added `docs/architecture/events-consistency-audit.md` - Full audit report with methodology
-- Added `docs/IMPLEMENTATION_PROGRESS.md` - Sprint progress tracking with detailed task breakdown
 - Added `.github/PULL_REQUEST_TEMPLATE.md` - PR checklist with security and validation checks
 - Updated `RUSTOK_MANIFEST.md` - Added Sprint 1 achievements and new security features
 - Updated `README.md` - Added links to new documentation and highlighted security features
@@ -340,10 +336,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Links
 
-- [Complete Sprint 1 Report](docs/SPRINT_1_COMPLETION.md)
-- [Sprint 2 Report](SPRINT_2_COMPLETED.md)
-- [Sprint 3 Report](SPRINT_3_COMPLETED.md)
-- [Architecture Review](docs/architecture/review-2026-02-12.md)
-- [EventBus Audit](docs/architecture/events-consistency-audit.md)
-- [Implementation Progress](.architecture_progress)
+- [Documentation index](docs/index.md)
+- [Architecture overview](docs/architecture/overview.md)
+- [Roadmap](docs/ROADMAP.md)
 - [Main Manifest](RUSTOK_MANIFEST.md)
