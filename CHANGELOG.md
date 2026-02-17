@@ -121,8 +121,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 #### Documentation
 - Added `docs/SPRINT_1_COMPLETION.md` - Comprehensive Sprint 1 completion report with metrics
-- Added `docs/ARCHITECTURE_REVIEW_2026-02-12.md` - Complete architecture review with security analysis
-- Added `docs/EVENTBUS_CONSISTENCY_AUDIT.md` - Full audit report with methodology
+- Added `docs/architecture/review-2026-02-12.md` - Complete architecture review with security analysis
+- Added `docs/architecture/events-consistency-audit.md` - Full audit report with methodology
 - Added `docs/IMPLEMENTATION_PROGRESS.md` - Sprint progress tracking with detailed task breakdown
 - Added `.github/PULL_REQUEST_TEMPLATE.md` - PR checklist with security and validation checks
 - Updated `RUSTOK_MANIFEST.md` - Added Sprint 1 achievements and new security features
@@ -219,7 +219,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Order state machine: 550 lines, 8 tests
   - Compile-time state transition guarantees
   - Guard conditions and validation
-  - Guide: `docs/STATE_MACHINE_GUIDE.md`
+  - Guide: `docs/architecture/state-machine-guide.md`
 
 #### Error Handling Standardization
 - **Rich Error Framework** (`crates/rustok-core/src/error/`)
@@ -228,7 +228,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - RFC 7807 compatible API errors
   - 11 error categories
   - Content/Commerce modules migrated
-  - Guide: `docs/ERROR_HANDLING_GUIDE.md`
+  - Guide: `docs/standards/errors.md`
 
 ### Added - Sprint 3 (2026-02-13) - Observability
 
@@ -242,7 +242,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Tracing Framework** (`crates/rustok-core/src/tracing.rs`)
   - 243 lines of tracing utilities
   - EventBus instrumentation with span correlation
-  - Guide: `docs/DISTRIBUTED_TRACING_GUIDE.md`
+  - Guide: `docs/standards/distributed-tracing.md`
 
 #### Metrics Dashboard
 - **Metrics Framework** (`crates/rustok-telemetry/src/metrics.rs`)
@@ -276,7 +276,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Tenant cache read/write throughput
   - Event bus publishing/delivery
   - Content and order operations
-  - Guide: `docs/BENCHMARKS_GUIDE.md`
+  - Guide: `docs/standards/performance.md`
 
 #### Security Audit (OWASP Top 10)
 - **Security Framework** (`crates/rustok-core/src/security/`)
@@ -286,7 +286,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Audit logging: 150+ lines
   - 25+ integration tests
   - 100% OWASP Top 10 coverage
-  - Guide: `docs/SECURITY_AUDIT_GUIDE.md`
+  - Guide: `docs/standards/security.md`
 
 ---
 
@@ -343,7 +343,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - [Complete Sprint 1 Report](docs/SPRINT_1_COMPLETION.md)
 - [Sprint 2 Report](SPRINT_2_COMPLETED.md)
 - [Sprint 3 Report](SPRINT_3_COMPLETED.md)
-- [Architecture Review](docs/ARCHITECTURE_REVIEW_2026-02-12.md)
-- [EventBus Audit](docs/EVENTBUS_CONSISTENCY_AUDIT.md)
+- [Architecture Review](docs/architecture/review-2026-02-12.md)
+- [EventBus Audit](docs/architecture/events-consistency-audit.md)
 - [Implementation Progress](.architecture_progress)
 - [Main Manifest](RUSTOK_MANIFEST.md)

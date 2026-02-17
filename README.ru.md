@@ -315,68 +315,26 @@ cargo loco generate controller products --api
 
 ## 📚 Документация
 
-### Архитектура и дизайн
+Основная точка входа:
+- [docs/index.md](docs/index.md)
 
-| Документ | Описание |
-|----------|----------|
-| [RUSTOK_MANIFEST.md](RUSTOK_MANIFEST.md) | **Главный манифест** — философия, архитектура, стек |
-| [MODULE_MATRIX.md](docs/modules/MODULE_MATRIX.md) | Карта всех модулей и зависимостей |
-| [DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Все таблицы БД с колонками и ERD |
-| [ARCHITECTURE_GUIDE.md](docs/ARCHITECTURE_GUIDE.md) | Архитектурные принципы и решения |
-| [ROADMAP.md](docs/ROADMAP.md) | Фазы разработки (Forge → Blueprint → Construction) |
-| [IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) | Статус реализации vs документация |
-
-### Улучшения архитектуры (Sprint 2 ✅)
-
-| Документ | Описание |
-|----------|----------|
-| [ARCHITECTURE_IMPROVEMENT_PLAN.md](ARCHITECTURE_IMPROVEMENT_PLAN.md) | **Master Plan** — Полная дорожная карта с 16 задачами (50% выполнено) |
-| [ARCHITECTURE_ADVICE_RU.md](ARCHITECTURE_ADVICE_RU.md) | **Советы на русском** — Топ-5 улучшений с высоким ROI |
-| [IMPROVEMENTS_SUMMARY.md](IMPROVEMENTS_SUMMARY.md) | **Краткое резюме** — Прогресс спринта и метрики |
-| [SPRINT_2_COMPLETED.md](SPRINT_2_COMPLETED.md) | 🎉 **Sprint 2 завершён** — Все 4 задачи выполнены (8KB) |
-| [TENANT_CACHE_V2_MIGRATION.md](docs/TENANT_CACHE_V2_MIGRATION.md) | Tenant Cache V2 с moka (724→400 LOC, -45%) |
-| [CIRCUIT_BREAKER_GUIDE.md](docs/CIRCUIT_BREAKER_GUIDE.md) | Circuit Breaker + Retry + Timeout (10KB руководство) |
-| [STATE_MACHINE_GUIDE.md](docs/STATE_MACHINE_GUIDE.md) | Type-Safe State Machines (16KB руководство) |
-| [ERROR_HANDLING_GUIDE.md](docs/ERROR_HANDLING_GUIDE.md) | Rich Error Context + RFC 7807 (14KB руководство) |
-
-### Предыдущие спринты
-
-| Документ | Описание |
-|----------|----------|
-| [ARCHITECTURE_REVIEW_2026-02-12.md](docs/ARCHITECTURE_REVIEW_2026-02-12.md) | Полный обзор архитектуры (Score: 8.7/10 → 9.0/10) |
-| [SPRINT_1_COMPLETION.md](docs/SPRINT_1_COMPLETION.md) | Отчёт о завершении Sprint 1 P0 исправлений |
-| [EVENTBUS_CONSISTENCY_AUDIT.md](docs/EVENTBUS_CONSISTENCY_AUDIT.md) | Аудит консистентности EventBus (100% pass) |
-| [BACKEND_FIXES_2026-02-11.md](docs/BACKEND_FIXES_2026-02-11.md) | Исправления компиляции backend и TransactionalEventBus |
-
-### Руководства по реализации
-
-- [Архитектура и системная логика](docs/architecture.md)
-- [Module registry](docs/modules/module-registry.md)
+Ключевые материалы:
+- [RUSTOK_MANIFEST.md](RUSTOK_MANIFEST.md) — манифест платформы
+- [Архитектурный обзор](docs/architecture/overview.md)
+- [Архитектурные принципы](docs/architecture/principles.md)
+- [Границы API (GraphQL vs REST)](docs/architecture/routing.md)
 - [Обзор модулей](docs/modules/modules.md)
-- [Модули с UI пакетами — Быстрый старт](docs/modules/UI_PACKAGES_QUICKSTART.md) **NEW**
-- [Установка модулей с UI пакетами](docs/modules/MODULE_UI_PACKAGES_INSTALLATION.md) **NEW**
-- [Манифест модулей](docs/modules/module-manifest.md)
-- [Реализация системы установки](docs/modules/INSTALLATION_IMPLEMENTATION.md)
-- [MCP адаптер](docs/mcp.md)
-- [Заметки по Storefront SSR](docs/UI/storefront.md)
+- [Реестр модулей](docs/modules/module-registry.md)
+- [Схема БД](docs/DATABASE_SCHEMA.md)
+- [Политика обработки ошибок](docs/ERROR_HANDLING_POLICY.md)
+- [Observability quickstart](OBSERVABILITY_QUICKSTART.md)
 - [Руководство по тестированию](docs/testing-guidelines.md)
-- [Индекс реализации Loco.rs (включает канонический upstream snapshot)](apps/server/docs/loco/README.md)
-
-### Admin Auth (Phase 3)
-
-- [Scope фазы 3 admin auth](docs/UI/admin-auth-phase3.md)
-- [Анализ пробелов (Leptos + Next.js)](docs/UI/admin-phase3-gap-analysis.md)
-- [Архитектура (Server + Leptos + Next.js)](docs/UI/admin-phase3-architecture.md)
-- [Паритет UI (admin + storefront)](docs/UI/ui-parity.md)
-- [Трекер паритета технологий](docs/UI/tech-parity.md)
-- [План интеграции шаблонов](docs/UI/admin-template-integration-plan.md)
-- [Паритет библиотек админки](docs/UI/admin-libraries-parity.md)
 
 ---
 
 ## 🏗️ Архитектура
 
-Для детального описания системной логики, потока событий и реализации CQRS-lite, см. [Детальная документация по архитектуре](docs/architecture.md).
+Для детального описания системной логики, потока событий и реализации CQRS-lite, см. [Детальная документация по архитектуре](docs/architecture/overview.md).
 Детали MCP адаптера находятся в [docs/mcp.md](docs/mcp.md).
 
 ### Структура проекта

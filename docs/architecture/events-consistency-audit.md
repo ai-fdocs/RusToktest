@@ -188,6 +188,6 @@ The EventBus consistency audit **PASSED** with no critical issues found. All dom
 **Action Items:** 1 cleanup (completed)
 
 **Related Documents:**
-- [ARCHITECTURE_REVIEW_2026-02-12.md](./review-2026-02-12.md)
+- [architecture/review-2026-02-12.md](./review-2026-02-12.md)
 - [REFACTORING_ROADMAP.md](../REFACTORING_ROADMAP.md)
 - [IMPLEMENTATION_PROGRESS.md](../IMPLEMENTATION_PROGRESS.md)

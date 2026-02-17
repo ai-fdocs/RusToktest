@@ -30,8 +30,8 @@
 |----------|-------------|
 | [MODULE_MATRIX.md](docs/modules/MODULE_MATRIX.md) | Полная карта модулей, зависимости, типы |
 | [DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) | Все таблицы БД с колонками и связями |
-| [I18N_ARCHITECTURE.md](docs/I18N_ARCHITECTURE.md) | Comprehensive i18n/multi-language guide |
-| [architecture.md](docs/architecture.md) | Каноничный обзор архитектуры |
+| [architecture/i18n.md](docs/architecture/i18n.md) | Comprehensive i18n/multi-language guide |
+| [architecture.md](docs/architecture/overview.md) | Каноничный обзор архитектуры |
 | [ROADMAP.md](docs/ROADMAP.md) | Фазы разработки и стратегия |
 | [IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md) | Статус реализации vs документация |
 | [DOCS_MAP.md](docs/DOCS_MAP.md) | Реестр документации |
@@ -287,7 +287,7 @@ RusToK использует разные API-стили по типу клиен
 ### 4.2 Documentation
 
 - **OpenAPI:** Generated via `utoipa` and served at `/swagger`.
-- **API Boundary Policy:** `docs/api-architecture.md` (GraphQL for UI; REST for integrations/service flows).
+- **API Boundary Policy:** `docs/architecture/routing.md` (GraphQL for UI; REST for integrations/service flows).
 
 ---
 

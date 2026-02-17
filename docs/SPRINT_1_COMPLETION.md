@@ -146,7 +146,7 @@ Successfully completed **ALL 4** critical P0 tasks from the architecture review,
 5. ✅ rustok-pages: Uses TransactionalEventBus (via NodeService) ✓
 
 **Files:**
-- NEW: `docs/EVENTBUS_CONSISTENCY_AUDIT.md` (full audit report)
+- NEW: `docs/architecture/events-consistency-audit.md` (full audit report)
 - Modified: `apps/server/src/graphql/content/query.rs` (cleanup)
 - Modified: `docs/IMPLEMENTATION_PROGRESS.md` (Sprint 1 complete)
 
@@ -245,7 +245,7 @@ rustok-outbox/transactional.rs:       +20 lines
    - Configuration examples
    - State machine documentation
 
-4. **`docs/EVENTBUS_CONSISTENCY_AUDIT.md`**
+4. **`docs/architecture/events-consistency-audit.md`**
    - Complete audit report
    - Methodology documentation
    - Verification checklist
@@ -289,10 +289,10 @@ The following CI checks will run automatically on push:
 
 ## 🔗 Related Documentation
 
-- [ARCHITECTURE_REVIEW_2026-02-12.md](./ARCHITECTURE_REVIEW_2026-02-12.md) - Full architecture review
+- [architecture/review-2026-02-12.md](./architecture/review-2026-02-12.md) - Full architecture review
 - [REFACTORING_ROADMAP.md](./REFACTORING_ROADMAP.md) - Implementation roadmap
 - [IMPLEMENTATION_PROGRESS.md](./IMPLEMENTATION_PROGRESS.md) - Detailed progress tracking
-- [EVENTBUS_CONSISTENCY_AUDIT.md](./EVENTBUS_CONSISTENCY_AUDIT.md) - Audit report
+- [architecture/events-consistency-audit.md](./architecture/events-consistency-audit.md) - Audit report
 - [REVIEW_ACTION_CHECKLIST.md](./REVIEW_ACTION_CHECKLIST.md) - Task checklist
 
 ---

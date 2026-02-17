@@ -191,8 +191,8 @@ RusToK - это **production-ready платформа** с отличной ар
 
 **Следующие шаги:**
 1. Внедрить рекомендации из `IMMEDIATE_ACTIONS.md`
-2. Следовать `CODE_QUALITY_STANDARDS.md`
-3. Мониторить метрики из `CORE_STABILIZATION_RECOMMENDATIONS.md`
+2. Следовать `standards/coding.md`
+3. Мониторить метрики из `architecture/core-stabilization.md`
 
 **Ожидаемый результат:**
 - Architecture Score: 9.6 → 9.9
@@ -205,6 +205,6 @@ RusToK - это **production-ready платформа** с отличной ар
 ## Ссылки на Документацию
 
 - [Критические Действия](IMMEDIATE_ACTIONS.md) - Что делать прямо сейчас
-- [Стандарты Кода](CODE_QUALITY_STANDARDS.md) - Как писать код
-- [Полный Анализ](CORE_STABILIZATION_RECOMMENDATIONS.md) - Детальные рекомендации
+- [Стандарты Кода](standards/coding.md) - Как писать код
+- [Полный Анализ](architecture/core-stabilization.md) - Детальные рекомендации
 - [Гайды по Реализации](../README.md) - Существующие гайды

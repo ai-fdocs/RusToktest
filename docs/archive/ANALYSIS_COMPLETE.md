@@ -36,7 +36,7 @@
 | 3 | CODE_REVIEW_SUMMARY.md | 9.6KB | 📊 Executive summary |
 | 4 | CODE_REVIEW_BADGE.md | 6.4KB | 🏆 Badge для README |
 | 5 | **IMPLEMENTATION_PLAN.md** | 31KB | 🔧 **Step-by-step код** |
-| 6 | ARCHITECTURE_RECOMMENDATIONS.md | 31KB | 🏗️ Детальные рекомендации |
+| 6 | architecture/recommendations.md | 31KB | 🏗️ Детальные рекомендации |
 | 7 | **QUICK_WINS.md** | 23KB | ⚡ 10 copy-paste примеров |
 | 8 | GITHUB_ISSUES_TEMPLATE.md | 14KB | 📋 16 шаблонов issues |
 | 9 | IMPLEMENTATION_CHECKLIST.md | 12KB | ✅ Progress tracking |
@@ -96,7 +96,7 @@
 **5. RBAC Enforcement (6/10) 🔴 CRITICAL**
 - Не все endpoints проверяют permissions
 - Security vulnerability
-- **Fix:** ARCHITECTURE_RECOMMENDATIONS.md §5.3
+- **Fix:** architecture/recommendations.md §5.3
 
 ### 🟡 Важные улучшения
 

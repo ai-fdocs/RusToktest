@@ -63,7 +63,7 @@
 
 #### Related:
 - Architecture Review: P0 Critical Issue #1
-- ARCHITECTURE_REVIEW_2026-02-12.md (recommendation #2)
+- architecture/review-2026-02-12.md (recommendation #2)
 
 ---
 
@@ -117,7 +117,7 @@
 
 #### Related:
 - Architecture Review: P0 Critical Issue #2
-- ARCHITECTURE_REVIEW_2026-02-12.md (recommendation #3)
+- architecture/review-2026-02-12.md (recommendation #3)
 
 ---
 
@@ -169,7 +169,7 @@
 
 #### Related:
 - Architecture Review: P0 Critical Issue #3
-- ARCHITECTURE_REVIEW_2026-02-12.md (recommendation #4)
+- architecture/review-2026-02-12.md (recommendation #4)
 
 ---
 
@@ -197,7 +197,7 @@
 - rustok-core/src/events/*: Core infrastructure (✓ Valid)
 
 #### Documentation Created:
-- `docs/EVENTBUS_CONSISTENCY_AUDIT.md` (complete audit report)
+- `docs/architecture/events-consistency-audit.md` (complete audit report)
 
 #### Impact:
 - **Atomicity:** Verified - events published only if transactions commit
@@ -207,7 +207,7 @@
 
 #### Related:
 - Architecture Review: P0 Critical Issue #4
-- ARCHITECTURE_REVIEW_2026-02-12.md (recommendation #5)
+- architecture/review-2026-02-12.md (recommendation #5)
 
 ---
 
@@ -288,7 +288,7 @@
 
 ## 🔗 References
 
-- [ARCHITECTURE_REVIEW_2026-02-12.md](./ARCHITECTURE_REVIEW_2026-02-12.md) - Full review
+- [architecture/review-2026-02-12.md](./architecture/review-2026-02-12.md) - Full review
 - [REFACTORING_ROADMAP.md](./REFACTORING_ROADMAP.md) - Implementation plan
 - [REVIEW_ACTION_CHECKLIST.md](./REVIEW_ACTION_CHECKLIST.md) - Task checklist
 

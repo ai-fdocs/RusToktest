@@ -22,8 +22,9 @@
 
 - [README.md](../README.md) — общий обзор платформы.
 - [QUICKSTART.md](../QUICKSTART.md) — быстрый запуск окружения.
-- [docs/architecture.md](architecture.md) — базовая архитектура.
-- [docs/ARCHITECTURE_GUIDE.md](ARCHITECTURE_GUIDE.md) — расширенные детали архитектуры.
+- [docs/index.md](index.md) — единый индекс документации.
+- [docs/architecture/overview.md](architecture/overview.md) — базовая архитектура.
+- [docs/architecture/principles.md](architecture/principles.md) — расширенные детали архитектуры.
 - [docs/modules/modules.md](modules/modules.md) — модульная карта.
 - [docs/UI/README.md](UI/README.md) — точка входа в UI-документацию.
 
@@ -31,7 +32,7 @@
 
 - **Добавить новый модуль** → `docs/modules/modules.md`, `docs/modules/module-manifest.md`, обновить `DOCS_MAP.md`.
 - **Добавить событие** → `docs/transactional_event_publishing.md`, `docs/ERROR_HANDLING_POLICY.md`, обновить `DOCS_MAP.md`.
-- **Добавить API/endpoint** → `docs/api-architecture.md`, `docs/input-validation.md`, `docs/rate-limiting.md`, обновить `DOCS_MAP.md`.
+- **Добавить API/endpoint** → `docs/architecture/routing.md`, `docs/input-validation.md`, `docs/rate-limiting.md`, обновить `DOCS_MAP.md`.
 - **Изменить маршрутизацию/tenancy** → `docs/TENANT_RESOLVER_V2_MIGRATION.md` (если релевантно), `docs/modules/module-registry.md`, обновить `DOCS_MAP.md`.
 - **Изменить UI контракт** → `docs/UI/GRAPHQL_ARCHITECTURE.md`, `docs/UI/README.md`, обновить `DOCS_MAP.md`.
 
@@ -62,25 +63,26 @@
 
 | Path | Title | Purpose | Audience | Owner | Update triggers | Status |
 |------|-------|---------|----------|-------|----------------|--------|
-| docs/architecture.md | Architecture Overview | Каноничный обзор архитектуры платформы | dev/ai | platform | архитектурные изменения | stable |
+| docs/index.md | Documentation Index | Единая точка входа в документацию | dev/ai | platform | обновление структуры документации | stable |
+| docs/architecture/overview.md | Architecture Overview | Каноничный обзор архитектуры платформы | dev/ai | platform | архитектурные изменения | stable |
 | docs/QUICK_START.md | Docs Quick Start | Быстрый старт по документации | dev/ai | platform | изменения onboarding | stable |
-| docs/ARCHITECTURE_GUIDE.md | Architecture Guide | Исторический гайд (см. architecture.md) | dev/ai | platform | изменения архитектуры | archived |
-| docs/ARCHITECTURE_DIAGRAM.md | Architecture Diagram | Диаграммы архитектуры (дополнение) | dev/ai | platform | изменения архитектуры | stable |
-| docs/ARCHITECTURE_IMPROVEMENTS_VISUAL.md | Architecture Improvements (Visual) | Исторические визуальные улучшения | dev/ai | platform | изменения roadmap/архитектуры | archived |
-| docs/ARCHITECTURE_RECOMMENDATIONS.md | Architecture Recommendations | Исторические рекомендации | dev/ai | platform | пересмотр архитектуры | archived |
-| docs/ARCHITECTURE_RECOMMENDATIONS_EXTENDED.md | Architecture Recommendations (Extended) | Исторические расширенные рекомендации | dev/ai | platform | пересмотр архитектуры | archived |
-| docs/ARCHITECTURE_REVIEW_2026-02-12.md | Architecture Review | Архитектурный обзор на дату | dev/ai | platform | новые ревью | archived |
-| docs/ARCHITECTURE_REVIEW_SUMMARY.md | Architecture Review Summary | Сводка обзора архитектуры | dev/ai | platform | новые ревью | archived |
+| docs/architecture/principles.md | Architecture Principles | Каноничные архитектурные принципы | dev/ai | platform | изменения архитектуры | stable |
+| docs/architecture/diagram.md | Architecture Diagram | Диаграммы архитектуры (дополнение) | dev/ai | platform | изменения архитектуры | stable |
+| docs/architecture/improvements-visual.md | Architecture Improvements (Visual) | Исторические визуальные улучшения | dev/ai | platform | изменения roadmap/архитектуры | archived |
+| docs/architecture/recommendations.md | Architecture Recommendations | Исторические рекомендации | dev/ai | platform | пересмотр архитектуры | archived |
+| docs/architecture/recommendations-extended.md | Architecture Recommendations (Extended) | Исторические расширенные рекомендации | dev/ai | platform | пересмотр архитектуры | archived |
+| docs/architecture/review-2026-02-12.md | Architecture Review | Архитектурный обзор на дату | dev/ai | platform | новые ревью | archived |
+| docs/architecture/review-summary.md | Architecture Review Summary | Сводка обзора архитектуры | dev/ai | platform | новые ревью | archived |
 | docs/DATABASE_SCHEMA.md | Database Schema | Текущее описание схемы БД | dev/ai | data | изменения схемы | stable |
-| docs/I18N_ARCHITECTURE.md | I18N Architecture | Локализация и i18n подход | dev/ai | platform | изменения i18n | stable |
+| docs/architecture/i18n.md | I18N Architecture | Локализация и i18n подход | dev/ai | platform | изменения i18n | stable |
 | docs/MANIFEST_ADDENDUM.md | Manifest Addendum | Историческое дополнение (перенесено в RUSTOK_MANIFEST) | dev/ai | platform | изменения манифеста | archived |
-| docs/STATE_MACHINE_GUIDE.md | State Machine Guide | Правила state machine | dev/ai | platform | изменения state machine | stable |
+| docs/architecture/state-machine-guide.md | State Machine Guide | Правила state machine | dev/ai | platform | изменения state machine | stable |
 | docs/transactional_event_publishing.md | Transactional Event Publishing | Публикация событий/transactional outbox | dev/ai | platform | изменения event/outbox | stable |
-| docs/EVENTBUS_CONSISTENCY_AUDIT.md | EventBus Consistency Audit | Исторический аудит согласованности событий | dev/ai | platform | новые аудиты | archived |
+| docs/architecture/events-consistency-audit.md | EventBus Consistency Audit | Исторический аудит согласованности событий | dev/ai | platform | новые аудиты | archived |
 | docs/TENANT_CACHE_V2_MIGRATION.md | Tenant Cache v2 Migration | Миграция tenant cache | dev/ops | platform | миграции cache | archived |
 | docs/TENANT_RESOLVER_V2_MIGRATION.md | Tenant Resolver v2 Migration | Миграция tenant resolver | dev/ops | platform | миграции tenancy | archived |
-| docs/CORE_STABILIZATION_RECOMMENDATIONS.md | Core Stabilization | Рекомендации по стабилизации ядра | dev/ai | platform | пересмотр ядра | draft |
-| docs/MODULE_IMPROVEMENTS.md | Module Improvements | Улучшения модульной системы | dev/ai | platform | изменения модулей | draft |
+| docs/architecture/core-stabilization.md | Core Stabilization | Рекомендации по стабилизации ядра | dev/ai | platform | пересмотр ядра | draft |
+| docs/architecture/module-improvements.md | Module Improvements | Улучшения модульной системы | dev/ai | platform | изменения модулей | draft |
 | docs/REFACTORING_ROADMAP.md | Refactoring Roadmap | Дорожная карта рефакторинга | dev/ai | platform | изменения roadmap | draft |
 | docs/ROADMAP.md | Roadmap | План работ по платформе | dev/product | platform | планирование | draft |
 | docs/IMMEDIATE_ACTIONS.md | Immediate Actions | Срочные действия/приоритеты | dev/ops | platform | пересмотр приоритетов | draft |
@@ -96,17 +98,17 @@
 
 | Path | Title | Purpose | Audience | Owner | Update triggers | Status |
 |------|-------|---------|----------|-------|----------------|--------|
-| docs/CODE_QUALITY_STANDARDS.md | Code Quality Standards | Стандарты качества кода | dev/ai | platform | изменения стандартов | stable |
+| docs/standards/coding.md | Code Quality Standards | Стандарты качества кода | dev/ai | platform | изменения стандартов | stable |
 | docs/testing-guidelines.md | Testing Guidelines | Общие правила тестирования | dev/ai | platform | изменения тест-политики | stable |
 | docs/INTEGRATION_TESTS_GUIDE.md | Integration Tests Guide | Руководство по интеграционным тестам | dev/ai | platform | изменение тестов | stable |
 | docs/PROPERTY_BASED_TESTS.md | Property-Based Tests | Практики property-based тестов | dev/ai | platform | обновление практик | draft |
 | docs/PROPERTY_BASED_TESTS_GUIDE.md | Property-Based Tests Guide | Руководство по property-based тестам | dev/ai | platform | обновление практик | draft |
-| docs/ERROR_HANDLING_GUIDE.md | Error Handling Guide | Практики обработки ошибок | dev/ai | platform | изменения error-handling | stable |
+| docs/standards/errors.md | Error Handling Guide | Практики обработки ошибок | dev/ai | platform | изменения error-handling | stable |
 | docs/ERROR_HANDLING_POLICY.md | Error Handling Policy | Политики ошибок | dev/ai | platform | изменения политики ошибок | stable |
 | docs/input-validation.md | Input Validation | Валидация входных данных | dev/ai | platform | изменения API/валидации | stable |
 | docs/rate-limiting.md | Rate Limiting | Политики лимитирования | dev/ops | platform | изменения лимитов | stable |
 | docs/rbac-enforcement.md | RBAC Enforcement | Политики доступа | dev/ai | platform | изменения RBAC | stable |
-| docs/SECURITY_AUDIT_GUIDE.md | Security Audit Guide | Руководство по security аудиту | ops/dev | security | изменения процедур | stable |
+| docs/standards/security.md | Security Audit Guide | Руководство по security аудиту | ops/dev | security | изменения процедур | stable |
 | docs/lockfile-troubleshooting.md | Lockfile Troubleshooting | Решение проблем lockfile | dev | platform | изменения tooling | stable |
 
 ---
@@ -115,15 +117,15 @@
 
 | Path | Title | Purpose | Audience | Owner | Update triggers | Status |
 |------|-------|---------|----------|-------|----------------|--------|
-| docs/DISTRIBUTED_TRACING_GUIDE.md | Distributed Tracing Guide | Инструкции по tracing | ops/dev | ops | изменения tracing | stable |
-| docs/INSTRUMENTATION_EXAMPLES.md | Instrumentation Examples | Примеры инструментирования | dev/ops | ops | изменения telemetry | stable |
-| docs/OPENTELEMETRY_INTEGRATION.md | OpenTelemetry Integration | Интеграция OTel | ops/dev | ops | изменения OTel | stable |
-| docs/structured-logging.md | Structured Logging | Структурные логи | ops/dev | ops | изменения логирования | stable |
+| docs/standards/distributed-tracing.md | Distributed Tracing Guide | Инструкции по tracing | ops/dev | ops | изменения tracing | stable |
+| docs/standards/instrumentation-examples.md | Instrumentation Examples | Примеры инструментирования | dev/ops | ops | изменения telemetry | stable |
+| docs/standards/opentelemetry-integration.md | OpenTelemetry Integration | Интеграция OTel | ops/dev | ops | изменения OTel | stable |
+| docs/standards/logging.md | Structured Logging | Структурные логи | ops/dev | ops | изменения логирования | stable |
 | docs/METRICS_DASHBOARD_GUIDE.md | Metrics Dashboard Guide | Настройка дашбордов | ops/dev | ops | изменения метрик | stable |
 | docs/module-metrics.md | Module Metrics | Метрики модулей | dev/ops | platform | новые метрики | stable |
 | docs/grafana-setup.md | Grafana Setup | Настройка Grafana | ops | ops | изменения инфраструктуры | stable |
 | docs/grafana-dashboard-example.json | Grafana Dashboard Example | Пример дашборда | ops | ops | изменения метрик | stable |
-| docs/BENCHMARKS_GUIDE.md | Benchmarks Guide | Руководство по бенчмаркам | dev/ops | platform | изменения бенчмарков | stable |
+| docs/standards/performance.md | Benchmarks Guide | Руководство по бенчмаркам | dev/ops | platform | изменения бенчмарков | stable |
 | docs/CIRCUIT_BREAKER_GUIDE.md | Circuit Breaker Guide | Рекомендации по circuit breaker | dev/ops | platform | изменения resiliency | stable |
 | docs/REDIS_CIRCUIT_BREAKER.md | Redis Circuit Breaker | Настройка circuit breaker для Redis | ops/dev | platform | изменения Redis | stable |
 | docs/tenant-cache-stampede-protection.md | Tenant Cache Stampede Protection | Защита от cache stampede | dev/ops | platform | изменения cache | stable |
@@ -134,7 +136,7 @@
 
 | Path | Title | Purpose | Audience | Owner | Update triggers | Status |
 |------|-------|---------|----------|-------|----------------|--------|
-| docs/api-architecture.md | API Architecture | Архитектура API/GraphQL/REST | dev/ai | platform | изменения API | stable |
+| docs/architecture/routing.md | API Architecture | Архитектура API/GraphQL/REST | dev/ai | platform | изменения API | stable |
 | docs/dataloader-implementation.md | DataLoader Implementation | Реализация DataLoader | dev/ai | platform | изменения data access | stable |
 
 ---

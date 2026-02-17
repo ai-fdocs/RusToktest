@@ -859,7 +859,7 @@ curl POST /admin/builds/{build_id}/retry
 - [../../docs/UI/README.md](../../docs/UI/README.md) — Админка UI документация
 
 ### Архитектура
-- [ARCHITECTURE_GUIDE.md](../ARCHITECTURE_GUIDE.md) — Общая архитектура
+- [architecture/principles.md](../architecture/principles.md) — Общая архитектура
 - [MODULE_MATRIX.md](MODULE_MATRIX.md) — Матрица модулей
 - [RUSTOK_MANIFEST.md](../../RUSTOK_MANIFEST.md) — Манифест платформы
 

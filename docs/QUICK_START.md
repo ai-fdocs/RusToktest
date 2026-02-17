@@ -463,7 +463,7 @@ docker-compose logs -f server
 
 ## Next Steps
 
-1. **Read Architecture Docs**: [docs/ARCHITECTURE_RECOMMENDATIONS.md](../ARCHITECTURE_RECOMMENDATIONS.md)
+1. **Read Architecture Docs**: [docs/architecture/recommendations.md](../architecture/recommendations.md)
 2. **Explore Modules**: Each crate has its own README
 3. **Review Examples**: Check `examples/` directory
 4. **Join Community**: GitHub Discussions

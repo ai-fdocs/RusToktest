@@ -474,5 +474,5 @@ If you see "too many time series" warnings:
 
 For issues or questions:
 - Check existing metrics documentation in `docs/module-metrics.md`
-- Review structured logging guide in `docs/structured-logging.md`
+- Review structured logging guide in `docs/standards/logging.md`
 - Open an issue in the project repository

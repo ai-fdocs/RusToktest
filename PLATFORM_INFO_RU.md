@@ -182,7 +182,7 @@ RusToK:
 - [Сравнение с конкурентами](README.ru.md#сравнение)
 
 ### Техническая документация
-- [docs/architecture.md](docs/architecture.md) — детальная архитектура
+- [docs/architecture/overview.md](docs/architecture/overview.md) — детальная архитектура
 - [docs/modules/](docs/modules/) — документация модулей
 - [docs/DATABASE_SCHEMA.md](docs/DATABASE_SCHEMA.md) — схема БД
 

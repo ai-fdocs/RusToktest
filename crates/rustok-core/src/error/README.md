@@ -517,7 +517,7 @@ sqlx::Error => ContentError::Internal(error.to_string())
 
 ## Документация
 
-Полное руководство: [docs/ERROR_HANDLING_GUIDE.md](../../../../docs/ERROR_HANDLING_GUIDE.md)
+Полное руководство: [docs/standards/errors.md](../../../../docs/standards/errors.md)
 
 **Разделы:**
 1. Концепции и архитектура

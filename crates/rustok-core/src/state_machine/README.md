@@ -439,7 +439,7 @@ test bench_typestate_transition   ... bench:      11 ns/iter
 
 ## Документация
 
-Полное руководство: [docs/STATE_MACHINE_GUIDE.md](../../../../docs/STATE_MACHINE_GUIDE.md)
+Полное руководство: [docs/architecture/state-machine-guide.md](../../../../docs/architecture/state-machine-guide.md)
 
 **Разделы:**
 1. Концепции Type-State Pattern

@@ -374,7 +374,7 @@
 
 **Estimated time:** 1 day
 
-- [ ] Update ARCHITECTURE_GUIDE.md
+- [ ] Update architecture/principles.md
 - [ ] Update module READMEs
 - [ ] Add runbook for operations
 - [ ] Document new patterns
@@ -382,7 +382,7 @@
 - [ ] Create migration guide
 
 **Documents to update:**
-- [ ] ARCHITECTURE_GUIDE.md
+- [ ] architecture/principles.md
 - [ ] RUSTOK_MANIFEST.md
 - [ ] Module READMEs
 - [ ] API docs
@@ -471,13 +471,13 @@
 ## 📞 Contacts & Support
 
 **Architecture questions:**  
-Review: [ARCHITECTURE_REVIEW_2026-02-12.md](./ARCHITECTURE_REVIEW_2026-02-12.md)
+Review: [architecture/review-2026-02-12.md](./architecture/review-2026-02-12.md)
 
 **Implementation help:**  
 Guide: [REFACTORING_ROADMAP.md](./REFACTORING_ROADMAP.md)
 
 **Module-specific:**  
-Reference: [MODULE_IMPROVEMENTS.md](./MODULE_IMPROVEMENTS.md)
+Reference: [architecture/module-improvements.md](./architecture/module-improvements.md)
 
 ---
 

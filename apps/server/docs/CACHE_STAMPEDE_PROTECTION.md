@@ -200,7 +200,7 @@ If the database query fails:
 
 - Full documentation: `docs/tenant-cache-stampede-protection.md`
 - Tests: `tests/tenant_cache_stampede_test.rs`
-- Architecture recommendations: `ARCHITECTURE_RECOMMENDATIONS.md` (Section 1.4)
+- Architecture recommendations: `architecture/recommendations.md` (Section 1.4)
 
 ## Related Improvements
 

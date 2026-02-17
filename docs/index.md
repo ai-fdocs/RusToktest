@@ -30,7 +30,7 @@ Welcome to the structured documentation index for the RusToK platform.
 
 ## Other references
 
-- [Architecture guide](./ARCHITECTURE_GUIDE.md)
-- [API architecture](./api-architecture.md)
+- [Architecture principles](./architecture/principles.md)
+- [API boundaries](./architecture/routing.md)
 - [Database schema](./DATABASE_SCHEMA.md)
 - [Roadmap](./ROADMAP.md)
