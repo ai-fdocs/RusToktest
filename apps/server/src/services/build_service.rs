@@ -7,6 +7,7 @@ use crate::models::build::{ActiveModel as BuildActiveModel, BuildStatus, BuildSt
 use crate::models::release::{ActiveModel as ReleaseActiveModel, ReleaseStatus, Entity as ReleaseEntity, Model as Release};
 use async_trait::async_trait;
 use chrono::Utc;
+use rustok_core::{events::DomainEvent, EventBus};
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -37,7 +38,10 @@ pub struct ModuleSpec {
 /// Build event for async processing
 #[derive(Debug, Clone)]
 pub enum BuildEvent {
-    BuildRequested { build_id: Uuid },
+    BuildRequested {
+        build_id: Uuid,
+        requested_by: String,
+    },
     BuildStarted { build_id: Uuid },
     BuildProgress {
         build_id: Uuid,
@@ -61,6 +65,43 @@ impl BuildEventPublisher for NoopBuildEventPublisher {
     async fn publish(&self, event: BuildEvent) -> anyhow::Result<()> {
         warn!(?event, "Build event publisher is not configured, skipping event");
         Ok(())
+    }
+}
+
+pub struct EventBusBuildEventPublisher {
+    event_bus: EventBus,
+    tenant_id: Uuid,
+}
+
+impl EventBusBuildEventPublisher {
+    pub fn new(event_bus: EventBus, tenant_id: Uuid) -> Self {
+        Self {
+            event_bus,
+            tenant_id,
+        }
+    }
+}
+
+#[async_trait]
+impl BuildEventPublisher for EventBusBuildEventPublisher {
+    async fn publish(&self, event: BuildEvent) -> anyhow::Result<()> {
+        let domain_event = match event {
+            BuildEvent::BuildRequested {
+                build_id,
+                requested_by,
+            } => DomainEvent::BuildRequested {
+                build_id,
+                requested_by,
+            },
+            unsupported => {
+                warn!(?unsupported, "Build event is not mapped to DomainEvent yet, skipping");
+                return Ok(());
+            }
+        };
+
+        self.event_bus
+            .publish(self.tenant_id, None, domain_event)
+            .map_err(|error| anyhow::anyhow!("failed to publish build event: {error}"))
     }
 }
 
@@ -138,7 +179,10 @@ impl BuildService {
         info!(build_id = %build.id, "Build requested");
 
         self.event_publisher
-            .publish(BuildEvent::BuildRequested { build_id: build.id })
+            .publish(BuildEvent::BuildRequested {
+                build_id: build.id,
+                requested_by: build.requested_by.clone(),
+            })
             .await?;
 
         Ok(build)

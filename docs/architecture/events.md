@@ -135,7 +135,7 @@ assert_eq!(
 ```
 
 Events are persisted with:
-- `event_type`: String identifier (e.g., "node.created")
+- `event_type`: String identifier (e.g., "node.created", "build.requested")
 - `schema_version`: Integer version (starts at 1)
 - `tenant_id`: Tenant context
 - `actor_id`: User who triggered the event

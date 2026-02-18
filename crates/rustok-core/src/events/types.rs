@@ -228,6 +228,14 @@ pub enum DomainEvent {
     },
 
     // ════════════════════════════════════════════════════════════════
+    // BUILD EVENTS
+    // ════════════════════════════════════════════════════════════════
+    BuildRequested {
+        build_id: Uuid,
+        requested_by: String,
+    },
+
+    // ════════════════════════════════════════════════════════════════
     // TENANT EVENTS
     // ════════════════════════════════════════════════════════════════
     TenantCreated {
@@ -291,6 +299,8 @@ impl DomainEvent {
             Self::ReindexRequested { .. } => "index.reindex_requested",
             Self::IndexUpdated { .. } => "index.updated",
 
+            Self::BuildRequested { .. } => "build.requested",
+
             Self::TenantCreated { .. } => "tenant.created",
             Self::TenantUpdated { .. } => "tenant.updated",
             Self::LocaleEnabled { .. } => "locale.enabled",
@@ -353,6 +363,9 @@ impl DomainEvent {
             // Index events (v1)
             Self::ReindexRequested { .. } => 1,
             Self::IndexUpdated { .. } => 1,
+
+            // Build events (v1)
+            Self::BuildRequested { .. } => 1,
 
             // Tenant events (v1)
             Self::TenantCreated { .. } => 1,
@@ -669,6 +682,19 @@ impl ValidateEvent for DomainEvent {
             }
 
             // ════════════════════════════════════════════════════════════════
+            // BUILD EVENTS
+            // ════════════════════════════════════════════════════════════════
+            Self::BuildRequested {
+                build_id,
+                requested_by,
+            } => {
+                validators::validate_not_nil_uuid("build_id", build_id)?;
+                validators::validate_not_empty("requested_by", requested_by)?;
+                validators::validate_max_length("requested_by", requested_by, 255)?;
+                Ok(())
+            }
+
+            // ════════════════════════════════════════════════════════════════
             // TENANT EVENTS
             // ════════════════════════════════════════════════════════════════
             Self::TenantCreated { tenant_id } | Self::TenantUpdated { tenant_id } => {
@@ -864,6 +890,28 @@ mod tests {
             mime_type: "invalid".to_string(), // no slash
             size: 102400,
         };
+        assert!(event.validate().is_err());
+    }
+
+    #[test]
+    fn test_build_requested_valid_and_metadata() {
+        let event = DomainEvent::BuildRequested {
+            build_id: Uuid::new_v4(),
+            requested_by: "admin@rustok.local".to_string(),
+        };
+
+        assert_eq!(event.event_type(), "build.requested");
+        assert_eq!(event.schema_version(), 1);
+        assert!(event.validate().is_ok());
+    }
+
+    #[test]
+    fn test_build_requested_invalid_requested_by() {
+        let event = DomainEvent::BuildRequested {
+            build_id: Uuid::new_v4(),
+            requested_by: "".to_string(),
+        };
+
         assert!(event.validate().is_err());
     }
 }
