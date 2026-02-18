@@ -99,7 +99,7 @@ graph TD
 
 ### Application docs
 
-- [Server docs](../apps/server/docs/README.md) (includes auth password-reset email delivery and dev seed behavior notes)
+- [Server docs](../apps/server/docs/README.md) (includes auth password-reset email delivery, dev seed behavior notes, and build-request event publication wiring)
 - [Leptos Admin docs](../apps/admin/docs/README.md)
 - [Next.js Admin README](../apps/next-admin/README.md)
 - [Next.js Admin RBAC doc](../apps/next-admin/docs/nav-rbac.md)
