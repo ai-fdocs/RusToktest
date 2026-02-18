@@ -1,35 +1,30 @@
-use rustok_core::events::{DomainEvent, EventEnvelope, TransactionalEventBus};
-use rustok_outbox::OutboxTransport;
-use sea_orm::{Database, DatabaseConnection, EntityTrait, ModelTrait};
-use sqlx::{Pool, Sqlite};
+mod support;
+
+use rustok_core::events::DomainEvent;
+use rustok_outbox::entity::SysEventStatus;
+use rustok_outbox::{OutboxTransport, SysEvents, TransactionalEventBus};
+use sea_orm::{ColumnTrait, EntityTrait, QueryFilter, TransactionTrait};
 use std::sync::Arc;
 use uuid::Uuid;
 
-async fn setup_test_db() -> (DatabaseConnection, Pool<Sqlite>) {
-    let database_url = "sqlite::memory:";
+use support::setup_test_db;
 
-    // Setup SeaORM connection
-    let sea_orm_db = Database::connect(database_url)
-        .await
-        .expect("Failed to connect SeaORM to test database");
-
-    // Setup sqlx connection for manual queries
-    let sqlx_pool = sqlx::Sqlite::create(&database_url).await.unwrap();
-
-    (sea_orm_db, sqlx_pool)
+fn count_for_tenant(events: &[rustok_outbox::SysEvent], tenant_id: Uuid) -> usize {
+    events
+        .iter()
+        .filter(|event| event.payload["tenant_id"] == tenant_id.to_string())
+        .count()
 }
 
 #[tokio::test]
 async fn test_transactional_event_publishing_rollback() {
-    let (sea_orm_db, sqlx_pool) = setup_test_db().await;
-    let transport = Arc::new(OutboxTransport::new(sea_orm_db.clone()));
+    let db = setup_test_db().await;
+    let transport = Arc::new(OutboxTransport::new(db.clone()));
     let event_bus = TransactionalEventBus::new(transport.clone());
 
     let tenant_id = Uuid::new_v4();
     let user_id = Uuid::new_v4();
-
-    // Start a transaction and publish event
-    let mut txn = sea_orm_db.begin().await.unwrap();
+    let txn = db.begin().await.unwrap();
 
     let event = DomainEvent::NodeCreated {
         node_id: Uuid::new_v4(),
@@ -37,40 +32,28 @@ async fn test_transactional_event_publishing_rollback() {
         author_id: Some(user_id),
     };
 
-    // Publish event in transaction
     event_bus
-        .publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
+        .publish_in_tx(&txn, tenant_id, Some(user_id), event)
         .await
         .expect("Failed to publish event in transaction");
 
-    // Rollback transaction - event should not be persisted
     txn.rollback().await.unwrap();
 
-    // Check that event was not persisted (outbox should be empty)
-    let count: i64 = sqlx::query("SELECT COUNT(*) FROM sys_events")
-        .fetch_one(&sqlx_pool)
-        .await
-        .unwrap()
-        .get(0);
-
-    assert_eq!(
-        count, 0,
-        "Events should not be persisted after transaction rollback"
-    );
+    let events = SysEvents::find().all(&db).await.unwrap();
+    let count = count_for_tenant(&events, tenant_id);
+    assert_eq!(count, 0, "Events should not be persisted after rollback");
 }
 
 #[tokio::test]
 async fn test_transactional_event_publishing_commit() {
-    let (sea_orm_db, sqlx_pool) = setup_test_db().await;
-    let transport = Arc::new(OutboxTransport::new(sea_orm_db.clone()));
+    let db = setup_test_db().await;
+    let transport = Arc::new(OutboxTransport::new(db.clone()));
     let event_bus = TransactionalEventBus::new(transport.clone());
 
     let tenant_id = Uuid::new_v4();
     let user_id = Uuid::new_v4();
     let node_id = Uuid::new_v4();
-
-    // Start a transaction and publish event
-    let mut txn = sea_orm_db.begin().await.unwrap();
+    let txn = db.begin().await.unwrap();
 
     let event = DomainEvent::NodeCreated {
         node_id,
@@ -78,107 +61,80 @@ async fn test_transactional_event_publishing_commit() {
         author_id: Some(user_id),
     };
 
-    // Publish event in transaction
     event_bus
-        .publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
+        .publish_in_tx(&txn, tenant_id, Some(user_id), event)
         .await
         .expect("Failed to publish event in transaction");
 
-    // Commit transaction - event should be persisted
     txn.commit().await.unwrap();
 
-    // Check that event was persisted
-    let count: i64 = sqlx::query("SELECT COUNT(*) FROM sys_events")
-        .fetch_one(&sqlx_pool)
-        .await
-        .unwrap()
-        .get(0);
+    let events = SysEvents::find().all(&db).await.unwrap();
+    let count = count_for_tenant(&events, tenant_id);
+    assert_eq!(count, 1, "Event should be persisted after commit");
 
-    assert_eq!(
-        count, 1,
-        "Event should be persisted after transaction commit"
-    );
-
-    // Verify event content
-    let persisted_event: (String, i32, String, Option<String>, Uuid, Option<Uuid>, String, serde_json::Value) = sqlx::query(
-        r#"SELECT event_type, schema_version, aggregate_id, aggregate_type, tenant_id, actor_id, event_data, metadata 
-           FROM sys_events 
-           LIMIT 1"#
-    )
-    .fetch_one(&sqlx_pool)
-    .await
-    .unwrap();
-
-    assert_eq!(persisted_event.0, "node.created");
-    assert_eq!(persisted_event.1, 1); // schema_version
-    assert_eq!(persisted_event.4, tenant_id);
-    assert_eq!(persisted_event.5, Some(user_id));
-    assert_eq!(persisted_event.2, node_id.to_string());
+    let persisted_event = events
+        .into_iter()
+        .find(|event| event.payload["tenant_id"] == tenant_id.to_string())
+        .expect("Expected tenant event to be persisted");
+    assert_eq!(persisted_event.event_type, "node.created");
+    assert_eq!(persisted_event.schema_version, 1);
+    assert_eq!(persisted_event.status, SysEventStatus::Pending);
 }
 
 #[tokio::test]
 async fn test_mixed_transactional_and_non_transactional_events() {
-    let (sea_orm_db, sqlx_pool) = setup_test_db().await;
-    let transport = Arc::new(OutboxTransport::new(sea_orm_db.clone()));
+    let db = setup_test_db().await;
+    let transport = Arc::new(OutboxTransport::new(db.clone()));
     let event_bus = TransactionalEventBus::new(transport.clone());
 
     let tenant_id = Uuid::new_v4();
     let user_id = Uuid::new_v4();
     let node_id = Uuid::new_v4();
 
-    // Publish non-transactional event first
-    let non_tx_event = DomainEvent::NodeCreated {
-        node_id: Uuid::new_v4(),
-        kind: "page".to_string(),
-        author_id: Some(user_id),
-    };
-
     event_bus
-        .publish(tenant_id, Some(user_id), non_tx_event.clone())
+        .publish(
+            tenant_id,
+            Some(user_id),
+            DomainEvent::NodeCreated {
+                node_id: Uuid::new_v4(),
+                kind: "page".to_string(),
+                author_id: Some(user_id),
+            },
+        )
         .await
         .expect("Failed to publish non-transactional event");
 
-    // Publish transactional event in transaction
-    let mut txn = sea_orm_db.begin().await.unwrap();
-
-    let tx_event = DomainEvent::NodeCreated {
-        node_id,
-        kind: "post".to_string(),
-        author_id: Some(user_id),
-    };
-
+    let txn = db.begin().await.unwrap();
     event_bus
-        .publish_in_tx(&txn, tenant_id, Some(user_id), tx_event.clone())
+        .publish_in_tx(
+            &txn,
+            tenant_id,
+            Some(user_id),
+            DomainEvent::NodeCreated {
+                node_id,
+                kind: "post".to_string(),
+                author_id: Some(user_id),
+            },
+        )
         .await
         .expect("Failed to publish transactional event");
-
     txn.commit().await.unwrap();
 
-    // Check that both events were persisted
-    let count: i64 = sqlx::query("SELECT COUNT(*) FROM sys_events")
-        .fetch_one(&sqlx_pool)
-        .await
-        .unwrap()
-        .get(0);
-
-    assert_eq!(
-        count, 2,
-        "Both transactional and non-transactional events should be persisted"
-    );
+    let events = SysEvents::find().all(&db).await.unwrap();
+    let count = count_for_tenant(&events, tenant_id);
+    assert_eq!(count, 2);
 }
 
 #[tokio::test]
 async fn test_multiple_events_in_single_transaction() {
-    let (sea_orm_db, sqlx_pool) = setup_test_db().await;
-    let transport = Arc::new(OutboxTransport::new(sea_orm_db.clone()));
+    let db = setup_test_db().await;
+    let transport = Arc::new(OutboxTransport::new(db.clone()));
     let event_bus = TransactionalEventBus::new(transport.clone());
 
     let tenant_id = Uuid::new_v4();
     let user_id = Uuid::new_v4();
     let node_id = Uuid::new_v4();
-
-    // Start transaction and publish multiple events
-    let mut txn = sea_orm_db.begin().await.unwrap();
+    let txn = db.begin().await.unwrap();
 
     let events = vec![
         DomainEvent::NodeCreated {
@@ -196,57 +152,77 @@ async fn test_multiple_events_in_single_transaction() {
         },
     ];
 
-    for event in &events {
+    for event in events {
         event_bus
-            .publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
+            .publish_in_tx(&txn, tenant_id, Some(user_id), event)
             .await
             .expect("Failed to publish event in transaction");
     }
 
     txn.commit().await.unwrap();
 
-    // Check that all events were persisted
-    let count: i64 = sqlx::query("SELECT COUNT(*) FROM sys_events")
-        .fetch_one(&sqlx_pool)
-        .await
-        .unwrap()
-        .get(0);
-
+    let events = SysEvents::find().all(&db).await.unwrap();
+    let count = count_for_tenant(&events, tenant_id);
     assert_eq!(count, 3, "All events in transaction should be persisted");
 }
 
 #[tokio::test]
-async fn test_event_persistence_on_db_failure() {
-    let (sea_orm_db, sqlx_pool) = setup_test_db().await;
-    let transport = Arc::new(OutboxTransport::new(sea_orm_db.clone()));
+async fn test_event_validation_failure_does_not_persist() {
+    let db = setup_test_db().await;
+    let transport = Arc::new(OutboxTransport::new(db.clone()));
     let event_bus = TransactionalEventBus::new(transport.clone());
 
     let tenant_id = Uuid::new_v4();
     let user_id = Uuid::new_v4();
 
-    // Start transaction
-    let mut txn = sea_orm_db.begin().await.unwrap();
+    let txn = db.begin().await.unwrap();
 
-    let event = DomainEvent::NodeCreated {
+    let invalid_event = DomainEvent::NodeCreated {
         node_id: Uuid::new_v4(),
-        kind: "post".to_string(),
+        kind: "".to_string(),
         author_id: Some(user_id),
     };
 
-    // Publish event in transaction
+    let result = event_bus
+        .publish_in_tx(&txn, tenant_id, Some(user_id), invalid_event)
+        .await;
+
+    assert!(result.is_err());
+    txn.rollback().await.unwrap();
+
+    let events = SysEvents::find().all(&db).await.unwrap();
+    let count = count_for_tenant(&events, tenant_id);
+    assert_eq!(count, 0);
+}
+
+#[tokio::test]
+async fn test_pending_status_after_publish() {
+    let db = setup_test_db().await;
+    let transport = Arc::new(OutboxTransport::new(db.clone()));
+    let event_bus = TransactionalEventBus::new(transport);
+
+    let tenant_id = Uuid::new_v4();
+    let user_id = Uuid::new_v4();
+
     event_bus
-        .publish_in_tx(&txn, tenant_id, Some(user_id), event.clone())
+        .publish(
+            tenant_id,
+            Some(user_id),
+            DomainEvent::NodeCreated {
+                node_id: Uuid::new_v4(),
+                kind: "post".to_string(),
+                author_id: Some(user_id),
+            },
+        )
         .await
-        .expect("Failed to publish event in transaction");
+        .unwrap();
 
-    // Manually close database connection to simulate failure
-    drop(sea_orm_db);
-    drop(sqlx_pool);
+    let events = SysEvents::find()
+        .filter(rustok_outbox::entity::Column::Status.eq(SysEventStatus::Pending))
+        .all(&db)
+        .await
+        .unwrap();
 
-    // Transaction should fail to commit due to connection loss
-    let result = txn.commit().await;
-    assert!(
-        result.is_err(),
-        "Transaction commit should fail on connection loss"
-    );
+    let pending_count = count_for_tenant(&events, tenant_id);
+    assert_eq!(pending_count, 1);
 }

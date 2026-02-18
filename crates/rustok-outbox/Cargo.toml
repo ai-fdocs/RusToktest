@@ -19,3 +19,5 @@ tokio.workspace = true
 rustok-core.workspace = true
 
 [dev-dependencies]
+sea-orm = { workspace = true, features = ["sqlx-sqlite"] }
+sea-orm-migration = { workspace = true, features = ["sqlx-sqlite"] }

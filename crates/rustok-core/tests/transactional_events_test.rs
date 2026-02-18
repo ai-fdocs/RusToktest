@@ -1,17 +1,11 @@
-use rustok_core::events::{DomainEvent, TransactionalEventBus};
-use rustok_outbox::OutboxTransport;
-use sea_orm::{Database, DatabaseConnection};
+mod support;
+
+use rustok_core::events::DomainEvent;
+use rustok_outbox::{OutboxTransport, TransactionalEventBus};
 use std::sync::Arc;
 use uuid::Uuid;
 
-async fn setup_test_db() -> DatabaseConnection {
-    let database_url =
-        std::env::var("DATABASE_URL").unwrap_or_else(|_| "sqlite::memory:".to_string());
-
-    Database::connect(&database_url)
-        .await
-        .expect("Failed to connect to test database")
-}
+use support::setup_test_db;
 
 #[tokio::test]
 async fn test_transactional_event_bus_creation() {
