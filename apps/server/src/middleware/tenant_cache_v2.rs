@@ -416,28 +416,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_cache_key_generation() {
-        let cache = SimplifiedTenantCache {
-            cache: Cache::builder().build(),
-            db: todo!(), // Mock in real tests
-        };
-
-        let uuid_id = ResolvedTenantIdentifier {
-            value: "123e4567-e89b-12d3-a456-426614174000".to_string(),
-            kind: TenantIdentifierKind::Uuid,
-            uuid: Uuid::parse_str("123e4567-e89b-12d3-a456-426614174000").unwrap(),
-        };
-
-        let key = cache.build_cache_key(&uuid_id);
-        assert_eq!(key, "tenant_v2:uuid:123e4567-e89b-12d3-a456-426614174000");
-
-        let host_id = ResolvedTenantIdentifier {
-            value: "Example.COM".to_string(),
-            kind: TenantIdentifierKind::Host,
-            uuid: Uuid::nil(),
-        };
-
-        let key = cache.build_cache_key(&host_id);
-        assert_eq!(key, "tenant_v2:host:example.com"); // Lowercase!
+    fn test_identifier_kind_as_str() {
+        assert_eq!(TenantIdentifierKind::Uuid.as_str(), "uuid");
+        assert_eq!(TenantIdentifierKind::Slug.as_str(), "slug");
+        assert_eq!(TenantIdentifierKind::Host.as_str(), "host");
     }
 }

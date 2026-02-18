@@ -321,24 +321,11 @@ pub async fn tenant_cache_v3_stats(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
-    // Note: Tests require database setup
-    // These are templates for integration tests
+    #[tokio::test]
+    #[ignore]
+    async fn test_circuit_breaker_opens_on_db_failures() {}
 
     #[tokio::test]
     #[ignore]
-    async fn test_circuit_breaker_opens_on_db_failures() {
-        // Setup database and cache
-        // Simulate database failures
-        // Assert circuit opens
-    }
-
-    #[tokio::test]
-    #[ignore]
-    async fn test_circuit_breaker_fail_fast() {
-        // Setup cache with open circuit
-        // Measure latency of failed request
-        // Assert latency < 1ms (fail-fast)
-    }
+    async fn test_circuit_breaker_fail_fast() {}
 }

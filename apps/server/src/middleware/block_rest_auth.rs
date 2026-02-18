@@ -69,10 +69,6 @@ pub async fn block_rest_auth_for_admin(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use axum::{
-        body::Body,
-        http::{header, Request},
-    };
 
     #[test]
     fn test_blocked_paths() {

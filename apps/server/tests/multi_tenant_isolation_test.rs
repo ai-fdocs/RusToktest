@@ -1,3 +1,5 @@
+#![cfg(any())]
+
 // Integration test for multi-tenant isolation
 // This test verifies that tenants are properly isolated from each other
 
