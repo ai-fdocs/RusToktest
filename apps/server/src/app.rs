@@ -14,9 +14,12 @@ use loco_rs::{
 use std::path::Path;
 
 use crate::controllers;
+use crate::initializers;
 use crate::middleware;
 use crate::modules;
+use crate::seeds;
 use crate::services::event_transport_factory::{build_event_runtime, spawn_outbox_relay_worker};
+use crate::tasks;
 use loco_rs::prelude::Queue;
 use migration::Migrator;
 use std::sync::Arc;
@@ -115,9 +118,7 @@ impl Hooks for App {
     }
 
     fn register_tasks(tasks: &mut Tasks) {
-        if let Err(e) = tasks::register(tasks) {
-            tracing::error!(error = %e, "Failed to register tasks");
-        }
+        tasks::register(tasks);
     }
 
     async fn initializers(ctx: &AppContext) -> Result<Vec<Box<dyn Initializer>>> {
@@ -141,23 +142,5 @@ impl Hooks for App {
 
     async fn seed(ctx: &AppContext, path: &Path) -> Result<()> {
         seeds::seed(ctx, path).await
-    }
-
-    async fn shutdown(ctx: &AppContext) {
-        tracing::info!("Starting graceful shutdown sequence...");
-
-        // Stop outbox relay worker if running
-        if let Some(handle) = ctx.shared_store.get::<OutboxRelayWorkerHandle>() {
-            tracing::info!("Stopping outbox relay worker...");
-            handle.shutdown();
-        }
-
-        // Close database connections
-        tracing::info!("Closing database connections...");
-        if let Err(e) = ctx.db.close().await {
-            tracing::error!(error = %e, "Error closing database connection");
-        }
-
-        tracing::info!("Graceful shutdown completed");
     }
 }

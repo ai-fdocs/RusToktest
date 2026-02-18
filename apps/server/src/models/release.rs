@@ -78,8 +78,6 @@ pub enum Relation {}
 
 impl ActiveModelBehavior for ActiveModel {}
 
-use sea_orm::sea_query::Json;
-
 impl Model {
     /// Generate a release ID
     pub fn generate_id() -> String {

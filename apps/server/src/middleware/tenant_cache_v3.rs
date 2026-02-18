@@ -143,7 +143,7 @@ impl TenantCacheV3 {
     async fn load_from_db_protected(
         &self,
         identifier: &ResolvedTenantIdentifier,
-    ) -> Result<Arc<CachedTenant>, anyhow::Error> {
+    ) -> Result<Arc<CachedTenant>, String> {
         // Execute database query through circuit breaker
         let result = self
             .circuit_breaker
@@ -152,10 +152,10 @@ impl TenantCacheV3 {
 
         match result {
             Ok(cached) => Ok(cached),
-            Err(CircuitBreakerError::Open) => Err(anyhow::anyhow!(
-                "Circuit breaker is open, database unavailable"
-            )),
-            Err(CircuitBreakerError::Execution(e)) => Err(anyhow::anyhow!("Database error: {}", e)),
+            Err(CircuitBreakerError::Open) => {
+                Err("Circuit breaker is open, database unavailable".to_string())
+            }
+            Err(CircuitBreakerError::Upstream(e)) => Err(format!("Database error: {}", e)),
         }
     }
 
@@ -234,7 +234,9 @@ impl TenantCacheV3 {
     }
 
     /// Get circuit breaker statistics (async)
-    pub async fn circuit_stats(&self) -> rustok_core::resilience::CircuitBreakerStats {
+    pub async fn circuit_stats(
+        &self,
+    ) -> rustok_core::resilience::circuit_breaker::CircuitBreakerStats {
         self.circuit_breaker.stats().await
     }
 

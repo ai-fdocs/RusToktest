@@ -138,7 +138,7 @@ impl SimplifiedTenantCache {
     async fn load_from_db(
         &self,
         identifier: &ResolvedTenantIdentifier,
-    ) -> Result<Arc<CachedTenant>, anyhow::Error> {
+    ) -> Result<Arc<CachedTenant>, sea_orm::DbErr> {
         tracing::debug!(
             identifier_kind = ?identifier.kind,
             identifier_value = %identifier.value,
