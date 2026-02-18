@@ -29,6 +29,12 @@ impl ReplyService {
         topic_id: Uuid,
         input: CreateReplyInput,
     ) -> ForumResult<ReplyResponse> {
+        if input.content.trim().is_empty() {
+            return Err(ForumError::Validation(
+                "Reply content cannot be empty".to_string(),
+            ));
+        }
+
         let metadata = serde_json::json!({
             "parent_reply_id": input.parent_reply_id,
             "reply_status": reply_status::APPROVED,
@@ -180,5 +186,96 @@ impl ReplyService {
             created_at: node.created_at,
             updated_at: node.updated_at,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::constants::{reply_status, KIND_REPLY};
+    use rustok_content::dto::{BodyResponse, NodeResponse, NodeTranslationResponse};
+    use rustok_content::entities::node::ContentStatus;
+
+    fn make_reply_node(
+        topic_id: Uuid,
+        content: Option<&str>,
+        locale: &str,
+        status: &str,
+        parent_reply_id: Option<Uuid>,
+    ) -> NodeResponse {
+        let metadata = serde_json::json!({
+            "reply_status": status,
+            "parent_reply_id": parent_reply_id.map(|u| u.to_string())
+        });
+        NodeResponse {
+            id: Uuid::nil(),
+            tenant_id: Uuid::nil(),
+            kind: KIND_REPLY.to_string(),
+            status: ContentStatus::Published,
+            parent_id: Some(topic_id),
+            author_id: None,
+            category_id: None,
+            position: 0,
+            depth: 0,
+            reply_count: 0,
+            metadata,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+            published_at: None,
+            translations: vec![NodeTranslationResponse {
+                locale: locale.to_string(),
+                title: None,
+                slug: None,
+                excerpt: None,
+            }],
+            bodies: content
+                .map(|c| {
+                    vec![BodyResponse {
+                        locale: locale.to_string(),
+                        body: Some(c.to_string()),
+                        format: "markdown".to_string(),
+                        updated_at: "2024-01-01T00:00:00Z".to_string(),
+                    }]
+                })
+                .unwrap_or_default(),
+        }
+    }
+
+    #[test]
+    fn node_to_reply_maps_fields() {
+        let topic_id = Uuid::new_v4();
+        let parent_reply_id = Uuid::new_v4();
+        let node =
+            make_reply_node(topic_id, Some("Hello!"), "en", reply_status::APPROVED, Some(parent_reply_id));
+
+        let result = ReplyService::node_to_reply(node, topic_id, "en");
+
+        assert_eq!(result.topic_id, topic_id);
+        assert_eq!(result.content, "Hello!");
+        assert_eq!(result.status, reply_status::APPROVED);
+        assert_eq!(result.parent_reply_id, Some(parent_reply_id));
+    }
+
+    #[test]
+    fn node_to_reply_defaults_on_missing_fields() {
+        let topic_id = Uuid::new_v4();
+        let node = make_reply_node(topic_id, None, "en", reply_status::PENDING, None);
+
+        let result = ReplyService::node_to_reply(node, topic_id, "en");
+
+        assert_eq!(result.content, "");
+        assert_eq!(result.status, reply_status::PENDING);
+        assert_eq!(result.parent_reply_id, None);
+    }
+
+    #[test]
+    fn node_to_reply_falls_back_to_first_body_locale() {
+        let topic_id = Uuid::new_v4();
+        // body locale is "de" but we request "en"
+        let mut node = make_reply_node(topic_id, Some("Hallo!"), "de", reply_status::APPROVED, None);
+        node.bodies[0].locale = "de".to_string();
+
+        let result = ReplyService::node_to_reply(node, topic_id, "en");
+        assert_eq!(result.content, "Hallo!");
     }
 }

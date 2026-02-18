@@ -30,6 +30,17 @@ impl CategoryService {
         security: SecurityContext,
         input: CreateCategoryInput,
     ) -> ForumResult<CategoryResponse> {
+        if input.name.trim().is_empty() {
+            return Err(ForumError::Validation(
+                "Category name cannot be empty".to_string(),
+            ));
+        }
+        if input.slug.trim().is_empty() {
+            return Err(ForumError::Validation(
+                "Category slug cannot be empty".to_string(),
+            ));
+        }
+
         let metadata = serde_json::json!({
             "icon": input.icon,
             "color": input.color,
@@ -217,5 +228,120 @@ impl CategoryService {
                 .and_then(|v| v.as_bool())
                 .unwrap_or(false),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::constants::KIND_CATEGORY;
+    use rustok_content::dto::{NodeResponse, NodeTranslationResponse};
+    use rustok_content::entities::node::ContentStatus;
+
+    fn make_category_node(
+        metadata: serde_json::Value,
+        name: Option<&str>,
+        slug: Option<&str>,
+        description: Option<&str>,
+        locale: &str,
+        parent_id: Option<Uuid>,
+        position: i32,
+    ) -> NodeResponse {
+        NodeResponse {
+            id: Uuid::nil(),
+            tenant_id: Uuid::nil(),
+            kind: KIND_CATEGORY.to_string(),
+            status: ContentStatus::Published,
+            parent_id,
+            author_id: None,
+            category_id: None,
+            position,
+            depth: 0,
+            reply_count: 0,
+            metadata,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+            published_at: None,
+            translations: vec![NodeTranslationResponse {
+                locale: locale.to_string(),
+                title: name.map(|s| s.to_string()),
+                slug: slug.map(|s| s.to_string()),
+                excerpt: description.map(|s| s.to_string()),
+            }],
+            bodies: vec![],
+        }
+    }
+
+    #[test]
+    fn node_to_category_maps_metadata_fields() {
+        let metadata = serde_json::json!({
+            "icon": "chat",
+            "color": "#ff0000",
+            "moderated": true,
+            "topic_count": 10,
+            "reply_count": 50
+        });
+        let node = make_category_node(
+            metadata,
+            Some("General"),
+            Some("general"),
+            Some("General discussion"),
+            "en",
+            None,
+            3,
+        );
+
+        let result = CategoryService::node_to_category(node, "en");
+
+        assert_eq!(result.name, "General");
+        assert_eq!(result.slug, "general");
+        assert_eq!(result.description, Some("General discussion".to_string()));
+        assert_eq!(result.icon, Some("chat".to_string()));
+        assert_eq!(result.color, Some("#ff0000".to_string()));
+        assert!(result.moderated);
+        assert_eq!(result.topic_count, 10);
+        assert_eq!(result.reply_count, 50);
+        assert_eq!(result.position, 3);
+    }
+
+    #[test]
+    fn node_to_category_defaults_on_empty_metadata() {
+        let node = make_category_node(
+            serde_json::json!({}),
+            None,
+            None,
+            None,
+            "en",
+            None,
+            0,
+        );
+
+        let result = CategoryService::node_to_category(node, "en");
+
+        assert_eq!(result.name, "");
+        assert_eq!(result.slug, "");
+        assert_eq!(result.description, None);
+        assert_eq!(result.icon, None);
+        assert_eq!(result.color, None);
+        assert!(!result.moderated);
+        assert_eq!(result.topic_count, 0);
+        assert_eq!(result.reply_count, 0);
+    }
+
+    #[test]
+    fn node_to_category_propagates_parent_id() {
+        let parent_id = Uuid::new_v4();
+        let node = make_category_node(
+            serde_json::json!({}),
+            Some("Sub"),
+            Some("sub"),
+            None,
+            "en",
+            Some(parent_id),
+            0,
+        );
+
+        let result = CategoryService::node_to_category(node, "en");
+        assert_eq!(result.parent_id, Some(parent_id));
     }
 }

@@ -26,9 +26,17 @@ compatibility with platform-level contracts.
 
 ### Phase 1 — Contract hardening (in progress)
 
-- [ ] Freeze public API expectations for the current module surface.
-- [ ] Align error/validation conventions with platform guidance.
-- [ ] Expand automated tests around core invariants and boundary behavior.
+- [x] Freeze public API expectations for the current module surface.
+  - Public surface: `CategoryService`, `TopicService`, `ReplyService`, `ModerationService` with CRUD operations.
+  - `ModerationService` extended with topic operations: `pin_topic`, `unpin_topic`, `lock_topic`, `unlock_topic`, `close_topic`, `archive_topic`.
+- [x] Align error/validation conventions with platform guidance.
+  - Empty title/body/content/name/slug in `create` methods return `ForumError::Validation`.
+  - Error types follow platform `thiserror` conventions.
+- [x] Expand automated tests around core invariants and boundary behavior.
+  - 9 inline lib tests for `node_to_topic`, `node_to_category`, `node_to_reply` mapping logic.
+  - 15 pure unit tests in `tests/unit.rs`: constants, error display, DTO serde defaults.
+  - 2 module contract tests in `tests/module.rs`: metadata and migrations list.
+  - Integration test scaffold in `tests/integration.rs` (ignored, requires DB).
 
 ### Phase 2 — Domain expansion (planned)
 

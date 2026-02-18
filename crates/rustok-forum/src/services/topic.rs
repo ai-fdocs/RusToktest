@@ -32,6 +32,17 @@ impl TopicService {
         security: SecurityContext,
         input: CreateTopicInput,
     ) -> ForumResult<TopicResponse> {
+        if input.title.trim().is_empty() {
+            return Err(ForumError::Validation(
+                "Topic title cannot be empty".to_string(),
+            ));
+        }
+        if input.body.trim().is_empty() {
+            return Err(ForumError::Validation(
+                "Topic body cannot be empty".to_string(),
+            ));
+        }
+
         let metadata = serde_json::json!({
             "tags": input.tags,
             "is_pinned": false,
@@ -236,5 +247,126 @@ impl TopicService {
             created_at: node.created_at,
             updated_at: node.updated_at,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::constants::{topic_status, KIND_TOPIC};
+    use rustok_content::dto::{BodyResponse, NodeResponse, NodeTranslationResponse};
+    use rustok_content::entities::node::ContentStatus;
+
+    fn make_node(
+        kind: &str,
+        category_id: Option<Uuid>,
+        metadata: serde_json::Value,
+        title: Option<&str>,
+        body: Option<&str>,
+        locale: &str,
+    ) -> NodeResponse {
+        NodeResponse {
+            id: Uuid::nil(),
+            tenant_id: Uuid::nil(),
+            kind: kind.to_string(),
+            status: ContentStatus::Published,
+            parent_id: category_id,
+            author_id: None,
+            category_id,
+            position: 0,
+            depth: 0,
+            reply_count: 0,
+            metadata,
+            created_at: "2024-01-01T00:00:00Z".to_string(),
+            updated_at: "2024-01-01T00:00:00Z".to_string(),
+            published_at: None,
+            translations: vec![NodeTranslationResponse {
+                locale: locale.to_string(),
+                title: title.map(|s| s.to_string()),
+                slug: None,
+                excerpt: None,
+            }],
+            bodies: body
+                .map(|b| {
+                    vec![BodyResponse {
+                        locale: locale.to_string(),
+                        body: Some(b.to_string()),
+                        format: "markdown".to_string(),
+                        updated_at: "2024-01-01T00:00:00Z".to_string(),
+                    }]
+                })
+                .unwrap_or_default(),
+        }
+    }
+
+    #[test]
+    fn node_to_topic_maps_fields_from_metadata() {
+        let category_id = Uuid::new_v4();
+        let metadata = serde_json::json!({
+            "tags": ["rust", "forum"],
+            "is_pinned": true,
+            "is_locked": false,
+            "reply_count": 5,
+            "forum_status": "open"
+        });
+        let node = make_node(
+            KIND_TOPIC,
+            Some(category_id),
+            metadata,
+            Some("Hello World"),
+            Some("Body text"),
+            "en",
+        );
+
+        let result = TopicService::node_to_topic(node, "en");
+
+        assert_eq!(result.title, "Hello World");
+        assert_eq!(result.body, "Body text");
+        assert_eq!(result.category_id, category_id);
+        assert_eq!(result.tags, vec!["rust", "forum"]);
+        assert!(result.is_pinned);
+        assert!(!result.is_locked);
+        assert_eq!(result.reply_count, 5);
+        assert_eq!(result.status, "open");
+    }
+
+    #[test]
+    fn node_to_topic_defaults_on_empty_metadata() {
+        let node = make_node(
+            KIND_TOPIC,
+            None,
+            serde_json::json!({}),
+            None,
+            None,
+            "en",
+        );
+
+        let result = TopicService::node_to_topic(node, "en");
+
+        assert_eq!(result.title, "");
+        assert_eq!(result.body, "");
+        assert_eq!(result.category_id, Uuid::nil());
+        assert!(result.tags.is_empty());
+        assert!(!result.is_pinned);
+        assert!(!result.is_locked);
+        assert_eq!(result.reply_count, 0);
+        assert_eq!(result.status, topic_status::OPEN);
+    }
+
+    #[test]
+    fn node_to_topic_falls_back_to_first_translation() {
+        let metadata = serde_json::json!({
+            "tags": [],
+            "is_pinned": false,
+            "is_locked": false,
+            "reply_count": 0,
+            "forum_status": "open"
+        });
+        let mut node = make_node(KIND_TOPIC, None, metadata, Some("Fallback"), None, "de");
+        // request locale is "en" but only "de" exists
+        node.translations[0].locale = "de".to_string();
+
+        let result = TopicService::node_to_topic(node, "en");
+        assert_eq!(result.title, "Fallback");
     }
 }
