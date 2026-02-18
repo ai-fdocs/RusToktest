@@ -28,12 +28,19 @@ to transport/protocol details.
 - [x] Module discovery tools (`list_modules`, `module_exists`, `module_details`).
 - [x] Tests for module discovery tools.
 
-### Phase 1 — Contract hardening (in progress)
+### Phase 1 — Contract hardening (done)
 
-- [ ] Freeze tool naming conventions and argument schemas.
-- [ ] Define response/error envelope policy for MCP tools.
-- [ ] Add compatibility matrix for client versions.
-- [ ] Expand integration tests for schema and transport behavior.
+- [x] Freeze tool naming conventions and argument schemas (constants in `tools.rs`).
+- [x] Define response/error envelope policy for MCP tools (`McpToolResponse`).
+- [x] Add compatibility matrix for client versions (see below).
+- [x] Expand integration tests for schema and transport behavior.
+
+### Compatibility matrix
+
+| Component | Version | Notes |
+| --- | --- | --- |
+| MCP protocol | 2024-11-05 | Matches `rmcp::model::ProtocolVersion::V_2024_11_05`. |
+| Tool response envelope | v1 | `McpToolResponse` with `ok/data/error`. |
 
 ### Phase 2 — Domain expansion (planned)
 

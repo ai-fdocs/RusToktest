@@ -3,6 +3,10 @@ use rustok_core::registry::ModuleRegistry;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
+pub const TOOL_LIST_MODULES: &str = "list_modules";
+pub const TOOL_MODULE_EXISTS: &str = "module_exists";
+pub const TOOL_MODULE_DETAILS: &str = "module_details";
+
 /// State for MCP tools
 #[derive(Clone)]
 pub struct McpState {
@@ -54,6 +58,47 @@ pub struct ModuleDetailsResponse {
     pub slug: String,
     /// Module details when present
     pub module: Option<ModuleInfo>,
+}
+
+/// Standard response envelope for MCP tool responses
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct McpToolResponse<T> {
+    /// Indicates whether the tool executed successfully
+    pub ok: bool,
+    /// Payload for successful responses
+    pub data: Option<T>,
+    /// Error details for unsuccessful responses
+    pub error: Option<McpToolError>,
+}
+
+/// Error payload for MCP tool responses
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct McpToolError {
+    /// Machine-readable error code
+    pub code: String,
+    /// Human-readable error message
+    pub message: String,
+}
+
+impl<T> McpToolResponse<T> {
+    pub fn success(data: T) -> Self {
+        Self {
+            ok: true,
+            data: Some(data),
+            error: None,
+        }
+    }
+
+    pub fn error(code: impl Into<String>, message: impl Into<String>) -> Self {
+        Self {
+            ok: false,
+            data: None,
+            error: Some(McpToolError {
+                code: code.into(),
+                message: message.into(),
+            }),
+        }
+    }
 }
 
 fn to_module_info(module: &dyn RusToKModule) -> ModuleInfo {

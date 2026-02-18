@@ -4,7 +4,8 @@ use sea_orm_migration::MigrationTrait;
 use rustok_core::module::{MigrationSource, RusToKModule};
 use rustok_core::registry::ModuleRegistry;
 use rustok_mcp::tools::{
-    list_modules, module_details, module_exists, McpState, ModuleLookupRequest,
+    list_modules, module_details, module_exists, McpState, McpToolResponse,
+    ModuleLookupRequest,
 };
 
 struct DemoModule;
@@ -107,4 +108,24 @@ async fn module_details_returns_none_for_unknown_slug() {
 
     assert!(response.module.is_none());
     assert_eq!(response.slug, "missing");
+}
+
+#[test]
+fn tool_response_success_sets_data() {
+    let response = McpToolResponse::success("ok");
+
+    assert!(response.ok);
+    assert_eq!(response.data, Some("ok"));
+    assert!(response.error.is_none());
+}
+
+#[test]
+fn tool_response_error_sets_error_payload() {
+    let response = McpToolResponse::<()>::error("invalid", "Bad request");
+
+    assert!(!response.ok);
+    assert!(response.data.is_none());
+    let error = response.error.expect("error payload");
+    assert_eq!(error.code, "invalid");
+    assert_eq!(error.message, "Bad request");
 }

@@ -8,6 +8,7 @@ exposes RusToK tools/resources by wiring them to platform services.
 - Keep MCP support as a thin adapter layer.
 - Reuse the `rmcp` SDK for protocol, schema, and transport handling.
 - Expose domain operations via typed tools with generated JSON Schemas.
+- Return tool payloads in a standard response envelope (`McpToolResponse`).
 
 ## Quick start
 

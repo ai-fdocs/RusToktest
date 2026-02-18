@@ -11,8 +11,9 @@ use rmcp::{
 use rustok_core::registry::ModuleRegistry;
 
 use crate::tools::{
-    list_modules, module_details, module_exists, McpState, ModuleDetailsResponse,
-    ModuleListResponse, ModuleLookupRequest, ModuleLookupResponse,
+    list_modules, module_details, module_exists, McpState, McpToolResponse,
+    ModuleDetailsResponse, ModuleListResponse, ModuleLookupRequest, ModuleLookupResponse,
+    TOOL_LIST_MODULES, TOOL_MODULE_DETAILS, TOOL_MODULE_EXISTS,
 };
 
 /// Configuration for the MCP server
@@ -74,19 +75,21 @@ impl ServerHandler for RusToKMcpServer {
         _context: RequestContext<RoleServer>,
     ) -> Result<CallToolResult, rmcp::ErrorData> {
         match request.name.as_ref() {
-            "list_modules" => {
+            TOOL_LIST_MODULES => {
                 let result = self.list_modules_internal().await;
-                let content = serde_json::to_string(&result).map_err(|e| {
-                    rmcp::ErrorData::internal_error(
-                        format!("Failed to serialize response: {}", e),
-                        None,
-                    )
-                })?;
+                let content = serde_json::to_string(&McpToolResponse::success(result)).map_err(
+                    |e| {
+                        rmcp::ErrorData::internal_error(
+                            format!("Failed to serialize response: {}", e),
+                            None,
+                        )
+                    },
+                )?;
                 Ok(CallToolResult::success(vec![rmcp::model::Content::text(
                     content,
                 )]))
             }
-            "module_exists" => {
+            TOOL_MODULE_EXISTS => {
                 let args = request
                     .arguments
                     .ok_or_else(|| rmcp::ErrorData::invalid_params("Missing arguments", None))?;
@@ -95,17 +98,19 @@ impl ServerHandler for RusToKMcpServer {
                         rmcp::ErrorData::invalid_params(format!("Invalid arguments: {}", e), None)
                     })?;
                 let result = self.module_exists_internal(&req.slug).await;
-                let content = serde_json::to_string(&result).map_err(|e| {
-                    rmcp::ErrorData::internal_error(
-                        format!("Failed to serialize response: {}", e),
-                        None,
-                    )
-                })?;
+                let content = serde_json::to_string(&McpToolResponse::success(result)).map_err(
+                    |e| {
+                        rmcp::ErrorData::internal_error(
+                            format!("Failed to serialize response: {}", e),
+                            None,
+                        )
+                    },
+                )?;
                 Ok(CallToolResult::success(vec![rmcp::model::Content::text(
                     content,
                 )]))
             }
-            "module_details" => {
+            TOOL_MODULE_DETAILS => {
                 let args = request
                     .arguments
                     .ok_or_else(|| rmcp::ErrorData::invalid_params("Missing arguments", None))?;
@@ -114,12 +119,14 @@ impl ServerHandler for RusToKMcpServer {
                         rmcp::ErrorData::invalid_params(format!("Invalid arguments: {}", e), None)
                     })?;
                 let result = self.module_details_internal(&req.slug).await;
-                let content = serde_json::to_string(&result).map_err(|e| {
-                    rmcp::ErrorData::internal_error(
-                        format!("Failed to serialize response: {}", e),
-                        None,
-                    )
-                })?;
+                let content = serde_json::to_string(&McpToolResponse::success(result)).map_err(
+                    |e| {
+                        rmcp::ErrorData::internal_error(
+                            format!("Failed to serialize response: {}", e),
+                            None,
+                        )
+                    },
+                )?;
                 Ok(CallToolResult::success(vec![rmcp::model::Content::text(
                     content,
                 )]))
@@ -140,11 +147,10 @@ impl ServerHandler for RusToKMcpServer {
         use rmcp::model::Tool;
         use schemars::schema_for;
 
-        let list_modules_schema =
-            match serde_json::to_value(schema_for!(crate::tools::ModuleListResponse)) {
-                Ok(serde_json::Value::Object(map)) => map,
-                _ => serde_json::Map::new(),
-            };
+        let list_modules_schema = match serde_json::to_value(schema_for!(())) {
+            Ok(serde_json::Value::Object(map)) => map,
+            _ => serde_json::Map::new(),
+        };
 
         let module_exists_schema =
             match serde_json::to_value(schema_for!(crate::tools::ModuleLookupRequest)) {
@@ -154,17 +160,17 @@ impl ServerHandler for RusToKMcpServer {
 
         let tools = vec![
             Tool::new(
-                "list_modules",
+                TOOL_LIST_MODULES,
                 "List all registered RusToK modules with their metadata",
                 list_modules_schema,
             ),
             Tool::new(
-                "module_exists",
+                TOOL_MODULE_EXISTS,
                 "Check if a module exists by its slug",
                 module_exists_schema.clone(),
             ),
             Tool::new(
-                "module_details",
+                TOOL_MODULE_DETAILS,
                 "Fetch module metadata by slug",
                 module_exists_schema,
             ),
