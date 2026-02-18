@@ -2,7 +2,6 @@ use async_graphql::{Context, FieldError, Object, Result};
 use chrono::{Duration, Utc};
 use loco_rs::prelude::AppContext;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, QueryFilter, Set};
-use tracing::info;
 
 use crate::auth::{
     decode_password_reset_token, encode_access_token, encode_password_reset_token,
@@ -252,7 +251,7 @@ impl AuthMutation {
             });
         }
 
-        let reset_token = encode_password_reset_token(
+        let _reset_token = encode_password_reset_token(
             &config,
             tenant.id,
             &input.email,
@@ -261,12 +260,6 @@ impl AuthMutation {
         .map_err(|e| <FieldError as GraphQLError>::internal_error(&e.to_string()))?;
 
         // TODO: replace with actual transactional email provider integration.
-        info!(
-            tenant_id = %tenant.id,
-            email = %input.email,
-            reset_token = %reset_token,
-            "Password reset token generated"
-        );
 
         Ok(ForgotPasswordPayload {
             success: true,
