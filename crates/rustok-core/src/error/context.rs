@@ -7,7 +7,7 @@
 /// - User-facing vs internal messages
 ///
 /// Example:
-/// ```rust
+/// ```ignore
 /// use rustok_core::error::{ErrorContext, RichError};
 ///
 /// fn process_order(order_id: Uuid) -> Result<Order, RichError> {

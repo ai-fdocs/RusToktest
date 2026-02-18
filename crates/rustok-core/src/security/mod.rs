@@ -17,8 +17,8 @@ pub mod headers;
 pub mod rate_limit;
 pub mod validation;
 
-pub use audit::{AuditEvent, AuditLogger, SecurityAudit};
-pub use headers::{SecurityHeaders, SecurityHeadersConfig};
+pub use audit::{AuditEvent, AuditEventType, AuditLogger, SecurityAudit};
+pub use headers::{FrameOptions, SecurityHeaders, SecurityHeadersConfig};
 pub use rate_limit::{RateLimitConfig, RateLimitResult, RateLimiter};
 pub use validation::{InputValidator, SsrfProtection, ValidationResult};
 
@@ -123,7 +123,7 @@ pub async fn run_security_audit(config: &SecurityConfig) -> SecurityAuditResult 
     }
 }
 
-fn calculate_security_score(findings: &[SecurityFinding]) -> u8 {
+pub fn calculate_security_score(findings: &[SecurityFinding]) -> u8 {
     let base_score = 100i16;
     let deductions: i16 = findings
         .iter()

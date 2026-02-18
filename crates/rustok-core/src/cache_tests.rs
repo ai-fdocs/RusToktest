@@ -93,8 +93,8 @@ mod redis_circuit_breaker_tests {
 
 #[cfg(test)]
 mod in_memory_cache_tests {
-    use super::*;
     use crate::context::CacheBackend;
+    use crate::InMemoryCacheBackend;
     use std::time::Duration;
 
     #[tokio::test]

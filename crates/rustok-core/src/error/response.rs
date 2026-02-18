@@ -238,6 +238,7 @@ impl Default for ValidationErrorBuilder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::ErrorKind;
 
     #[test]
     fn test_validation_error_response() {

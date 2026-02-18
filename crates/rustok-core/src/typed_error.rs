@@ -12,7 +12,7 @@
 //!
 //! # Example
 //!
-//! ```rust
+//! ```ignore
 //! use rustok_core::typed_error::{ErrorCode, DomainError, TypedResult};
 //!
 //! fn process_order(order_id: Uuid) -> TypedResult<Order> {

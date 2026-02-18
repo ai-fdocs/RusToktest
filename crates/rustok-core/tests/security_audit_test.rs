@@ -7,10 +7,11 @@
 //! - SSRF protection
 //! - Audit logging
 
+use rustok_core::security::RateLimitResult;
 use rustok_core::security::{
-    run_security_audit, AuditEvent, AuditEventType, FrameOptions, InputValidator, RateLimitConfig,
-    RateLimiter, SecurityConfig, SecurityFinding, SecurityHeaders, SecurityHeadersConfig, Severity,
-    SsrfProtection, ValidationResult,
+    run_security_audit, FrameOptions, InputValidator, RateLimitConfig, RateLimiter, SecurityConfig,
+    SecurityFinding, SecurityHeaders, SecurityHeadersConfig, Severity, SsrfProtection,
+    ValidationResult,
 };
 use std::net::IpAddr;
 use std::net::Ipv4Addr;
@@ -30,8 +31,10 @@ async fn test_security_audit_passes_with_default_config() {
 
 #[tokio::test]
 async fn test_security_audit_fails_without_https() {
-    let mut config = SecurityConfig::default();
-    config.enforce_https = false;
+    let config = SecurityConfig {
+        enforce_https: false,
+        ..Default::default()
+    };
 
     let result = run_security_audit(&config).await;
 
@@ -104,7 +107,7 @@ async fn test_rate_limiter_allows_within_limit() {
     for _ in 0..5 {
         let result = limiter.check_ip(ip).await;
         assert!(
-            matches!(result, ValidationResult::Allowed),
+            matches!(result, RateLimitResult::Allowed),
             "Request should be allowed"
         );
     }
@@ -128,7 +131,7 @@ async fn test_rate_limiter_blocks_excess() {
     // Next request should be blocked
     let result = limiter.check_ip(ip).await;
     assert!(
-        matches!(result, ValidationResult::Blocked { .. }),
+        matches!(result, RateLimitResult::Blocked { .. }),
         "Request should be blocked"
     );
 }
@@ -152,13 +155,13 @@ async fn test_rate_limiter_per_ip_isolation() {
     // ip1 should be blocked
     assert!(matches!(
         limiter.check_ip(ip1).await,
-        ValidationResult::Blocked { .. }
+        RateLimitResult::Blocked { .. }
     ));
 
     // ip2 should still be allowed
     assert!(matches!(
         limiter.check_ip(ip2).await,
-        ValidationResult::Allowed
+        RateLimitResult::Allowed
     ));
 }
 
@@ -399,8 +402,10 @@ fn test_input_validator_length_limit() {
 
 #[tokio::test]
 async fn test_security_audit_detects_disabled_logging() {
-    let mut config = SecurityConfig::default();
-    config.audit_logging = false;
+    let config = SecurityConfig {
+        audit_logging: false,
+        ..Default::default()
+    };
 
     let result = run_security_audit(&config).await;
 

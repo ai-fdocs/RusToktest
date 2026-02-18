@@ -17,7 +17,7 @@ where
 }
 
 /// Timeout error
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, thiserror::Error, PartialEq, Eq)]
 #[error("Operation timed out after {duration:?}")]
 pub struct TimeoutError {
     pub duration: Duration,

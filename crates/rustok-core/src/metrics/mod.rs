@@ -562,7 +562,7 @@ mod tests {
         assert!(histogram.sum() > 0.59 && histogram.sum() < 0.61);
 
         let p50 = histogram.p50().unwrap();
-        assert!(p50 >= 0.1 && p50 <= 0.3);
+        assert!((0.1..=0.3).contains(&p50));
     }
 
     #[test]

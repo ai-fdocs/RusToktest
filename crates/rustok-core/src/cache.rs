@@ -110,7 +110,7 @@ impl CacheBackend for InMemoryCacheBackend {
 
     fn stats(&self) -> CacheStats {
         CacheStats {
-            entries: self.cache.entry_count(),
+            entries: self.cache.iter().count() as u64,
             ..CacheStats::default()
         }
     }

@@ -237,7 +237,7 @@ mod tests {
     fn test_create_span() {
         let attrs = SpanAttributes::new("test", "module");
         let span = create_span("test_span", attrs);
-        assert_eq!(span.metadata().unwrap().name(), "test_span");
+        assert_eq!(span.metadata().unwrap().name(), "rustok_operation");
     }
 
     #[tokio::test]

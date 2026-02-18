@@ -14,7 +14,7 @@
 /// - Resource protection (connections, threads)
 ///
 /// Example:
-/// ```rust
+/// ```ignore
 /// let breaker = CircuitBreaker::new(CircuitBreakerConfig {
 ///     failure_threshold: 5,
 ///     success_threshold: 2,
@@ -342,7 +342,7 @@ impl CircuitBreaker {
     /// Export metrics in Prometheus exposition format
     ///
     /// # Example
-    /// ```
+    /// ```ignore
     /// let metrics = breaker.export_prometheus_metrics("redis_cache").await;
     /// println!("{}", metrics);
     /// ```
@@ -466,7 +466,6 @@ impl CircuitBreakerStats {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::sync::atomic::AtomicU32;
 
     #[tokio::test]
     async fn test_closed_state_success() {

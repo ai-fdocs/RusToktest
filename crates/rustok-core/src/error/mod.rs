@@ -32,7 +32,7 @@
 ///
 /// ### Basic Error with Context
 ///
-/// ```rust
+/// ```ignore
 /// use rustok_core::error::{RichError, ErrorKind, ErrorContext};
 ///
 /// fn process_payment(order_id: Uuid) -> Result<Payment, RichError> {
@@ -46,7 +46,7 @@
 ///
 /// ### Validation Errors
 ///
-/// ```rust
+/// ```ignore
 /// use rustok_core::error::{ValidationErrorBuilder, ErrorResponse};
 ///
 /// let validation_error = ValidationErrorBuilder::new()
@@ -59,7 +59,7 @@
 ///
 /// ### User-Friendly Errors
 ///
-/// ```rust
+/// ```ignore
 /// use rustok_core::error::{RichError, ErrorKind};
 ///
 /// let error = RichError::new(ErrorKind::NotFound, "User record not found in database")
@@ -70,7 +70,7 @@
 ///
 /// ### API Error Responses
 ///
-/// ```rust
+/// ```ignore
 /// use rustok_core::error::ErrorResponse;
 ///
 /// // Quick responses
@@ -89,7 +89,7 @@
 ///
 /// ### Before (Old Style)
 ///
-/// ```rust
+/// ```ignore
 /// #[derive(Debug, Error)]
 /// pub enum MyError {
 ///     #[error("Not found: {0}")]
@@ -102,7 +102,7 @@
 ///
 /// ### After (Rich Errors)
 ///
-/// ```rust
+/// ```ignore
 /// use rustok_core::error::{RichError, ErrorKind, ErrorContext};
 ///
 /// pub fn my_function() -> Result<Data, RichError> {

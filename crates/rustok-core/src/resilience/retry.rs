@@ -27,7 +27,7 @@ impl RetryStrategy {
             }
 
             RetryStrategy::Linear { base, max } => {
-                let delay = base.mul_f32(attempt as f32);
+                let delay = base.saturating_mul(attempt);
                 delay.min(*max)
             }
         }

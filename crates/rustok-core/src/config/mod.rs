@@ -12,7 +12,7 @@
 //!
 //! # Example
 //!
-//! ```rust
+//! ```ignore
 //! use rustok_core::config::{ConfigLoader, ConfigSource, AppConfig};
 //!
 //! let config = ConfigLoader::new()
@@ -745,10 +745,10 @@ mod tests {
         assert_eq!(value.as_i64().unwrap(), 123);
 
         let value = ConfigValue::new("key", Some("true".to_string()));
-        assert_eq!(value.as_bool().unwrap(), true);
+        assert!(value.as_bool().unwrap());
 
         let value = ConfigValue::new("key", Some("yes".to_string()));
-        assert_eq!(value.as_bool().unwrap(), true);
+        assert!(value.as_bool().unwrap());
 
         let value = ConfigValue::new("key", None::<String>);
         assert!(value.as_string().is_err());

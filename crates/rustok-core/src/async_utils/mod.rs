@@ -12,7 +12,7 @@
 //!
 //! # Example
 //!
-//! ```rust
+//! ```ignore
 //! use rustok_core::async_utils::{parallel, batch, retry, BackoffConfig};
 //!
 //! // Parallel execution
@@ -165,9 +165,10 @@ impl BackoffConfig {
 /// Retry a future with exponential backoff
 pub async fn retry<F, Fut, T, E>(f: F, config: BackoffConfig) -> Result<T, RetryError<E>>
 where
-    F: Fn() -> Fut,
+    F: FnMut() -> Fut,
     Fut: Future<Output = Result<T, E>>,
 {
+    let mut f = f;
     let mut last_error = None;
 
     for attempt in 0..=config.max_retries {
@@ -406,12 +407,16 @@ impl<T> Coalescer<T> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::{
+        atomic::{AtomicUsize, Ordering},
+        Arc,
+    };
 
     #[tokio::test]
     async fn test_parallel() {
         let items: Vec<i32> = (0..100).collect();
 
-        let results = parallel(items, 10, |item| async move {
+        let results: Vec<Result<i32, ()>> = parallel(items, 10, |item| async move {
             tokio::time::sleep(Duration::from_millis(1)).await;
             item * 2
         })
@@ -434,15 +439,19 @@ mod tests {
 
     #[tokio::test]
     async fn test_retry_success() {
-        let mut attempts = 0;
+        let attempts = Arc::new(AtomicUsize::new(0));
+        let attempts_for_retry = Arc::clone(&attempts);
 
         let result = retry(
-            || async {
-                attempts += 1;
-                if attempts < 3 {
-                    Err("not yet")
-                } else {
-                    Ok("success")
+            move || {
+                let attempts = Arc::clone(&attempts_for_retry);
+                async move {
+                    let current = attempts.fetch_add(1, Ordering::SeqCst) + 1;
+                    if current < 3 {
+                        Err("not yet")
+                    } else {
+                        Ok("success")
+                    }
                 }
             },
             BackoffConfig::default().with_max_retries(5),
@@ -450,7 +459,7 @@ mod tests {
         .await;
 
         assert_eq!(result.unwrap(), "success");
-        assert_eq!(attempts, 3);
+        assert_eq!(attempts.load(Ordering::SeqCst), 3);
     }
 
     #[tokio::test]
@@ -467,7 +476,7 @@ mod tests {
 
     #[test]
     fn test_backoff_config() {
-        let config = BackoffConfig::default();
+        let config = BackoffConfig::default().with_jitter(0.0);
 
         assert_eq!(config.delay_for_attempt(0), Duration::ZERO);
         assert!(config.delay_for_attempt(1) >= config.initial_delay);

@@ -52,7 +52,7 @@ use once_cell::sync::Lazy;
 static SQL_PATTERNS: Lazy<Vec<Regex>> = Lazy::new(|| {
     vec![
         Regex::new(r"(?i)(SELECT\s+.*\s+FROM|INSERT\s+INTO|UPDATE\s+.*\s+SET|DELETE\s+FROM|DROP\s+TABLE|UNION\s+SELECT|--|;--)").unwrap(),
-        Regex::new(r"(?i)(OR\s+1\s*=\s*1|AND\s+1\s*=\s*1|1\s*=\\s*1)").unwrap(),
+        Regex::new(r#"(?i)(OR\s+['\"]?1['\"]?\s*=\s*['\"]?1['\"]?|AND\s+['\"]?1['\"]?\s*=\s*['\"]?1['\"]?|['\"]?1['\"]?\s*=\s*['\"]?1['\"]?)"#).unwrap(),
         Regex::new(r"(?i)(EXEC\s*\(|EXECUTE\s*\(|sp_executesql)").unwrap(),
     ]
 });
@@ -170,11 +170,11 @@ impl InputValidator {
     /// Sanitize HTML content
     pub fn sanitize_html(&self, input: &str) -> String {
         input
+            .replace('&', "&amp;")
             .replace('<', "&lt;")
             .replace('>', "&gt;")
             .replace('"', "&quot;")
             .replace('\'', "&#x27;")
-            .replace('&', "&amp;")
     }
 
     /// Validate email address

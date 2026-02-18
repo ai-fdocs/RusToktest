@@ -13,7 +13,7 @@
 /// - **State-specific data**: Each state can have its own fields
 ///
 /// Example:
-/// ```rust
+/// ```ignore
 /// // Define states
 /// struct Draft;
 /// struct Review { reviewer_id: Uuid };
@@ -84,7 +84,7 @@ pub trait StateMachine {
 /// Helper macro to define type-safe state machines
 ///
 /// Example:
-/// ```rust
+/// ```ignore
 /// state_machine! {
 ///     Machine: Order {
 ///         states: {

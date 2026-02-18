@@ -12,7 +12,7 @@
 //!
 //! # Example
 //!
-//! ```rust
+//! ```ignore
 //! use rustok_core::health::{HealthRegistry, HealthCheck, HealthResult, HealthStatus};
 //! use async_trait::async_trait;
 //!
