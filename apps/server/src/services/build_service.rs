@@ -5,9 +5,11 @@
 
 use crate::models::build::{ActiveModel as BuildActiveModel, BuildStatus, BuildStage, DeploymentProfile, Entity as BuildEntity, Model as Build};
 use crate::models::release::{ActiveModel as ReleaseActiveModel, ReleaseStatus, Entity as ReleaseEntity, Model as Release};
+use async_trait::async_trait;
 use chrono::Utc;
 use sea_orm::{ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set};
 use std::collections::HashMap;
+use std::sync::Arc;
 use tracing::{error, info, warn};
 use uuid::Uuid;
 
@@ -37,20 +39,52 @@ pub struct ModuleSpec {
 pub enum BuildEvent {
     BuildRequested { build_id: Uuid },
     BuildStarted { build_id: Uuid },
-    BuildProgress { build_id: Uuid, stage: BuildStage, progress: i32 },
+    BuildProgress {
+        build_id: Uuid,
+        stage: BuildStage,
+        progress: i32,
+    },
     BuildCompleted { build_id: Uuid, release_id: String },
     BuildFailed { build_id: Uuid, error: String },
+}
+
+#[async_trait]
+pub trait BuildEventPublisher: Send + Sync {
+    async fn publish(&self, event: BuildEvent) -> anyhow::Result<()>;
+}
+
+#[derive(Default)]
+pub struct NoopBuildEventPublisher;
+
+#[async_trait]
+impl BuildEventPublisher for NoopBuildEventPublisher {
+    async fn publish(&self, event: BuildEvent) -> anyhow::Result<()> {
+        warn!(?event, "Build event publisher is not configured, skipping event");
+        Ok(())
+    }
 }
 
 /// Build service
 pub struct BuildService {
     db: DatabaseConnection,
+    event_publisher: Arc<dyn BuildEventPublisher>,
 }
 
 impl BuildService {
     /// Create new build service
     pub fn new(db: DatabaseConnection) -> Self {
-        Self { db }
+        Self {
+            db,
+            event_publisher: Arc::new(NoopBuildEventPublisher),
+        }
+    }
+
+    /// Create new build service with event publisher
+    pub fn with_event_publisher(
+        db: DatabaseConnection,
+        event_publisher: Arc<dyn BuildEventPublisher>,
+    ) -> Self {
+        Self { db, event_publisher }
     }
 
     /// Request a new build
@@ -103,8 +137,9 @@ impl BuildService {
 
         info!(build_id = %build.id, "Build requested");
 
-        // TODO: Publish BuildRequested event for async processing
-        // self.event_bus.publish(...).await?;
+        self.event_publisher
+            .publish(BuildEvent::BuildRequested { build_id: build.id })
+            .await?;
 
         Ok(build)
     }
