@@ -27,6 +27,10 @@ pub use storage::{InMemoryStorage, ScriptQuery, ScriptRegistry, SeaOrmStorage};
 
 pub fn create_default_engine() -> ScriptEngine {
     let config = EngineConfig::default();
+    create_engine_with_config(config)
+}
+
+pub fn create_engine_with_config(config: engine::EngineConfig) -> ScriptEngine {
     let mut engine = ScriptEngine::new(config);
 
     bridge::register_utils(engine.engine_mut());
@@ -35,11 +39,26 @@ pub fn create_default_engine() -> ScriptEngine {
     engine
 }
 
-pub fn create_orchestrator<R: ScriptRegistry>(
-    registry: std::sync::Arc<R>,
-) -> ScriptOrchestrator<R> {
+pub fn create_engine_for_phase(phase: context::ExecutionPhase) -> ScriptEngine {
+    let config = EngineConfig::default();
+    let mut engine = ScriptEngine::new(config);
+
+    Bridge::register_for_phase(engine.engine_mut(), phase);
+    register_entity_proxy(engine.engine_mut());
+
+    engine
+}
+
+pub fn create_orchestrator<R: ScriptRegistry>(registry: std::sync::Arc<R>) -> ScriptOrchestrator<R> {
     let engine = create_default_engine();
     ScriptOrchestrator::new(std::sync::Arc::new(engine), registry)
+}
+
+pub fn create_orchestrator_with_engine<R: ScriptRegistry>(
+    engine: std::sync::Arc<ScriptEngine>,
+    registry: std::sync::Arc<R>,
+) -> ScriptOrchestrator<R> {
+    ScriptOrchestrator::new(engine, registry)
 }
 
 #[cfg(test)]
@@ -127,5 +146,155 @@ mod tests {
         );
 
         assert!(matches!(result, Err(ScriptError::OperationLimit { .. })));
+    }
+
+    #[test]
+    fn test_cache_invalidation() {
+        let engine = create_default_engine();
+        let ctx = ExecutionContext::new(ExecutionPhase::Manual);
+
+        let result1 = engine
+            .execute("cache_test", "let x = 1; x", &ctx)
+            .unwrap();
+        assert_eq!(result1.as_int().unwrap(), 1);
+
+        let result2 = engine
+            .execute("cache_test", "let x = 2; x", &ctx)
+            .unwrap();
+        assert_eq!(result2.as_int().unwrap(), 2);
+
+        engine.invalidate("cache_test");
+        let result3 = engine
+            .execute("cache_test", "let x = 3; x", &ctx)
+            .unwrap();
+        assert_eq!(result3.as_int().unwrap(), 3);
+    }
+
+    #[test]
+    fn test_invalidate_all() {
+        let engine = create_default_engine();
+        let ctx = ExecutionContext::new(ExecutionPhase::Manual);
+
+        engine.execute("script1", "1", &ctx).unwrap();
+        engine.execute("script2", "2", &ctx).unwrap();
+
+        engine.invalidate_all();
+
+        let result = engine.execute("script1", "10", &ctx).unwrap();
+        assert_eq!(result.as_int().unwrap(), 10);
+    }
+
+    #[test]
+    fn test_create_engine_for_phase() {
+        let engine = create_engine_for_phase(ExecutionPhase::Before);
+        let ctx = ExecutionContext::new(ExecutionPhase::Before);
+
+        let result = engine
+            .execute(
+                "validation_test",
+                r#"
+                    let email = "test@example.com";
+                    validate_email(email)
+                "#,
+                &ctx,
+            )
+            .unwrap();
+
+        assert!(result.as_bool().unwrap());
+    }
+
+    #[test]
+    fn test_validation_helpers() {
+        let engine = create_engine_for_phase(ExecutionPhase::Before);
+        let ctx = ExecutionContext::new(ExecutionPhase::Before);
+
+        let result = engine
+            .execute(
+                "validation_test",
+                r#"
+                    let valid = true;
+                    valid = valid && validate_email("test@example.com");
+                    valid = valid && !validate_email("invalid-email");
+                    valid = valid && validate_required("hello");
+                    valid = valid && !validate_required("   ");
+                    valid = valid && validate_min_length("hello", 3);
+                    valid = valid && validate_max_length("hi", 5);
+                    valid = valid && validate_range(50, 0, 100);
+                    valid
+                "#,
+                &ctx,
+            )
+            .unwrap();
+
+        assert!(result.as_bool().unwrap());
+    }
+
+    #[test]
+    fn test_entity_changes() {
+        let engine = create_default_engine();
+
+        let data = std::collections::HashMap::from([
+            ("amount".to_string(), 1000_i64.into()),
+            ("status".to_string(), "pending".into()),
+        ]);
+
+        let entity = EntityProxy::new("1", "order", data);
+        let ctx = ExecutionContext::new(ExecutionPhase::Before).with_entity_proxy(entity);
+
+        let result = engine
+            .execute(
+                "change_test",
+                r#"
+                    entity["status"] = "approved";
+                    entity["discount"] = 10;
+                    entity["amount"]
+                "#,
+                &ctx,
+            )
+            .unwrap();
+
+        assert_eq!(result.as_int().unwrap(), 1000);
+
+        let entity = ctx.entity_proxy.as_ref().unwrap();
+        assert!(entity.is_changed("status"));
+        assert!(entity.is_changed("discount"));
+        assert!(!entity.is_changed("amount"));
+        assert!(entity.has_changes());
+    }
+
+    #[tokio::test]
+    async fn test_orchestrator_integration() {
+        let storage = Arc::new(InMemoryStorage::new());
+        let orchestrator = create_orchestrator(storage.clone());
+
+        let mut script = Script::new(
+            "test_validation",
+            r#"
+                if entity["value"] < 0 {
+                    abort("Value must be positive");
+                }
+                entity["processed"] = true;
+            "#,
+            ScriptTrigger::Event {
+                entity_type: "test".into(),
+                event: EventType::BeforeCreate,
+            },
+        );
+        script.activate();
+        storage.save(script).await.unwrap();
+
+        let data = std::collections::HashMap::from([("value".to_string(), 100_i64.into())]);
+        let entity = EntityProxy::new("test-1", "test", data);
+
+        let outcome = orchestrator
+            .run_before("test", EventType::BeforeCreate, entity, None)
+            .await;
+
+        match outcome {
+            HookOutcome::Continue { changes } => {
+                assert!(changes.contains_key("processed"));
+            }
+            _ => panic!("Expected Continue outcome"),
+        }
     }
 }

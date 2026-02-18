@@ -101,7 +101,9 @@ impl<R: ScriptRegistry> ScriptOrchestrator<R> {
             };
         }
 
-        let mut ctx = ExecutionContext::new(ExecutionPhase::After);
+        let mut ctx = ExecutionContext::new(ExecutionPhase::After)
+            .with_entity_proxy(entity.clone());
+
         if let Some(uid) = user_id {
             ctx = ctx.with_user(uid);
         }

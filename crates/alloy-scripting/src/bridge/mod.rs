@@ -24,6 +24,7 @@ impl Bridge {
             ExecutionPhase::Manual | ExecutionPhase::Scheduled => {
                 Self::register_db_services(engine);
                 Self::register_external_services(engine);
+                Self::register_validation_helpers(engine);
             }
         }
     }
@@ -32,9 +33,31 @@ impl Bridge {
         engine.register_fn("validate_email", |email: &str| -> bool {
             email.contains('@') && email.contains('.')
         });
+
+        engine.register_fn("validate_required", |value: &str| -> bool {
+            !value.trim().is_empty()
+        });
+
+        engine.register_fn("validate_min_length", |value: &str, min: i64| -> bool {
+            value.len() as i64 >= min
+        });
+
+        engine.register_fn("validate_max_length", |value: &str, max: i64| -> bool {
+            value.len() as i64 <= max
+        });
+
+        engine.register_fn("validate_range", |value: i64, min: i64, max: i64| -> bool {
+            value >= min && value <= max
+        });
     }
 
-    fn register_db_services(_engine: &mut Engine) {}
+    fn register_db_services(_engine: &mut Engine) {
+        // Placeholder for future DB service integration
+        // Will be implemented when database access from scripts is needed
+    }
 
-    fn register_external_services(_engine: &mut Engine) {}
+    fn register_external_services(_engine: &mut Engine) {
+        // Placeholder for future external service integration
+        // Will be implemented when HTTP client, etc. are needed
+    }
 }

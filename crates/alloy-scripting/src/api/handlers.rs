@@ -2,24 +2,25 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 use axum::{
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     Json,
 };
+use tracing::{info, instrument};
 use uuid::Uuid;
 
 use crate::error::ScriptError;
-use crate::model::{EntityProxy, Script, ScriptStatus};
+use crate::model::{EntityProxy, ScriptStatus};
 use crate::runner::ScriptOrchestrator;
 use crate::storage::{ScriptQuery, ScriptRegistry};
 
 use super::dto::*;
 
-/// Shared state для handlers
 pub struct AppState<S: ScriptRegistry> {
     pub registry: Arc<S>,
     pub orchestrator: Arc<ScriptOrchestrator<S>>,
+    pub engine: Arc<crate::engine::ScriptEngine>,
 }
 
 type ApiResult<T> = Result<T, ApiError>;
@@ -29,6 +30,7 @@ impl IntoResponse for ApiError {
         let status = match self.code.as_str() {
             "not_found" => StatusCode::NOT_FOUND,
             "validation" => StatusCode::BAD_REQUEST,
+            "conflict" => StatusCode::CONFLICT,
             _ => StatusCode::INTERNAL_SERVER_ERROR,
         };
         (status, Json(self)).into_response()
@@ -42,6 +44,18 @@ impl From<ScriptError> for ApiError {
                 error: format!("Script not found: {name}"),
                 code: "not_found".to_string(),
             },
+            ScriptError::Compilation(msg) => ApiError {
+                error: format!("Compilation error: {msg}"),
+                code: "validation".to_string(),
+            },
+            ScriptError::InvalidTrigger(msg) => ApiError {
+                error: format!("Invalid trigger: {msg}"),
+                code: "validation".to_string(),
+            },
+            ScriptError::InvalidStatus(msg) => ApiError {
+                error: format!("Invalid status: {msg}"),
+                code: "validation".to_string(),
+            },
             _ => ApiError {
                 error: e.to_string(),
                 code: "internal".to_string(),
@@ -52,23 +66,43 @@ impl From<ScriptError> for ApiError {
 
 // ============ CRUD Handlers ============
 
-/// GET /scripts
+#[instrument(skip(state))]
 pub async fn list_scripts<S: ScriptRegistry>(
     State(state): State<Arc<AppState<S>>>,
+    Query(query): Query<ListScriptsQuery>,
 ) -> ApiResult<Json<ListScriptsResponse>> {
-    let scripts = state
+    let status_filter = query
+        .status
+        .as_deref()
+        .and_then(ScriptStatus::parse)
+        .unwrap_or(ScriptStatus::Active);
+
+    let all_scripts = state
         .registry
-        .find(ScriptQuery::ByStatus(ScriptStatus::Active))
+        .find(ScriptQuery::ByStatus(status_filter))
         .await
         .map_err(ApiError::from)?;
 
-    let total = scripts.len();
-    let scripts: Vec<ScriptResponse> = scripts.into_iter().map(Into::into).collect();
+    let total = all_scripts.len();
+    let offset = query.offset() as usize;
+    let limit = query.limit() as usize;
 
-    Ok(Json(ListScriptsResponse { scripts, total }))
+    let scripts: Vec<ScriptResponse> = all_scripts
+        .into_iter()
+        .skip(offset)
+        .take(limit)
+        .map(Into::into)
+        .collect();
+
+    Ok(Json(ListScriptsResponse::new(
+        scripts,
+        total,
+        query.page,
+        query.per_page,
+    )))
 }
 
-/// GET /scripts/:id
+#[instrument(skip(state))]
 pub async fn get_script<S: ScriptRegistry>(
     State(state): State<Arc<AppState<S>>>,
     Path(id): Path<Uuid>,
@@ -77,21 +111,32 @@ pub async fn get_script<S: ScriptRegistry>(
     Ok(Json(script.into()))
 }
 
-/// POST /scripts
+#[instrument(skip(state))]
 pub async fn create_script<S: ScriptRegistry>(
     State(state): State<Arc<AppState<S>>>,
     Json(req): Json<CreateScriptRequest>,
 ) -> ApiResult<(StatusCode, Json<ScriptResponse>)> {
-    let mut script = Script::new(req.name, req.code, req.trigger);
+    let existing = state.registry.get_by_name(&req.name).await;
+    if existing.is_ok() {
+        return Err(ApiError {
+            error: format!("Script with name '{}' already exists", req.name),
+            code: "conflict".to_string(),
+        });
+    }
+
+    let mut script = crate::model::Script::new(req.name, req.code, req.trigger);
     script.description = req.description;
     script.permissions = req.permissions;
     script.run_as_system = req.run_as_system;
 
     let saved = state.registry.save(script).await.map_err(ApiError::from)?;
+
+    info!(script_id = %saved.id, script_name = %saved.name, "Script created");
+
     Ok((StatusCode::CREATED, Json(saved.into())))
 }
 
-/// PUT /scripts/:id
+#[instrument(skip(state))]
 pub async fn update_script<S: ScriptRegistry>(
     State(state): State<Arc<AppState<S>>>,
     Path(id): Path<Uuid>,
@@ -107,6 +152,7 @@ pub async fn update_script<S: ScriptRegistry>(
     }
     if let Some(code) = req.code {
         script.code = code;
+        state.engine.invalidate(&script.name);
     }
     if let Some(trigger) = req.trigger {
         script.trigger = trigger;
@@ -119,27 +165,113 @@ pub async fn update_script<S: ScriptRegistry>(
     }
 
     let saved = state.registry.save(script).await.map_err(ApiError::from)?;
+
+    info!(script_id = %saved.id, script_name = %saved.name, "Script updated");
+
     Ok(Json(saved.into()))
 }
 
-/// DELETE /scripts/:id
+#[instrument(skip(state))]
 pub async fn delete_script<S: ScriptRegistry>(
     State(state): State<Arc<AppState<S>>>,
     Path(id): Path<Uuid>,
 ) -> ApiResult<StatusCode> {
+    let script = state.registry.get(id).await.map_err(ApiError::from)?;
+    state.engine.invalidate(&script.name);
     state.registry.delete(id).await.map_err(ApiError::from)?;
+
+    info!(script_id = %id, "Script deleted");
+
     Ok(StatusCode::NO_CONTENT)
 }
 
 // ============ Execution Handlers ============
 
-/// POST /scripts/:id/run
+#[instrument(skip(state), fields(script_id = %id))]
 pub async fn run_script<S: ScriptRegistry>(
     State(state): State<Arc<AppState<S>>>,
     Path(id): Path<Uuid>,
     Json(req): Json<RunScriptRequest>,
 ) -> ApiResult<Json<RunScriptResponse>> {
     let script = state.registry.get(id).await.map_err(ApiError::from)?;
+
+    let params = req
+        .params
+        .into_iter()
+        .map(|(k, v)| (k, json_to_dynamic(v)))
+        .collect();
+
+    let entity = req.entity.map(|entity_input| {
+        let data = entity_input
+            .data
+            .into_iter()
+            .map(|(k, v)| (k, json_to_dynamic(v)))
+            .collect();
+
+        EntityProxy::new(entity_input.id, entity_input.entity_type, data)
+    });
+
+    let result = state
+        .orchestrator
+        .run_manual_with_entity(&script.name, params, entity, None)
+        .await
+        .map_err(ApiError::from)?;
+
+    let (success, error, changes, return_value) = match &result.outcome {
+        crate::runner::ExecutionOutcome::Success {
+            return_value,
+            entity_changes,
+        } => (
+            true,
+            None,
+            Some(convert_map(entity_changes.clone())),
+            return_value
+                .clone()
+                .map(dynamic_to_json)
+                .unwrap_or(serde_json::Value::Null),
+        ),
+        crate::runner::ExecutionOutcome::Aborted { reason } => (
+            false,
+            Some(reason.to_string()),
+            None,
+            serde_json::Value::Null,
+        ),
+        crate::runner::ExecutionOutcome::Failed { error } => (
+            false,
+            Some(error.to_string()),
+            None,
+            serde_json::Value::Null,
+        ),
+    };
+
+    info!(
+        script_id = %id,
+        success = success,
+        duration_ms = result.duration_ms(),
+        "Script executed"
+    );
+
+    Ok(Json(RunScriptResponse {
+        execution_id: result.execution_id.to_string(),
+        success,
+        duration_ms: result.duration_ms(),
+        error,
+        changes,
+        return_value,
+    }))
+}
+
+#[instrument(skip(state), fields(script_name = %name))]
+pub async fn run_script_by_name<S: ScriptRegistry>(
+    State(state): State<Arc<AppState<S>>>,
+    Path(name): Path<String>,
+    Json(req): Json<RunScriptRequest>,
+) -> ApiResult<Json<RunScriptResponse>> {
+    let script = state
+        .registry
+        .get_by_name(&name)
+        .await
+        .map_err(ApiError::from)?;
 
     let params = req
         .params
@@ -198,6 +330,25 @@ pub async fn run_script<S: ScriptRegistry>(
         changes,
         return_value,
     }))
+}
+
+#[instrument(skip(state))]
+pub async fn validate_script<S: ScriptRegistry>(
+    State(state): State<Arc<AppState<S>>>,
+    Json(req): Json<CreateScriptRequest>,
+) -> ApiResult<Json<serde_json::Value>> {
+    let ctx = crate::context::ExecutionContext::new(crate::context::ExecutionPhase::Manual);
+
+    match state.engine.execute("__validation__", &req.code, &ctx) {
+        Ok(_) => Ok(Json(serde_json::json!({
+            "valid": true,
+            "message": "Script compiles successfully"
+        }))),
+        Err(e) => Ok(Json(serde_json::json!({
+            "valid": false,
+            "message": e.to_string()
+        }))),
+    }
 }
 
 // ============ Helpers ============

@@ -2,6 +2,7 @@ use parking_lot::RwLock;
 use rhai::{Dynamic, Engine, EvalAltResult, RhaiNativeFunc, Scope, AST};
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Instant;
 
 use crate::context::ExecutionContext;
 use crate::error::{ScriptError, ScriptResult};
@@ -10,6 +11,7 @@ use super::config::EngineConfig;
 
 pub struct CompiledScript {
     ast: AST,
+    source_hash: u64,
 }
 
 pub struct ScriptEngine {
@@ -39,6 +41,14 @@ impl ScriptEngine {
         }
     }
 
+    fn compute_hash(source: &str) -> u64 {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+        let mut hasher = DefaultHasher::new();
+        source.hash(&mut hasher);
+        hasher.finish()
+    }
+
     /// Register a native function with Rhai using the required trait bounds.
     pub fn register_fn<A, const N: usize, const X: bool, R, const F: bool>(
         &mut self,
@@ -65,10 +75,14 @@ impl ScriptEngine {
         source: &str,
         scope: &mut Scope,
     ) -> ScriptResult<Arc<CompiledScript>> {
+        let source_hash = Self::compute_hash(source);
+
         {
             let cache = self.cache.read();
             if let Some(compiled) = cache.get(name) {
-                return Ok(Arc::clone(compiled));
+                if compiled.source_hash == source_hash {
+                    return Ok(Arc::clone(compiled));
+                }
             }
         }
 
@@ -77,7 +91,7 @@ impl ScriptEngine {
             .compile_with_scope(scope, source)
             .map_err(|e| ScriptError::Compilation(e.to_string()))?;
 
-        let compiled = Arc::new(CompiledScript { ast });
+        let compiled = Arc::new(CompiledScript { ast, source_hash });
 
         let mut cache = self.cache.write();
         cache.insert(name.to_string(), Arc::clone(&compiled));
@@ -90,6 +104,11 @@ impl ScriptEngine {
         cache.remove(name);
     }
 
+    pub fn invalidate_all(&self) {
+        let mut cache = self.cache.write();
+        cache.clear();
+    }
+
     pub fn execute(
         &self,
         name: &str,
@@ -98,7 +117,7 @@ impl ScriptEngine {
     ) -> ScriptResult<Dynamic> {
         let mut scope = ctx.to_scope();
         let compiled = self.compile(name, source, &mut scope)?;
-        self.execute_compiled_with_scope(&compiled, scope)
+        self.execute_compiled_with_timeout(&compiled, scope)
     }
 
     pub fn execute_compiled(
@@ -107,20 +126,32 @@ impl ScriptEngine {
         ctx: &ExecutionContext,
     ) -> ScriptResult<Dynamic> {
         let scope = ctx.to_scope();
-        self.execute_compiled_with_scope(compiled, scope)
+        self.execute_compiled_with_timeout(compiled, scope)
     }
 
-    fn execute_compiled_with_scope(
+    fn execute_compiled_with_timeout(
         &self,
         compiled: &CompiledScript,
         mut scope: Scope,
     ) -> ScriptResult<Dynamic> {
+        let timeout = self.config.timeout;
+        let max_ops = self.config.max_operations;
+        let start = Instant::now();
+
         let result = self
             .engine
-            .eval_ast_with_scope::<Dynamic>(&mut scope, &compiled.ast)
-            .map_err(|e| Self::convert_error(*e, self.config.max_operations))?;
+            .eval_ast_with_scope::<Dynamic>(&mut scope, &compiled.ast);
 
-        Ok(result)
+        let elapsed = start.elapsed();
+        if elapsed > timeout {
+            tracing::warn!(
+                "Script execution took {}ms, exceeding timeout of {}ms",
+                elapsed.as_millis(),
+                timeout.as_millis()
+            );
+        }
+
+        result.map_err(|e| Self::convert_error(*e, max_ops))
     }
 
     fn convert_error(err: EvalAltResult, op_limit: u64) -> ScriptError {

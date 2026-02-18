@@ -41,6 +41,34 @@ pub struct EntityInput {
     pub data: HashMap<String, serde_json::Value>,
 }
 
+#[derive(Debug, Deserialize)]
+pub struct ListScriptsQuery {
+    #[serde(default = "default_page")]
+    pub page: u32,
+    #[serde(default = "default_per_page")]
+    pub per_page: u32,
+    #[serde(default)]
+    pub status: Option<String>,
+}
+
+fn default_page() -> u32 {
+    1
+}
+
+fn default_per_page() -> u32 {
+    20
+}
+
+impl ListScriptsQuery {
+    pub fn offset(&self) -> u64 {
+        (self.page.saturating_sub(1) as u64) * (self.per_page as u64)
+    }
+
+    pub fn limit(&self) -> u64 {
+        self.per_page.min(100) as u64
+    }
+}
+
 // ============ Responses ============
 
 #[derive(Debug, Serialize)]
@@ -88,10 +116,46 @@ pub struct RunScriptResponse {
 pub struct ListScriptsResponse {
     pub scripts: Vec<ScriptResponse>,
     pub total: usize,
+    pub page: u32,
+    pub per_page: u32,
+    pub total_pages: u32,
+}
+
+impl ListScriptsResponse {
+    pub fn new(scripts: Vec<ScriptResponse>, total: usize, page: u32, per_page: u32) -> Self {
+        let total_pages = if per_page > 0 {
+            ((total as f64) / (per_page as f64)).ceil() as u32
+        } else {
+            0
+        };
+        Self {
+            scripts,
+            total,
+            page,
+            per_page,
+            total_pages,
+        }
+    }
 }
 
 #[derive(Debug, Serialize)]
 pub struct ApiError {
     pub error: String,
     pub code: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct SchedulerStatusResponse {
+    pub running: bool,
+    pub jobs: Vec<ScheduledJobInfo>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ScheduledJobInfo {
+    pub script_id: ScriptId,
+    pub script_name: String,
+    pub cron_expression: String,
+    pub next_run: String,
+    pub last_run: Option<String>,
+    pub running: bool,
 }

@@ -1,6 +1,8 @@
 use chrono::Utc;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Instant;
+use tracing::{debug, warn};
 
 use crate::context::ExecutionContext;
 use crate::engine::ScriptEngine;
@@ -38,8 +40,15 @@ impl<R: ScriptRegistry> ScriptExecutor<R> {
     ) -> ExecutionResult {
         let execution_id = ctx.execution_id;
         let started_at = Utc::now();
+        let start_instant = Instant::now();
 
         if ctx.call_depth > self.max_chain_depth {
+            warn!(
+                script_id = %script.id,
+                depth = ctx.call_depth,
+                max_depth = self.max_chain_depth,
+                "Max call depth exceeded"
+            );
             return ExecutionResult {
                 script_id: script.id,
                 script_name: script.name.clone(),
@@ -59,6 +68,13 @@ impl<R: ScriptRegistry> ScriptExecutor<R> {
             None => ctx.clone(),
         };
 
+        debug!(
+            script_id = %script.id,
+            script_name = %script.name,
+            phase = ?ctx.phase,
+            "Executing script"
+        );
+
         let outcome = match self
             .engine
             .execute(&script.name, &script.code, &ctx_with_entity)
@@ -70,17 +86,45 @@ impl<R: ScriptRegistry> ScriptExecutor<R> {
                     .map(EntityProxy::changes)
                     .unwrap_or_else(HashMap::new);
 
+                debug!(
+                    script_id = %script.id,
+                    changes_count = entity_changes.len(),
+                    "Script completed successfully"
+                );
+
                 ExecutionOutcome::Success {
                     return_value: Some(return_value),
                     entity_changes,
                 }
             }
-            Err(ScriptError::Aborted(reason)) => ExecutionOutcome::Aborted { reason },
+            Err(ScriptError::Aborted(reason)) => {
+                debug!(
+                    script_id = %script.id,
+                    reason = %reason,
+                    "Script aborted"
+                );
+                ExecutionOutcome::Aborted { reason }
+            }
             Err(error) => {
+                warn!(
+                    script_id = %script.id,
+                    error = %error,
+                    "Script failed"
+                );
                 let _ = self.registry.record_error(script.id).await;
                 ExecutionOutcome::Failed { error }
             }
         };
+
+        let elapsed = start_instant.elapsed();
+        if elapsed > self.engine.config().timeout {
+            warn!(
+                script_id = %script.id,
+                elapsed_ms = elapsed.as_millis(),
+                timeout_ms = self.engine.config().timeout.as_millis(),
+                "Script exceeded timeout"
+            );
+        }
 
         ExecutionResult {
             script_id: script.id,
