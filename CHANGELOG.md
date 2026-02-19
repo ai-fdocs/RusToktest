@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added - 2026-02-19
+
+#### Admin Dashboard - Real Activity Data
+- **Recent Activity Widget** (`apps/admin/src/pages/dashboard.rs`)
+  - Connected to GraphQL `recentActivity` query for real-time data
+  - Replaced static mock data with live activity feed from server
+  - Added skeleton loading states with Suspense boundaries
+  - Activity types with color-coded icons (user.created, system.started, tenant.checked, etc.)
+  - Relative time formatting ("2 min ago", "1 hour ago", etc.) using chrono
+  - Shows activity description and user who performed the action
+
+- **GraphQL Queries** (`apps/admin/src/api/queries.rs`)
+  - Added `RECENT_ACTIVITY_QUERY` for fetching recent system activity
+  - Added `RECENT_ACTIVITY_QUERY_HASH` for persisted query support
+
+- **Dependencies** (`apps/admin/Cargo.toml`)
+  - Added `chrono` for date/time formatting in activity feed
+
 ### Added - 2026-02-16
 
 #### Property-Based Tests - Sprint 4 Task 4.2
