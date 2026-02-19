@@ -4,7 +4,7 @@ use leptos_auth::hooks::{use_auth, use_current_user, use_tenant, use_token};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 
-use crate::api::queries::DASHBOARD_STATS_QUERY;
+use crate::api::queries::{DASHBOARD_STATS_QUERY, RECENT_ACTIVITY_QUERY};
 use crate::api::request;
 use crate::components::ui::{Button, LanguageToggle, PageHeader, StatsCard};
 use crate::modules::{components_for_slot, AdminSlot};
@@ -28,6 +28,28 @@ struct DashboardStats {
     queue_depth: i64,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct RecentActivityResponse {
+    #[serde(rename = "recentActivity")]
+    recent_activity: Vec<ActivityItem>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct ActivityItem {
+    id: String,
+    #[serde(rename = "type")]
+    r#type: String,
+    description: String,
+    timestamp: String,
+    user: Option<ActivityUser>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+struct ActivityUser {
+    id: String,
+    name: Option<String>,
+}
+
 #[component]
 pub fn Dashboard() -> impl IntoView {
     let auth = use_auth();
@@ -41,37 +63,25 @@ pub fn Dashboard() -> impl IntoView {
             request::<_, DashboardStatsResponse>(
                 DASHBOARD_STATS_QUERY,
                 json!({}),
+                token_value.clone(),
+                tenant_value.clone(),
+            )
+            .await
+        },
+    );
+
+    let recent_activity = Resource::new(
+        move || (token.get(), tenant.get()),
+        move |(token_value, tenant_value)| async move {
+            request::<_, RecentActivityResponse>(
+                RECENT_ACTIVITY_QUERY,
+                json!({"limit": 10}),
                 token_value,
                 tenant_value,
             )
             .await
         },
     );
-
-    let activity = move || {
-        vec![
-            (
-                translate("app.dashboard.activity.tenant"),
-                translate("app.dashboard.activity.tenantDetail"),
-                translate("app.dashboard.activity.tenantTime"),
-            ),
-            (
-                translate("app.dashboard.activity.module"),
-                translate("app.dashboard.activity.moduleDetail"),
-                translate("app.dashboard.activity.moduleTime"),
-            ),
-            (
-                translate("app.dashboard.activity.security"),
-                translate("app.dashboard.activity.securityDetail"),
-                translate("app.dashboard.activity.securityTime"),
-            ),
-            (
-                translate("app.dashboard.activity.content"),
-                translate("app.dashboard.activity.contentDetail"),
-                translate("app.dashboard.activity.contentTime"),
-            ),
-        ]
-    };
 
     let logout = move |_| {
         let auth = auth.clone();
@@ -183,22 +193,63 @@ pub fn Dashboard() -> impl IntoView {
                     <h4 class="mb-4 text-lg font-semibold">
                         {move || translate("app.dashboard.activity.title")}
                     </h4>
-                    {activity()
-                        .iter()
-                        .map(|(title, detail, time)| {
-                            view! {
-                                <div class="flex items-center justify-between border-b border-slate-200 py-3 last:border-b-0">
-                                    <div>
-                                        <strong>{title.clone()}</strong>
-                                        <p class="mt-1 text-sm text-slate-500">{detail.clone()}</p>
+                    <Suspense
+                        fallback=move || view! {
+                            <div class="space-y-3">
+                                {(0..4)
+                                    .map(|_| {
+                                        view! { <div class="h-14 animate-pulse rounded-lg bg-slate-100"></div> }
+                                    })
+                                    .collect_view()}
+                            </div>
+                        }
+                    >
+                        {move || {
+                            let activities = recent_activity
+                                .get()
+                                .and_then(|res| res.ok())
+                                .map(|res| res.recent_activity)
+                                .unwrap_or_default();
+
+                            if activities.is_empty() {
+                                view! {
+                                    <div class="py-8 text-center text-slate-500">
+                                        "No recent activity"
                                     </div>
-                                    <span class="inline-flex items-center rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
-                                        {time.clone()}
-                                    </span>
-                                </div>
+                                }.into_any()
+                            } else {
+                                view! {
+                                    {activities
+                                        .into_iter()
+                                        .map(|item| {
+                                            let time_ago = format_time_ago(&item.timestamp);
+                                            let user_name = item
+                                                .user
+                                                .as_ref()
+                                                .and_then(|u| u.name.clone())
+                                                .unwrap_or_else(|| "System".to_string());
+                                            view! {
+                                                <div class="flex items-center justify-between border-b border-slate-200 py-3 last:border-b-0">
+                                                    <div class="min-w-0 flex-1">
+                                                        <div class="flex items-center gap-2">
+                                                            <ActivityIcon activity_type=item.r#type.clone() />
+                                                            <strong class="truncate">{item.description}</strong>
+                                                        </div>
+                                                        <p class="mt-1 text-sm text-slate-500">
+                                                            {format!("by {}", user_name)}
+                                                        </p>
+                                                    </div>
+                                                    <span class="ml-3 inline-flex shrink-0 items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                                                        {time_ago}
+                                                    </span>
+                                                </div>
+                                            }
+                                        })
+                                        .collect_view()}
+                                }.into_any()
                             }
-                        })
-                        .collect_view()}
+                        }}
+                    </Suspense>
                 </div>
                 <div class="rounded-2xl bg-white p-6 shadow-[0_18px_36px_rgba(15,23,42,0.08)]">
                     <h4 class="mb-4 text-lg font-semibold">
@@ -226,5 +277,82 @@ pub fn Dashboard() -> impl IntoView {
             </div>
 
         </section>
+    }
+}
+
+/// Format a timestamp as relative time (e.g., "2 min ago", "1 hour ago")
+fn format_time_ago(timestamp: &str) -> String {
+    use chrono::{DateTime, Utc};
+
+    let Ok(dt) = timestamp.parse::<DateTime<Utc>>() else {
+        return timestamp.to_string();
+    };
+
+    let now = Utc::now();
+    let duration = now.signed_duration_since(dt);
+
+    let minutes = duration.num_minutes();
+    let hours = duration.num_hours();
+    let days = duration.num_days();
+
+    if minutes < 1 {
+        "just now".to_string()
+    } else if minutes < 60 {
+        format!("{} min ago", minutes)
+    } else if hours < 24 {
+        format!("{} hour{} ago", hours, if hours == 1 { "" } else { "s" })
+    } else if days < 30 {
+        format!("{} day{} ago", days, if days == 1 { "" } else { "s" })
+    } else {
+        dt.format("%b %d, %Y").to_string()
+    }
+}
+
+/// Activity icon component based on activity type
+#[component]
+fn ActivityIcon(activity_type: String) -> impl IntoView {
+    let (icon, color_class) = match activity_type.as_str() {
+        "user.created" | "user.joined" => (
+            "M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2M8 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z",
+            "text-green-500",
+        ),
+        "user.updated" | "user.changed" => (
+            "M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z",
+            "text-blue-500",
+        ),
+        "user.deleted" | "user.disabled" => (
+            "M18 6L6 18M6 6l12 12",
+            "text-red-500",
+        ),
+        "system.started" | "system.initialized" => (
+            "M13 2L3 14h9l-1 8 10-12h-9l1-8z",
+            "text-yellow-500",
+        ),
+        "tenant.checked" | "tenant.verified" => (
+            "M9 12l2 2 4-4m6 2a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
+            "text-purple-500",
+        ),
+        "security.login" | "security.auth" => (
+            "M12 15v2m-6 4h12a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2zm10-10V7a4 4 0 0 0-8 0v4h8z",
+            "text-indigo-500",
+        ),
+        _ => (
+            "M12 8v4l3 3m6-3a9 9 0 1 1-18 0 9 9 0 0 1 18 0z",
+            "text-slate-400",
+        ),
+    };
+
+    view! {
+        <svg
+            class=format!("h-4 w-4 shrink-0 {}", color_class)
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+        >
+            <path d=icon />
+        </svg>
     }
 }
