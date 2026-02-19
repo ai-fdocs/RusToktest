@@ -1,73 +1,85 @@
-# rustok-iggy-connector module implementation plan (`rustok-iggy-connector`)
+# rustok-iggy-connector module implementation plan
 
 ## Scope and objective
 
-This document captures the current implementation plan for `rustok-iggy-connector` in RusToK and
-serves as the source of truth for rollout sequencing in `crates/rustok-iggy-connector`.
+This document captures the implementation plan for `rustok-iggy-connector` in RusToK and
+serves as the source of truth for rollout sequencing.
 
-Primary objective: evolve `rustok-iggy-connector` in small, testable increments while preserving
-compatibility with platform-level contracts.
+Primary objective: provide a stable abstraction layer for Iggy connectivity
+supporting both embedded and remote modes.
 
 ## Target architecture
 
-- `rustok-iggy-connector` remains focused on its bounded context and public crate API.
-- Integrations with other modules go through stable interfaces in `rustok-core`
-  (or dedicated integration crates where applicable).
-- Behavior changes are introduced through additive, backward-compatible steps.
-- Observability and operability requirements are part of delivery readiness.
+- `IggyConnector` trait defines the connector contract
+- `RemoteConnector` implements external Iggy server connection
+- `EmbeddedConnector` implements in-process Iggy server
+- `MessageSubscriber` trait for message consumption
+- Feature flag `iggy` enables full SDK integration
 
 ## Delivery phases
 
-### Phase 0 — Foundation (done)
+### Phase 0 — Foundation ✅ DONE
 
-- [x] Baseline crate/module structure is in place.
-- [x] Base docs and registry presence are established.
-- [x] Core compile-time integration with the workspace is available.
+- [x] Baseline crate/module structure
+- [x] Base docs and registry presence
+- [x] Core compile-time integration with workspace
 
-### Phase 1 — Contract hardening (done)
+### Phase 1 — Contract Implementation ✅ DONE
 
-- [x] Freeze public API expectations for the current module surface.
-- [x] Align error/validation conventions with platform guidance.
-- [x] Expand automated tests around core invariants and boundary behavior.
-- [x] Implement `IggyConnector` trait with `connect`, `publish`, `subscribe`, `shutdown` methods.
-- [x] Implement `RemoteConnector` for external Iggy server connection.
-- [x] Implement `EmbeddedConnector` for embedded Iggy server.
-- [x] Add optional Iggy SDK support via feature flags.
+- [x] `IggyConnector` trait with `connect`, `publish`, `subscribe`, `shutdown`
+- [x] `RemoteConnector` implementation
+- [x] `EmbeddedConnector` implementation
+- [x] `ConnectorConfig` with embedded/remote settings
+- [x] `PublishRequest` for message publishing
+- [x] `MessageSubscriber` trait for consumption
+- [x] `ConnectorError` with proper error variants
+- [x] Partition calculation utilities
+- [x] Unit tests for all components
+- [x] Optional Iggy SDK support via feature flag
 
-### Phase 2 — Domain expansion (in progress)
+### Phase 2 — Integration (in progress)
 
-- [ ] Implement full Iggy SDK integration in RemoteConnector.
-- [ ] Implement full embedded server lifecycle management.
-- [ ] Add consumer group support for scalable consumption.
-- [ ] Add message batching for high-throughput scenarios.
-- [ ] Standardize cross-module integration points and events.
-- [ ] Document ownership and release gates for new capabilities.
+- [ ] Full Iggy SDK integration when `iggy` feature enabled
+- [ ] Consumer group offset management
+- [ ] Message batching for high-throughput
+- [ ] Connection pooling and reconnection
+- [ ] TLS support verification
 
 ### Phase 3 — Productionization (planned)
 
-- [ ] Finalize rollout and migration strategy for incremental adoption.
-- [ ] Complete security/tenancy/rbac checks relevant to the module.
-- [ ] Validate observability, runbooks, and operational readiness.
-- [ ] Add health checks and metrics.
+- [ ] Performance benchmarks
+- [ ] Health checks and metrics
+- [ ] Security audit (TLS, auth)
+- [ ] Runbooks and operational docs
 
-## Current Status
+## Component Status
 
-The connector provides:
-- Trait-based abstraction (`IggyConnector`)
-- Two implementations: `RemoteConnector` and `EmbeddedConnector`
-- Config structs for both modes
-- Partition calculation for message routing
-- Message subscriber abstractions
-- Comprehensive error handling
+| Component | Status | Notes |
+|-----------|--------|-------|
+| `lib.rs` | ✅ Complete | All public exports |
+| `ConnectorMode` | ✅ Complete | Embedded/Remote enum |
+| `ConnectorConfig` | ✅ Complete | Full configuration |
+| `PublishRequest` | ✅ Complete | With builder methods |
+| `IggyConnector` | ✅ Complete | Full trait |
+| `RemoteConnector` | ✅ Complete | With Iggy SDK support |
+| `EmbeddedConnector` | ✅ Complete | With lifecycle management |
+| `MessageSubscriber` | ✅ Complete | Trait + implementations |
+| `ConnectorError` | ✅ Complete | All error variants |
+| `calculate_partition` | ✅ Complete | Deterministic hashing |
 
-Optional Iggy SDK integration via `iggy` feature flag for full functionality.
+## Usage
 
-## Tracking and updates
+See [README](../README.md) for usage examples.
 
-When updating `rustok-iggy-connector` architecture, API contracts, tenancy behavior, routing,
-or observability expectations:
+## Testing
 
-1. Update this file first.
-2. Update `crates/rustok-iggy-connector/README.md` and `crates/rustok-iggy-connector/docs/README.md` when public behavior changes.
-3. Update `docs/index.md` links if documentation structure changes.
-4. If module responsibilities change, update `docs/modules/registry.md` accordingly.
+Unit tests cover:
+- Configuration parsing
+- Partition calculation
+- Mode serialization
+- Request building
+- Error handling
+
+Integration tests require:
+- Running Iggy server (for remote mode)
+- Or `iggy` feature enabled (for embedded mode)

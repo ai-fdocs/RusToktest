@@ -9,9 +9,9 @@ description.workspace = true
 async-trait.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+bincode.workspace = true
 tokio.workspace = true
 tracing.workspace = true
-anyhow.workspace = true
 thiserror.workspace = true
 uuid.workspace = true
 
@@ -24,6 +24,3 @@ iggy = ["rustok-iggy-connector/iggy"]
 
 [dev-dependencies]
 tokio.workspace = true
-
-[package.metadata.cargo-udeps.ignore]
-normal = ["anyhow"]

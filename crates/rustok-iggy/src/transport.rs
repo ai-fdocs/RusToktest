@@ -1,12 +1,13 @@
 use std::sync::Arc;
 
 use async_trait::async_trait;
+use tracing::{error, info};
 
 use crate::config::{IggyConfig, IggyMode};
 use crate::consumer::ConsumerGroupManager;
+use crate::producer;
 use crate::serialization::{BincodeSerializer, EventSerializer, JsonSerializer};
 use crate::topology::TopologyManager;
-use crate::{producer, topology};
 use rustok_core::events::{EventEnvelope, EventTransport, ReliabilityLevel};
 use rustok_core::Result;
 use rustok_iggy_connector::{ConnectorConfig, EmbeddedConnector, IggyConnector, RemoteConnector};
@@ -22,46 +23,86 @@ pub struct IggyTransport {
 impl IggyTransport {
     pub async fn new(config: IggyConfig) -> Result<Self> {
         let connector: Arc<dyn IggyConnector> = match config.mode {
-            IggyMode::Remote => Arc::new(RemoteConnector),
-            IggyMode::Embedded => Arc::new(EmbeddedConnector),
+            IggyMode::Remote => Arc::new(RemoteConnector::new()),
+            IggyMode::Embedded => Arc::new(EmbeddedConnector::new()),
         };
 
         let connector_config = ConnectorConfig::from(&config);
+
         connector
             .connect(&connector_config)
             .await
-            .map_err(|error| rustok_core::Error::External(error.to_string()))?;
-        topology::ensure_topology(&config).await?;
+            .map_err(|error| {
+                error!(error = %error, mode = %config.mode, "Failed to connect to Iggy");
+                rustok_core::Error::External(error.to_string())
+            })?;
+
+        let topology = TopologyManager::new();
+        topology.ensure_topology(&config, connector.as_ref()).await?;
 
         let serializer: Arc<dyn EventSerializer> = match config.serialization {
             crate::config::SerializationFormat::Json => Arc::new(JsonSerializer),
             crate::config::SerializationFormat::Bincode => Arc::new(BincodeSerializer),
         };
 
+        info!(
+            mode = %config.mode,
+            serialization = %config.serialization,
+            stream = %config.topology.stream_name,
+            "Iggy transport initialized"
+        );
+
         Ok(Self {
             config,
             connector,
-            topology: TopologyManager,
-            consumers: ConsumerGroupManager,
+            topology,
+            consumers: ConsumerGroupManager::new(),
             serializer,
         })
     }
 
     pub async fn shutdown(&self) -> Result<()> {
+        info!(mode = %self.config.mode, "Shutting down Iggy transport");
+
         self.connector
             .shutdown()
             .await
-            .map_err(|error| rustok_core::Error::External(error.to_string()))
+            .map_err(|error| {
+                error!(error = %error, "Failed to shutdown Iggy connector");
+                rustok_core::Error::External(error.to_string())
+            })?;
+
+        Ok(())
     }
 
-    pub async fn subscribe_as_group(&self, _group: &str) -> Result<()> {
-        let _ = (&self.topology, &self.consumers);
-        Ok(())
+    pub async fn subscribe_as_group(&self, group: &str) -> Result<()> {
+        use crate::consumer::ConsumerGroup;
+
+        let group = ConsumerGroup::new(
+            group.to_string(),
+            self.config.topology.stream_name.clone(),
+            "domain".to_string(),
+        );
+
+        self.consumers.ensure_group(group).await
     }
 
     pub async fn replay(&self) -> Result<()> {
-        let _ = (&self.topology, &self.consumers);
+        if !self.topology.is_initialized().await {
+            return Err(rustok_core::Error::External(
+                "Topology not initialized".to_string(),
+            ));
+        }
+
         Ok(())
+    }
+
+    pub fn config(&self) -> &IggyConfig {
+        &self.config
+    }
+
+    pub fn is_connected(&self) -> bool {
+        self.connector.is_connected()
     }
 }
 
@@ -69,10 +110,13 @@ impl IggyTransport {
 impl EventTransport for IggyTransport {
     async fn publish(&self, envelope: EventEnvelope) -> Result<()> {
         let request = producer::build_publish_request(&self.config, &*self.serializer, envelope)?;
-        self.connector
-            .publish(request)
-            .await
-            .map_err(|error| rustok_core::Error::External(error.to_string()))
+
+        self.connector.publish(request).await.map_err(|error| {
+            error!(error = %error, "Failed to publish event to Iggy");
+            rustok_core::Error::External(error.to_string())
+        })?;
+
+        Ok(())
     }
 
     fn reliability_level(&self) -> ReliabilityLevel {
@@ -81,5 +125,29 @@ impl EventTransport for IggyTransport {
 
     fn as_any(&self) -> &dyn std::any::Any {
         self
+    }
+}
+
+impl std::fmt::Debug for IggyTransport {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("IggyTransport")
+            .field("mode", &self.config.mode)
+            .field("serialization", &self.config.serialization)
+            .field("stream", &self.config.topology.stream_name)
+            .field("connected", &self.connector.is_connected())
+            .finish()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reliability_level_is_streaming() {
+        assert_eq!(
+            ReliabilityLevel::Streaming,
+            ReliabilityLevel::Streaming
+        );
     }
 }

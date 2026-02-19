@@ -1,19 +1,144 @@
+use std::sync::Arc;
+
 use rustok_core::Result;
+use rustok_iggy_connector::IggyConnector;
+use tokio::sync::RwLock;
+use tracing::info;
 
 use crate::config::IggyConfig;
 
-#[derive(Debug, Default)]
-pub struct TopologyManager;
+#[derive(Debug)]
+pub struct TopologyManager {
+    stream_name: Arc<RwLock<String>>,
+    domain_topic: Arc<RwLock<String>>,
+    system_topic: Arc<RwLock<String>>,
+    partitions: Arc<RwLock<u32>>,
+    initialized: Arc<RwLock<bool>>,
+}
 
-pub async fn ensure_topology(config: &IggyConfig) -> Result<()> {
-    tracing::debug!(
-        stream = %config.topology.stream_name,
-        domain_partitions = config.topology.domain_partitions,
-        replication_factor = config.topology.replication_factor,
-        domain_retention_days = config.retention.domain_max_age_days,
-        system_retention_days = config.retention.system_max_age_days,
-        dlq_retention_days = config.retention.dlq_max_age_days,
-        "Ensuring iggy topology"
-    );
-    Ok(())
+impl Default for TopologyManager {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl TopologyManager {
+    pub fn new() -> Self {
+        Self {
+            stream_name: Arc::new(RwLock::new(String::new())),
+            domain_topic: Arc::new(RwLock::new(String::new())),
+            system_topic: Arc::new(RwLock::new(String::new())),
+            partitions: Arc::new(RwLock::new(0)),
+            initialized: Arc::new(RwLock::new(false)),
+        }
+    }
+
+    pub async fn ensure_topology(&self, config: &IggyConfig, connector: &dyn IggyConnector) -> Result<()> {
+        let stream_name = config.topology.stream_name.clone();
+        let partitions = config.topology.domain_partitions;
+
+        info!(
+            stream = %stream_name,
+            domain_partitions = partitions,
+            replication_factor = config.topology.replication_factor,
+            domain_retention_days = config.retention.domain_max_age_days,
+            system_retention_days = config.retention.system_max_age_days,
+            dlq_retention_days = config.retention.dlq_max_age_days,
+            "Ensuring iggy topology"
+        );
+
+        *self.stream_name.write().await = stream_name.clone();
+        *self.domain_topic.write().await = "domain".to_string();
+        *self.system_topic.write().await = "system".to_string();
+        *self.partitions.write().await = partitions;
+        *self.initialized.write().await = true;
+
+        Ok(())
+    }
+
+    pub async fn stream_name(&self) -> String {
+        self.stream_name.read().await.clone()
+    }
+
+    pub async fn domain_topic(&self) -> String {
+        self.domain_topic.read().await.clone()
+    }
+
+    pub async fn system_topic(&self) -> String {
+        self.system_topic.read().await.clone()
+    }
+
+    pub async fn is_initialized(&self) -> bool {
+        *self.initialized.read().await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn topology_manager_initializes_with_defaults() {
+        let manager = TopologyManager::new();
+        assert!(!manager.is_initialized().await);
+    }
+
+    #[tokio::test]
+    async fn topology_manager_stores_config() {
+        let manager = TopologyManager::new();
+        let config = IggyConfig::default();
+
+        manager.ensure_topology(&config, &MockConnector).await.unwrap();
+
+        assert!(manager.is_initialized().await);
+        assert_eq!(manager.stream_name().await, "rustok");
+        assert_eq!(manager.domain_topic().await, "domain");
+        assert_eq!(manager.system_topic().await, "system");
+    }
+
+    struct MockConnector;
+
+    #[async_trait::async_trait]
+    impl rustok_iggy_connector::IggyConnector for MockConnector {
+        async fn connect(
+            &self,
+            _config: &rustok_iggy_connector::ConnectorConfig,
+        ) -> Result<(), rustok_iggy_connector::ConnectorError> {
+            Ok(())
+        }
+
+        fn is_connected(&self) -> bool {
+            true
+        }
+
+        async fn publish(
+            &self,
+            _request: rustok_iggy_connector::PublishRequest,
+        ) -> Result<(), rustok_iggy_connector::ConnectorError> {
+            Ok(())
+        }
+
+        async fn subscribe(
+            &self,
+            _stream: &str,
+            _topic: &str,
+            _partition: u32,
+        ) -> Result<Box<dyn rustok_iggy_connector::MessageSubscriber>, rustok_iggy_connector::ConnectorError>
+        {
+            Ok(Box::new(MockSubscriber))
+        }
+
+        async fn shutdown(&self) -> Result<(), rustok_iggy_connector::ConnectorError> {
+            Ok(())
+        }
+    }
+
+    struct MockSubscriber;
+
+    #[async_trait::async_trait]
+    impl rustok_iggy_connector::MessageSubscriber for MockSubscriber {
+        async fn recv(&mut self) -> Result<Option<Vec<u8>>, rustok_iggy_connector::ConnectorError> {
+            Ok(None)
+        }
+    }
 }

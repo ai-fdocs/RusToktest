@@ -19,7 +19,7 @@ pub struct IggyConfig {
     pub retention: RetentionConfig,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum IggyMode {
     #[default]
@@ -27,12 +27,30 @@ pub enum IggyMode {
     Remote,
 }
 
-#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq)]
+impl std::fmt::Display for IggyMode {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            IggyMode::Embedded => write!(f, "embedded"),
+            IggyMode::Remote => write!(f, "remote"),
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone, Default, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum SerializationFormat {
     #[default]
     Json,
     Bincode,
+}
+
+impl std::fmt::Display for SerializationFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            SerializationFormat::Json => write!(f, "json"),
+            SerializationFormat::Bincode => write!(f, "bincode"),
+        }
+    }
 }
 
 #[derive(Debug, Deserialize, Serialize, Clone)]
@@ -59,7 +77,10 @@ pub struct RemoteConfig {
     pub addresses: Vec<String>,
     pub protocol: String,
     pub username: String,
+    #[serde(default)]
     pub password: String,
+    #[serde(default)]
+    pub tls_enabled: bool,
 }
 
 impl Default for RemoteConfig {
@@ -68,7 +89,8 @@ impl Default for RemoteConfig {
             addresses: vec!["127.0.0.1:8090".to_string()],
             protocol: "tcp".to_string(),
             username: "rustok".to_string(),
-            password: "${IGGY_PASSWORD}".to_string(),
+            password: String::new(),
+            tls_enabled: false,
         }
     }
 }
@@ -128,7 +150,7 @@ impl From<&IggyConfig> for ConnectorConfig {
             protocol: config.remote.protocol.clone(),
             username: config.remote.username.clone(),
             password: config.remote.password.clone(),
-            tls_enabled: false,
+            tls_enabled: config.remote.tls_enabled,
         };
 
         ConnectorConfig {
@@ -139,5 +161,109 @@ impl From<&IggyConfig> for ConnectorConfig {
             topic_name: "domain".to_string(),
             partitions: config.topology.domain_partitions,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn iggy_config_defaults() {
+        let config = IggyConfig::default();
+
+        assert_eq!(config.mode, IggyMode::Embedded);
+        assert_eq!(config.serialization, SerializationFormat::Json);
+        assert_eq!(config.topology.stream_name, "rustok");
+        assert_eq!(config.topology.domain_partitions, 8);
+    }
+
+    #[test]
+    fn iggy_mode_display() {
+        assert_eq!(IggyMode::Embedded.to_string(), "embedded");
+        assert_eq!(IggyMode::Remote.to_string(), "remote");
+    }
+
+    #[test]
+    fn serialization_format_display() {
+        assert_eq!(SerializationFormat::Json.to_string(), "json");
+        assert_eq!(SerializationFormat::Bincode.to_string(), "bincode");
+    }
+
+    #[test]
+    fn embedded_config_defaults() {
+        let config = EmbeddedConfig::default();
+
+        assert_eq!(config.data_dir, "./data/iggy");
+        assert!(config.use_binary_fallback);
+        assert_eq!(config.tcp_port, 8090);
+        assert_eq!(config.http_port, 3000);
+    }
+
+    #[test]
+    fn remote_config_defaults() {
+        let config = RemoteConfig::default();
+
+        assert_eq!(config.addresses, vec!["127.0.0.1:8090"]);
+        assert_eq!(config.protocol, "tcp");
+        assert_eq!(config.username, "rustok");
+        assert!(!config.tls_enabled);
+    }
+
+    #[test]
+    fn config_to_connector_config_embedded() {
+        let iggy_config = IggyConfig {
+            mode: IggyMode::Embedded,
+            ..Default::default()
+        };
+
+        let connector_config: ConnectorConfig = (&iggy_config).into();
+
+        assert_eq!(connector_config.mode, ConnectorMode::Embedded);
+        assert_eq!(connector_config.stream_name, "rustok");
+        assert_eq!(connector_config.partitions, 8);
+    }
+
+    #[test]
+    fn config_to_connector_config_remote() {
+        let iggy_config = IggyConfig {
+            mode: IggyMode::Remote,
+            remote: RemoteConfig {
+                addresses: vec!["192.168.1.1:8090".to_string()],
+                username: "admin".to_string(),
+                password: "secret".to_string(),
+                tls_enabled: true,
+                ..Default::default()
+            },
+            ..Default::default()
+        };
+
+        let connector_config: ConnectorConfig = (&iggy_config).into();
+
+        assert_eq!(connector_config.mode, ConnectorMode::Remote);
+        assert_eq!(connector_config.remote.addresses, vec!["192.168.1.1:8090"]);
+        assert!(connector_config.remote.tls_enabled);
+    }
+
+    #[test]
+    fn config_serialization_roundtrip() {
+        let config = IggyConfig {
+            mode: IggyMode::Remote,
+            serialization: SerializationFormat::Bincode,
+            topology: TopologyConfig {
+                stream_name: "custom-stream".to_string(),
+                domain_partitions: 16,
+                replication_factor: 3,
+            },
+            ..Default::default()
+        };
+
+        let json = serde_json::to_string(&config).unwrap();
+        let parsed: IggyConfig = serde_json::from_str(&json).unwrap();
+
+        assert_eq!(parsed.mode, IggyMode::Remote);
+        assert_eq!(parsed.serialization, SerializationFormat::Bincode);
+        assert_eq!(parsed.topology.stream_name, "custom-stream");
+        assert_eq!(parsed.topology.domain_partitions, 16);
     }
 }
