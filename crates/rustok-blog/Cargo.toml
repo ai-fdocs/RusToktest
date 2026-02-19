@@ -7,6 +7,8 @@ description.workspace = true
 
 [dependencies]
 async-trait.workspace = true
+chrono.workspace = true
+proptest = { workspace = true, optional = true }
 rustok-content.workspace = true
 rustok-core.workspace = true
 rustok-outbox.workspace = true
@@ -14,8 +16,15 @@ sea-orm.workspace = true
 sea-orm-migration.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
+tracing.workspace = true
 utoipa = { workspace = true, features = ["uuid", "chrono"] }
 uuid.workspace = true
 
 [dev-dependencies]
+proptest.workspace = true
 tokio.workspace = true
+
+[features]
+default = []
+proptest = ["dep:proptest"]

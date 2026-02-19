@@ -89,7 +89,7 @@ graph TD
 |------|------|-------------|
 | `crates/rustok-commerce` | **Commerce** | Products, orders, payments, and checkout logic. |
 | `crates/rustok-content` | **Content** | Unified content storage, nodes, and versioning. |
-| `crates/rustok-blog` | **Blog** | Blogging specific features (articles, comments). |
+| `crates/rustok-blog` | **Blog** | Blogging module: posts, comments, categories, tags. Wrapper over content module with type-safe state machine. ✅ Production Ready |
 | `crates/rustok-pages` | **Pages** | Static and dynamic page management. |
 | `crates/rustok-forum` | **Forum** | Community discussion and forum features. |
 | `crates/rustok-index` | **Index** | Search indices and read-model optimization. |

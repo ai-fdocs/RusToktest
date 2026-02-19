@@ -21,6 +21,7 @@ pub enum Resource {
     Nodes,
     Media,
     Comments,
+    Tags,
     Analytics,
     Logs,
     Webhooks,
@@ -44,6 +45,7 @@ impl fmt::Display for Resource {
             Self::Nodes => "nodes",
             Self::Media => "media",
             Self::Comments => "comments",
+            Self::Tags => "tags",
             Self::Analytics => "analytics",
             Self::Logs => "logs",
             Self::Webhooks => "webhooks",
@@ -72,6 +74,7 @@ impl FromStr for Resource {
             "nodes" => Ok(Self::Nodes),
             "media" => Ok(Self::Media),
             "comments" => Ok(Self::Comments),
+            "tags" => Ok(Self::Tags),
             "analytics" => Ok(Self::Analytics),
             "logs" => Ok(Self::Logs),
             "webhooks" => Ok(Self::Webhooks),
@@ -92,6 +95,8 @@ pub enum Action {
     Export,
     Import,
     Manage,
+    Publish,
+    Moderate,
 }
 
 impl fmt::Display for Action {
@@ -105,6 +110,8 @@ impl fmt::Display for Action {
             Self::Export => "export",
             Self::Import => "import",
             Self::Manage => "manage",
+            Self::Publish => "publish",
+            Self::Moderate => "moderate",
         };
         write!(f, "{value}")
     }
@@ -123,6 +130,8 @@ impl FromStr for Action {
             "export" => Ok(Self::Export),
             "import" => Ok(Self::Import),
             "manage" | "*" => Ok(Self::Manage),
+            "publish" => Ok(Self::Publish),
+            "moderate" => Ok(Self::Moderate),
             _ => Err(format!("Unknown action: {value}")),
         }
     }
