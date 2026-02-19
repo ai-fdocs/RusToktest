@@ -469,26 +469,60 @@ graph TD
 
 ## 5. Предлагаемый roadmap (следующие 3 итерации)
 
-### Итерация 1 (stability first)
+> Формат: 1 итерация = 2 недели. Цель roadmap — перевести рекомендации из «архитектурных тезисов» в план поставки с измеримым DoD.
+
+### 5.1 Итерация 1 (stability first)
+**Scope**
 - Закрыть **2.5**: прописать `dependencies()` для `blog` и `forum`.
 - Закрыть **2.6**: добавить `required`/`depends_on` в `modules.toml` и валидацию схемы.
-- Добавить smoke-тест на `toggle_module()` для кейсов disable/enable с зависимостями.
+- Добавить smoke-тесты на `toggle_module()` для сценариев disable/enable с зависимостями.
 
-**Критерий приёмки:** модуль `content` нельзя отключить, пока активны зависимые `blog/forum`; ошибка должна быть детерминированной и покрытой тестом.
+**Deliverables**
+- Обновлённый модульный контракт зависимостей (`blog/forum -> content`).
+- Машиночитаемые ограничения в manifest-схеме (`required`, `depends_on`).
+- Набор regression-тестов на lifecycle-ограничения.
 
-### Итерация 2 (event reliability)
+**Критерии приёмки (DoD)**
+- `content` нельзя отключить, пока активны зависимые `blog/forum`.
+- Ошибка при нарушении зависимости детерминирована (стабильный error code/message).
+- Тесты в CI воспроизводят и positive, и negative path.
+
+### 5.2 Итерация 2 (event reliability)
+**Scope**
 - Закрыть **2.7**: реализовать relay target `iggy` для outbox.
 - Закрыть **2.12**: backlog gauge + DLQ + admin read/replay endpoint.
-- Добавить алерты (warning/critical) на backlog, retry spike, DLQ growth.
+- Добавить alerting (warning/critical) на backlog, retry spike, DLQ growth.
 
-**Критерий приёмки:** при недоступном downstream события не теряются, backlog наблюдаем в метриках, replay из DLQ проходит контролируемо.
+**Deliverables**
+- Конфигурируемый pipeline `outbox -> relay_target`.
+- Таблица/механика DLQ и административный replay flow.
+- Набор метрик и alerts для операционного мониторинга.
 
-### Итерация 3 (extensibility)
+**Критерии приёмки (DoD)**
+- При недоступном downstream события не теряются и повторно отправляются после восстановления.
+- Backlog и DLQ наблюдаемы через `/metrics` и дашборд.
+- Replay из DLQ документирован и проходит контролируемо.
+
+### 5.3 Итерация 3 (extensibility)
+**Scope**
 - Закрыть **2.10**: typed module config с backward-compatible migration для `tenant_modules.settings`.
 - Закрыть **2.11** и **2.13**: notifications и alloy как опциональные модули через единый lifecycle.
 - Подготовить ADR для **2.9** и **2.14** (breaking/strategic track).
 
-**Критерий приёмки:** новые optional-модули подключаются без правки центрального роутинга, а решения по стратегическим изменениям зафиксированы в ADR.
+**Deliverables**
+- Типизированные per-tenant конфиги модулей.
+- Унифицированное подключение optional infrastructure через `RusToKModule`.
+- ADR-пакет для стратегических изменений event model и маршрутизации.
+
+**Критерии приёмки (DoD)**
+- Новые optional-модули подключаются без правки центрального роутинга.
+- Миграция конфигов не ломает существующие tenant settings.
+- ADR согласованы и готовы к реализации в следующем release train.
+
+### 5.4 Governance и точки контроля
+- **Еженедельный checkpoint:** статус по пунктам 2.x, риски, блокеры, owner на каждый item.
+- **Документационный контроль:** любые изменения по модулям/событиям/маршрутизации синхронно отражаются в `docs/index.md` и профильных docs-файлах.
+- **ADR-контроль:** strategic items (`2.9`, `2.14`) не переводятся в implementation до публикации ADR в `DECISIONS/`.
 
 ---
 
