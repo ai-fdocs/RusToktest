@@ -230,10 +230,10 @@
 
 **Путь:** `crates/rustok-telemetry/src/`
 
-- [ ] OpenTelemetry setup работает
-- [ ] Tracing subscriber конфигурируется
-- [ ] Prometheus metrics экспортируются
-- [ ] Graceful shutdown для telemetry
+- [x] OpenTelemetry setup работает — `init()` настраивает tracing subscriber с `otel::init_otel_layer()` при наличии `OtelConfig`
+- [x] Tracing subscriber конфигурируется — `init()` принимает `TelemetryConfig` с `log_format: Json|Pretty` и `EnvFilter::try_from_default_env()`
+- [x] Prometheus metrics экспортируются — `MetricsHandle::render()` возвращает текст; `/metrics` endpoint вызывает `handle.render()`
+- [~] Graceful shutdown для telemetry — `opentelemetry::global::shutdown_tracer_provider()` не вызывается при завершении
 
 ---
 
@@ -319,7 +319,7 @@
 
 - [x] Все service-методы принимают `SecurityContext`
 - [x] `get_scope()` возвращает `PermissionScope::All/Own/None`
-- [ ] Фильтрация по scope применяется в list-запросах (own orders для Customer)
+- [x] Фильтрация по scope применяется в list-запросах — `NodeService::list_nodes()` корректно применяет `PermissionScope::Own` (фильтрует по `author_id = user_id` для Customer); Orders не реализован (OrderService отсутствует — известный `[!]`)
 
 ### 4.3 RBAC на GraphQL
 
@@ -477,8 +477,8 @@
 
 ### 6.6 Event Versioning
 
-- [ ] Каждый DomainEvent имеет версию (или version field в envelope)
-- [ ] Обратная совместимость при добавлении новых полей
+- [x] Каждый DomainEvent имеет версию — `schema_version: u16` в `EventEnvelope`; `DomainEvent::schema_version()` возвращает версию для каждого типа события (все текущие события = v1)
+- [x] Обратная совместимость при добавлении новых полей — `#[serde(tag = "type", content = "data")]` + `EventEnvelope` с `schema_version` позволяет добавлять новые варианты без поломки десериализации
 
 ---
 
@@ -632,10 +632,10 @@
 **Путь:** `crates/rustok-tenant/`
 
 - [x] `TenantModule` зарегистрирован как `ModuleKind::Core` (в `crates/rustok-tenant/src/lib.rs`)
-- [ ] Entities: `tenants`, `tenant_modules`
-- [ ] Services: CRUD для tenants, module toggle
-- [ ] Health check работает
-- [ ] Миграции
+- [x] Entities: `tenants`, `tenant_modules` — реализованы в `crates/rustok-tenant/src/entities/` (tenant.rs, tenant_module.rs) с полными SeaORM entity definitions
+- [x] Services: CRUD для tenants, module toggle — реализован `TenantService` в `crates/rustok-tenant/src/services/tenant_service.rs` с методами create/get/update/list/toggle_module/list_tenant_modules
+- [x] Health check работает — `health()` возвращает `HealthStatus::Healthy`
+- [~] Миграции: `migrations()` возвращает `Vec::new()` — таблицы управляются через apps/server/migration
 
 ---
 
@@ -808,9 +808,9 @@
 
 ### 9.9 Metrics & Swagger
 
-- [ ] `GET /metrics` — Prometheus metrics (`controllers/metrics.rs`)
-- [ ] `GET /swagger` — Swagger UI (`controllers/swagger.rs`)
-- [ ] OpenAPI spec генерируется корректно через `utoipa`
+- [x] `GET /metrics` — Prometheus metrics реализован в `controllers/metrics.rs`, маршрут `/metrics` зарегистрирован в `app.rs`
+- [x] `GET /api/openapi.json` и `GET /api/openapi.yaml` — OpenAPI spec endpoints добавлены в `controllers/swagger.rs`, маршруты зарегистрированы в `app.rs`
+- [x] OpenAPI spec генерируется корректно через `utoipa` — `ApiDoc::openapi().to_json()/to_yaml()` используется в handlers
 
 ### 9.10 Rate Limiting
 
@@ -1304,7 +1304,7 @@
 #### Hardcoded secrets
 - [x] Поиск hardcoded passwords/secrets/keys в Rust коде — нарушений нет
   - `grep -rn "password\|secret\|api_key" --include="*.rs"` — результатов нет в production коде
-- [ ] Поиск в .ts/.tsx файлах
+- [x] Поиск в .ts/.tsx файлах — проверено; найдены только UI-поля типа `type='password'` и переменные-названия, без hardcoded credentials
 - [x] Проверка: `.env` файлы отсутствуют в git (только `.env.dev.example`)
 
 #### Panics в production
@@ -1527,6 +1527,8 @@
 | 19 | 🟢 Низкий | ✅ Исправлено | `ModuleLifecycleService` использовал hardcoded `CORE_MODULE_SLUGS` массив вместо `registry.is_core()`. При добавлении нового Core-модуля нужно было обновлять два места. Исправлено: `validate_core_toggle()` удалён, проверка инлайнена через `registry.is_core()`. Тесты обновлены. | `apps/server/src/services/module_lifecycle.rs` | 5.4 |
 | 20 | 🟡 Высокий | ✅ Исправлено | `ProductIndexer::reindex_all()` содержал SQL-запрос `WHERE tenant_id = $1 AND deleted_at IS NULL` — но таблица `products` не имеет поля `deleted_at` (продукты удаляются через hard delete). Убрана несуществующая колонка из WHERE. | `crates/rustok-index/src/product/indexer.rs` | 7.7, 20.5 |
 | 21 | 🟢 Низкий | ✅ Исправлено | `ProductIndexer::build_index_product()` использовал небезопасный `as i32` cast для `agg.total_inventory` и `agg.variant_count` (тип `i64`). Исправлено: используется `i32::try_from().unwrap_or(i32::MAX)`. | `crates/rustok-index/src/product/indexer.rs` | 20.1 |
+| 22 | 🟡 Высокий | ✅ Исправлено | `crates/rustok-tenant` содержал пустые stub-файлы (entities/mod.rs, services/mod.rs, dto/mod.rs — только комментарии). Реализованы SeaORM entities (`tenant.rs`, `tenant_module.rs`), DTOs (`CreateTenantInput`, `UpdateTenantInput`, `TenantResponse`, `ToggleModuleInput`) и `TenantService` с полным CRUD и toggle_module. | `crates/rustok-tenant/src/` | 7.9 |
+| 23 | 🟡 Высокий | ✅ Исправлено | `controllers/swagger.rs` содержал только `ApiDoc` struct без endpoint для отдачи OpenAPI spec. Добавлены handlers `openapi_json()` и `openapi_yaml()` для эндпоинтов `GET /api/openapi.json` и `GET /api/openapi.yaml`, маршруты зарегистрированы в `app.rs`. | `apps/server/src/controllers/swagger.rs`, `apps/server/src/app.rs` | 9.9 |
 
 ### 21.1 Детали: Проблема #2 — Небезопасная публикация событий в blog/forum
 
