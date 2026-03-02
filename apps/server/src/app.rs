@@ -167,6 +167,7 @@ impl Hooks for App {
             });
 
         Ok(router
+            .merge(controllers::swagger::swagger_router())
             .nest("/api/alloy", alloy_rest_router)
             .layer(Extension(registry))
             .layer(Extension(alloy_state))
