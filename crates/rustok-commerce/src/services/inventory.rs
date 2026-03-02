@@ -68,7 +68,7 @@ impl InventoryService {
         let event = DomainEvent::InventoryUpdated {
             variant_id: input.variant_id,
             product_id: variant.product_id,
-            location_id: Uuid::nil(),
+            location_id: Uuid::new_v4(),
             old_quantity,
             new_quantity,
         };
@@ -80,7 +80,7 @@ impl InventoryService {
             .publish_in_tx(&txn, tenant_id, Some(actor_id), event)
             .await?;
 
-        if new_quantity <= self.low_stock_threshold && new_quantity > 0 {
+        if new_quantity < self.low_stock_threshold && new_quantity > 0 {
             // Create and validate low inventory event
             let low_event = DomainEvent::InventoryLow {
                 variant_id: input.variant_id,
@@ -128,7 +128,7 @@ impl InventoryService {
         let event = DomainEvent::InventoryUpdated {
             variant_id,
             product_id: variant.product_id,
-            location_id: Uuid::nil(),
+            location_id: Uuid::new_v4(),
             old_quantity,
             new_quantity: quantity,
         };

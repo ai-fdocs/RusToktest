@@ -576,6 +576,44 @@ impl CatalogService {
             return Err(CommerceError::CannotDeletePublished);
         }
 
+        let variants = entities::product_variant::Entity::find()
+            .filter(entities::product_variant::Column::ProductId.eq(product_id))
+            .all(&txn)
+            .await?;
+        let variant_ids: Vec<Uuid> = variants.iter().map(|variant| variant.id).collect();
+
+        if !variant_ids.is_empty() {
+            entities::price::Entity::delete_many()
+                .filter(entities::price::Column::VariantId.is_in(variant_ids.clone()))
+                .exec(&txn)
+                .await?;
+
+            entities::variant_translation::Entity::delete_many()
+                .filter(entities::variant_translation::Column::VariantId.is_in(variant_ids))
+                .exec(&txn)
+                .await?;
+
+            entities::product_variant::Entity::delete_many()
+                .filter(entities::product_variant::Column::ProductId.eq(product_id))
+                .exec(&txn)
+                .await?;
+        }
+
+        entities::product_translation::Entity::delete_many()
+            .filter(entities::product_translation::Column::ProductId.eq(product_id))
+            .exec(&txn)
+            .await?;
+
+        entities::product_option::Entity::delete_many()
+            .filter(entities::product_option::Column::ProductId.eq(product_id))
+            .exec(&txn)
+            .await?;
+
+        entities::product_image::Entity::delete_many()
+            .filter(entities::product_image::Column::ProductId.eq(product_id))
+            .exec(&txn)
+            .await?;
+
         entities::product::Entity::delete_by_id(product_id)
             .exec(&txn)
             .await?;

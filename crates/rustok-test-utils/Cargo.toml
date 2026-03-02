@@ -12,8 +12,8 @@ rustok-core.workspace = true
 rustok-content = { workspace = true, optional = true }
 rustok-commerce = { workspace = true, optional = true }
 rustok-outbox.workspace = true
-sea-orm.workspace = true
-sea-orm-migration.workspace = true
+sea-orm = { workspace = true, features = ["sqlx-sqlite"] }
+sea-orm-migration = { workspace = true, features = ["sqlx-sqlite"] }
 serde.workspace = true
 serde_json.workspace = true
 tokio.workspace = true

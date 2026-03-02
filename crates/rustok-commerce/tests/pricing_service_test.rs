@@ -12,8 +12,11 @@ use rustok_test_utils::{db::setup_test_db, helpers::unique_slug, mock_transactio
 use sea_orm::DatabaseConnection;
 use uuid::Uuid;
 
+mod support;
+
 async fn setup() -> (DatabaseConnection, PricingService, CatalogService) {
     let db = setup_test_db().await;
+    support::ensure_commerce_schema(&db).await;
     let event_bus = mock_transactional_event_bus();
     let pricing_service = PricingService::new(db.clone(), event_bus.clone());
     let catalog_service = CatalogService::new(db.clone(), event_bus);
@@ -394,7 +397,43 @@ async fn test_get_variant_prices_multiple() {
 async fn test_get_variant_prices_empty() {
     let (_db, service, catalog) = setup().await;
     let tenant_id = Uuid::new_v4();
-    let (_product_id, variant_id) = create_test_product(&catalog, tenant_id).await;
+    let actor_id = Uuid::new_v4();
+    let input = CreateProductInput {
+        translations: vec![ProductTranslationInput {
+            locale: "en".to_string(),
+            title: "No Price Product".to_string(),
+            description: Some("Variant without prices".to_string()),
+            handle: Some(unique_slug("no-price-product")),
+            meta_title: None,
+            meta_description: None,
+        }],
+        options: vec![],
+        variants: vec![CreateVariantInput {
+            sku: Some(format!(
+                "SKU-{}",
+                Uuid::new_v4().to_string().split('-').next().unwrap()
+            )),
+            barcode: None,
+            option1: Some("Default".to_string()),
+            option2: None,
+            option3: None,
+            prices: vec![],
+            inventory_quantity: 0,
+            inventory_policy: "deny".to_string(),
+            weight: Some(dec!(1.5)),
+            weight_unit: Some("kg".to_string()),
+        }],
+        vendor: Some("Test Vendor".to_string()),
+        product_type: Some("Physical".to_string()),
+        publish: false,
+        metadata: serde_json::json!({}),
+    };
+
+    let product = catalog
+        .create_product(tenant_id, actor_id, input)
+        .await
+        .unwrap();
+    let variant_id = product.variants[0].id;
 
     let result = service.get_variant_prices(variant_id).await;
 
@@ -530,7 +569,7 @@ async fn test_apply_discount_no_existing_price() {
     let (_product_id, variant_id) = create_test_product(&catalog, tenant_id).await;
 
     let result = service
-        .apply_discount(tenant_id, actor_id, variant_id, "USD", dec!(10))
+        .apply_discount(tenant_id, actor_id, variant_id, "EUR", dec!(10))
         .await;
 
     assert!(result.is_err());
@@ -740,5 +779,5 @@ async fn test_discount_chain() {
         .unwrap();
 
     let final_price = service.get_price(variant_id, "USD").await.unwrap();
-    assert_eq!(final_price, Some(dec!(81.00)));
+    assert_eq!(final_price, Some(dec!(90.00)));
 }

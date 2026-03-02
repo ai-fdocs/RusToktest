@@ -14,8 +14,11 @@ use sea_orm::DatabaseConnection;
 use std::str::FromStr;
 use uuid::Uuid;
 
+mod support;
+
 async fn setup() -> (DatabaseConnection, CatalogService) {
     let db = setup_test_db().await;
+    support::ensure_commerce_schema(&db).await;
     let event_bus = mock_transactional_event_bus();
     let service = CatalogService::new(db.clone(), event_bus);
     (db, service)

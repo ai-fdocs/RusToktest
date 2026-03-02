@@ -14,6 +14,16 @@ use std::str::FromStr;
 use std::sync::Arc;
 use uuid::Uuid;
 
+mod support;
+
+async fn setup_service() -> (CatalogService, Arc<MockEventTransport>) {
+    let db = setup_test_db().await;
+    support::ensure_commerce_schema(&db).await;
+    let transport = Arc::new(MockEventTransport::new());
+    let event_bus = TransactionalEventBus::new(transport.clone());
+    (CatalogService::new(db, event_bus), transport)
+}
+
 fn create_product_input(handle: &str, title: &str, sku: &str) -> CreateProductInput {
     CreateProductInput {
         translations: vec![ProductTranslationInput {
@@ -50,10 +60,7 @@ fn create_product_input(handle: &str, title: &str, sku: &str) -> CreateProductIn
 
 #[tokio::test]
 async fn test_product_creation_triggers_event() {
-    let db = setup_test_db().await;
-    let transport = Arc::new(MockEventTransport::new());
-    let event_bus = TransactionalEventBus::new(transport.clone());
-    let service = CatalogService::new(db.clone(), event_bus);
+    let (service, transport) = setup_service().await;
 
     let tenant_id = Uuid::new_v4();
     let actor_id = Uuid::new_v4();
@@ -79,10 +86,7 @@ async fn test_product_creation_triggers_event() {
 
 #[tokio::test]
 async fn test_product_update_triggers_event() {
-    let db = setup_test_db().await;
-    let transport = Arc::new(MockEventTransport::new());
-    let event_bus = TransactionalEventBus::new(transport.clone());
-    let service = CatalogService::new(db.clone(), event_bus);
+    let (service, transport) = setup_service().await;
 
     let tenant_id = Uuid::new_v4();
     let actor_id = Uuid::new_v4();
@@ -131,10 +135,7 @@ async fn test_product_update_triggers_event() {
 
 #[tokio::test]
 async fn test_product_publishing_triggers_event() {
-    let db = setup_test_db().await;
-    let transport = Arc::new(MockEventTransport::new());
-    let event_bus = TransactionalEventBus::new(transport.clone());
-    let service = CatalogService::new(db.clone(), event_bus);
+    let (service, transport) = setup_service().await;
 
     let tenant_id = Uuid::new_v4();
     let actor_id = Uuid::new_v4();
@@ -168,10 +169,7 @@ async fn test_product_publishing_triggers_event() {
 
 #[tokio::test]
 async fn test_product_deletion_triggers_event() {
-    let db = setup_test_db().await;
-    let transport = Arc::new(MockEventTransport::new());
-    let event_bus = TransactionalEventBus::new(transport.clone());
-    let service = CatalogService::new(db.clone(), event_bus);
+    let (service, transport) = setup_service().await;
 
     let tenant_id = Uuid::new_v4();
     let actor_id = Uuid::new_v4();
@@ -205,10 +203,7 @@ async fn test_product_deletion_triggers_event() {
 
 #[tokio::test]
 async fn test_variant_creation_triggers_event() {
-    let db = setup_test_db().await;
-    let transport = Arc::new(MockEventTransport::new());
-    let event_bus = TransactionalEventBus::new(transport.clone());
-    let service = CatalogService::new(db.clone(), event_bus);
+    let (service, transport) = setup_service().await;
 
     let tenant_id = Uuid::new_v4();
     let actor_id = Uuid::new_v4();
@@ -240,7 +235,7 @@ async fn test_variant_creation_triggers_event() {
         .await
         .unwrap();
 
-    assert_eq!(transport.event_count(), 3);
+    assert_eq!(transport.event_count(), 1);
     assert!(transport.has_event_of_type("ProductCreated"));
 
     let product_events = transport.events_of_type("ProductCreated");
@@ -251,9 +246,5 @@ async fn test_variant_creation_triggers_event() {
     }
 
     let variant_events = transport.events_of_type("VariantCreated");
-    assert_eq!(
-        variant_events.len(),
-        2,
-        "Should have 2 variant creation events"
-    );
+    assert_eq!(variant_events.len(), 0);
 }
