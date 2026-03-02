@@ -4,7 +4,6 @@ use rustok_content::entities::{body, node, node_translation};
 use rustok_core::events::{DomainEvent, EventEnvelope, EventHandler, HandlerResult};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, Set,
-    TransactionTrait,
 };
 use tracing::{debug, info, instrument, warn};
 use uuid::Uuid;
@@ -233,8 +232,33 @@ impl Indexer for ContentIndexer {
 
     #[instrument(skip(self, ctx))]
     async fn reindex_all(&self, ctx: &IndexerContext) -> IndexResult<u64> {
-        info!(tenant_id = %ctx.tenant_id, "Reindexing all content — not yet implemented");
-        Ok(0)
+        info!(tenant_id = %ctx.tenant_id, "Reindexing all content");
+
+        let locales = self.get_tenant_locales(ctx).await?;
+
+        let nodes = node::Entity::find()
+            .filter(node::Column::TenantId.eq(ctx.tenant_id))
+            .filter(node::Column::DeletedAt.is_null())
+            .all(&self.db)
+            .await?;
+
+        let count = nodes.len() as u64;
+
+        for node_row in nodes {
+            for locale in &locales {
+                if let Err(err) = self.index_locale(ctx, node_row.id, locale).await {
+                    warn!(
+                        node_id = %node_row.id,
+                        locale = locale,
+                        error = %err,
+                        "Failed to reindex content node"
+                    );
+                }
+            }
+        }
+
+        info!(tenant_id = %ctx.tenant_id, indexed = count, "Content reindex complete");
+        Ok(count)
     }
 }
 
@@ -288,8 +312,7 @@ impl EventHandler for ContentIndexer {
             | DomainEvent::NodePublished { .. }
             | DomainEvent::NodeUnpublished { .. }
             | DomainEvent::NodeDeleted { .. }
-            | DomainEvent::BodyUpdated { .. }
-            | DomainEvent::CategoryUpdated { .. } => true,
+            | DomainEvent::BodyUpdated { .. } => true,
             DomainEvent::TagAttached { target_type, .. }
             | DomainEvent::TagDetached { target_type, .. } => target_type == "node",
             DomainEvent::ReindexRequested { target_type, .. } => target_type == "content",

@@ -590,11 +590,11 @@
 **Путь:** `crates/alloy-scripting/`
 
 - [x] `AlloyModule` зарегистрирован как `ModuleKind::Optional` (в `apps/server/src/modules/alloy.rs`)
-- [ ] Rhai scripting engine инициализируется
-- [ ] `scripts` таблица — CRUD для скриптов
-- [ ] RBAC permissions: `Scripts` resource (create/read/update/delete/list/manage)
-- [ ] Безопасность: скрипты не могут выполнять произвольный I/O
-- [ ] Миграции
+- [x] Rhai scripting engine инициализируется — `create_default_engine()` в `app.rs::after_routes()`, `ScriptOrchestrator`, `Scheduler` запущены
+- [x] `scripts` таблица — CRUD через `ScriptsEntity` (SeaORM entity), `SeaOrmStorage` реализует `ScriptRegistry`
+- [x] RBAC permissions: `Scripts` resource (create/read/update/delete/list/manage) — определены в `AlloyModule::permissions()`
+- [~] Безопасность: скрипты выполняются в Rhai sandbox, явная проверка запрета arbitrary I/O не верифицирована
+- [x] Миграции — `ScriptsMigration` и `ScriptExecutionsMigration` добавлены в server Migrator (Issue #17)
 
 ### 7.7 rustok-index (CQRS Read Models)
 
@@ -604,8 +604,9 @@
 - [x] `ContentIndexer` и `ProductIndexer` зарегистрированы как `EventHandler` через `EventDispatcher` в `app.rs::after_routes()`
 - [x] Структура: `content/indexer.rs`, `product/indexer.rs`, `search/full_text.rs`, `traits.rs`, `error.rs`
   - (Старые `listener.rs`, `engine.rs`, `pg_engine.rs`, `models.rs`, `services/` удалены как orphan-файлы)
-- [~] Product indexer: обрабатывает commerce events через EventHandler (реализован stub, не полноценный продуктовый индекс)
-- [~] Content indexer: `reindex_node()` возвращает Ok(()) — stub, полная реализация не завершена
+- [x] Content indexer: реализован `build_index_content()` с реальными DB-запросами (node + translations + body), `reindex_all()` итерирует все nodes tenant'а, `index_locale()` делает upsert в `index_content`
+- [x] Content indexer: `ContentQueryService::find()`, `count()`, `search()`, `find_by_slug()` реализованы с SeaORM и full-text search через PostgreSQL `search_vector`
+- [~] Product indexer: обрабатывает commerce events через EventHandler, реализован stub `index_one()` — полноценный продуктовый индекс не реализован
 
 ### 7.8 rustok-rbac
 
@@ -1511,6 +1512,8 @@
 | 14 | 🟡 Высокий | ✅ Исправлено | Миграция таблицы `sys_events` (outbox pattern) не была зарегистрирована в главном сервере. Создан файл `m20260211_000002_create_sys_events.rs` и добавлен в `apps/server/migration/src/lib.rs`. | `apps/server/migration/src/` | 2.2 |
 | 15 | 🟡 Высокий | ✅ Исправлено | Rate limiting middleware существовал в `middleware/rate_limit.rs` но **не был подключён** к роутеру. Все auth endpoints были уязвимы к брутфорс-атакам. Исправлено: добавлен `axum_middleware::from_fn` с per-IP sliding window limiter (20 req/60 сек) для `/api/auth/login`, `/api/auth/register`, `/api/auth/reset/*` в `app.rs::after_routes()`. | `apps/server/src/app.rs`, `apps/server/src/middleware/rate_limit.rs` | 9.10, 18.1 |
 | 16 | 🔴 Критический | ✅ Исправлено | `ContentIndexer` и `ProductIndexer` из `rustok-index` никогда не запускались — не были подписаны на EventBus. Добавлен `EventBus` в `EventRuntime`, `EventDispatcher` создаётся в `app.rs::after_routes()` и регистрирует оба indexer'а. `MemoryTransport::with_bus()` создан для разделения EventBus между transport и dispatcher. `event_bus_from_context()` обновлён для использования `EventRuntime.event_bus`. | `apps/server/src/app.rs`, `apps/server/src/services/event_transport_factory.rs`, `apps/server/src/services/event_bus.rs`, `crates/rustok-core/src/events/memory.rs` | 6.3 |
+
+| 18 | 🟡 Высокий | ✅ Исправлено | `ContentQueryService::find()`, `count()`, `search()`, `find_by_slug()` были заглушками. Реализованы с реальными SeaORM-запросами. `ContentIndexer::reindex_all()` реализован. `IndexTag` не используется в `CategoryUpdated` — удалён из `handles()`. | `crates/rustok-index/src/content/query.rs`, `crates/rustok-index/src/content/indexer.rs` | 7.7 |
 
 | 17 | 🔴 Критический | ✅ Исправлено | Миграции `alloy-scripting` (`scripts`, `script_executions`) отсутствовали в сервере `Migrator` — таблицы для скриптов никогда не создавались в БД. Исправлено: добавлены `ScriptsMigration` и `ScriptExecutionsMigration` в `apps/server/migration/src/lib.rs`, `alloy-scripting` добавлен как зависимость migration crate. Также исправлен порядок регистрации миграций (sessions и roles перемещены до content-таблиц). | `apps/server/migration/src/lib.rs`, `apps/server/migration/Cargo.toml` | 7.6, 20.5 |
 
