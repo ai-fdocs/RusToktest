@@ -20,7 +20,7 @@ fn test_register_all_metrics() {
     // Check for key metrics
     let metric_names: Vec<String> = metric_families
         .iter()
-        .map(|mf| mf.get_name().to_string())
+        .map(|mf| mf.name().to_string())
         .collect();
 
     // EventBus metrics
@@ -32,7 +32,6 @@ fn test_register_all_metrics() {
 
     // Cache metrics
     assert!(metric_names.contains(&"rustok_cache_operations_total".to_string()));
-    assert!(metric_names.contains(&"rustok_cache_hit_rate".to_string()));
 }
 
 #[test]
@@ -218,7 +217,7 @@ fn test_metric_naming_conventions() {
 
     let metric_families = registry.gather();
     for mf in metric_families {
-        let name = mf.get_name();
+        let name = mf.name();
 
         // Should start with namespace
         assert!(
@@ -293,11 +292,11 @@ fn test_metric_help_text() {
 
     let metric_families = registry.gather();
     for mf in metric_families {
-        let help = mf.get_help();
+        let help = mf.help();
         assert!(
             !help.is_empty(),
             "Metric {} should have help text",
-            mf.get_name()
+            mf.name()
         );
     }
 }

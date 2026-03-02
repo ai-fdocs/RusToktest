@@ -71,6 +71,7 @@ pub fn create_orchestrator_with_engine<R: ScriptRegistry>(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Arc;
 
     #[test]
     fn test_simple_script() {
