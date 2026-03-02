@@ -14,7 +14,7 @@ use chrono::Utc;
 use rustok_core::{events::DomainEvent, EventBus};
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Set,
-    TransactionTrait,
+    QuerySelect, TransactionTrait,
 };
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -316,7 +316,7 @@ impl BuildService {
             .await?
             .ok_or_else(|| anyhow::anyhow!("Build not found"))?;
 
-        let mut release = Release::new(build_id, environment, build.manifest_hash, modules);
+        let mut release = Release::new(build_id, environment, build.manifest_hash.clone(), modules);
 
         if let Some(prev) = self.get_active_release().await? {
             release.previous_release_id = Some(prev.id);

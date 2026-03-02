@@ -116,7 +116,7 @@ impl ProductIndexer {
             .one(&self.db)
             .await
             .map_err(crate::error::IndexError::from)?
-            .unwrap_or_else(|| VariantAgg {
+            .unwrap_or(VariantAgg {
                 variant_count: 0,
                 in_stock: false,
                 total_inventory: 0,

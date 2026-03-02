@@ -40,6 +40,7 @@ base64.workspace = true
 eyre = "0.6"
 async-trait.workspace = true
 thiserror.workspace = true
+anyhow.workspace = true
 rust_decimal.workspace = true
 argon2.workspace = true
 hex.workspace = true
