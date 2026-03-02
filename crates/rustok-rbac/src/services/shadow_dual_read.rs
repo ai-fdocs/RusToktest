@@ -38,7 +38,7 @@ mod tests {
         let required = permission(Resource::Users, Action::Read);
 
         let outcome = evaluate_dual_read(
-            Some(&UserRole::Editor),
+            Some(&UserRole::Manager),
             ShadowCheck::Single(&required),
             true,
         );
@@ -62,10 +62,10 @@ mod tests {
 
     #[test]
     fn returns_matched_when_relation_equals_legacy() {
-        let required = permission(Resource::BlogPost, Action::Read);
+        let required = permission(Resource::BlogPosts, Action::Read);
 
         let outcome = evaluate_dual_read(
-            Some(&UserRole::Editor),
+            Some(&UserRole::Manager),
             ShadowCheck::Single(&required),
             true,
         );
@@ -81,10 +81,10 @@ mod tests {
 
     #[test]
     fn returns_mismatch_when_relation_differs_from_legacy() {
-        let required = permission(Resource::User, Action::Delete);
+        let required = permission(Resource::Users, Action::Delete);
 
         let outcome = evaluate_dual_read(
-            Some(&UserRole::Editor),
+            Some(&UserRole::Manager),
             ShadowCheck::Single(&required),
             true,
         );

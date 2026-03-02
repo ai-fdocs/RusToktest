@@ -93,8 +93,8 @@ mod tests {
 
     #[test]
     fn detects_single_permission_mismatch() {
-        let required = permission(Resource::User, Action::Delete);
-        let decision = compare_single_permission(&UserRole::Editor, &required, true);
+        let required = permission(Resource::Users, Action::Delete);
+        let decision = compare_single_permission(&UserRole::Manager, &required, true);
 
         assert!(!decision.legacy_allowed);
         assert!(decision.mismatch());
@@ -103,11 +103,11 @@ mod tests {
     #[test]
     fn any_permissions_match_when_legacy_allows_one() {
         let required = vec![
-            permission(Resource::BlogPost, Action::Read),
-            permission(Resource::User, Action::Delete),
+            permission(Resource::BlogPosts, Action::Read),
+            permission(Resource::Users, Action::Delete),
         ];
 
-        let decision = compare_any_permissions(&UserRole::Editor, &required, true);
+        let decision = compare_any_permissions(&UserRole::Manager, &required, true);
 
         assert!(decision.legacy_allowed);
         assert!(!decision.mismatch());
@@ -116,14 +116,14 @@ mod tests {
     #[test]
     fn unified_shadow_check_supports_all_modes() {
         let required = vec![
-            permission(Resource::BlogPost, Action::Read),
-            permission(Resource::User, Action::Delete),
+            permission(Resource::BlogPosts, Action::Read),
+            permission(Resource::Users, Action::Delete),
         ];
 
         let single =
-            compare_shadow_decision(&UserRole::Editor, ShadowCheck::Single(&required[0]), true);
-        let any = compare_shadow_decision(&UserRole::Editor, ShadowCheck::Any(&required), true);
-        let all = compare_shadow_decision(&UserRole::Editor, ShadowCheck::All(&required), true);
+            compare_shadow_decision(&UserRole::Manager, ShadowCheck::Single(&required[0]), true);
+        let any = compare_shadow_decision(&UserRole::Manager, ShadowCheck::Any(&required), true);
+        let all = compare_shadow_decision(&UserRole::Manager, ShadowCheck::All(&required), true);
 
         assert!(!single.mismatch());
         assert!(!any.mismatch());
@@ -132,7 +132,7 @@ mod tests {
 
     #[test]
     fn shadow_check_string_representation_is_stable() {
-        let required = permission(Resource::User, Action::Read);
+        let required = permission(Resource::Users, Action::Read);
         let required_set = [required.clone()];
 
         assert_eq!(ShadowCheck::Single(&required).as_str(), "single");

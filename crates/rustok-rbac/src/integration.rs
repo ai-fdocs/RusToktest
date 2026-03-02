@@ -127,7 +127,7 @@ mod tests {
         let event = RbacRoleAssignmentEvent::user_role_replaced(
             uuid::Uuid::new_v4(),
             uuid::Uuid::new_v4(),
-            UserRole::Editor,
+            UserRole::Manager,
         );
 
         let serialized = serde_json::to_string(&event).expect("serialize event");

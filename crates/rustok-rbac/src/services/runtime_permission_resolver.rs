@@ -326,16 +326,17 @@ mod tests {
         let role_id = uuid::Uuid::new_v4();
         let tenant_id = uuid::Uuid::new_v4();
         let user_id = uuid::Uuid::new_v4();
-        let resolver = RuntimePermissionResolver::new(
-            StubStore {
-                role_ids: vec![role_id],
-                tenant_role_ids: vec![role_id],
-                permissions: vec![Permission::USERS_READ],
-                fail_load: false,
-            },
-            StubCache::default(),
-            StubAssignmentStore::default(),
-        );
+        let resolver: RuntimePermissionResolver<_, _, _, ResolverError> =
+            RuntimePermissionResolver::new(
+                StubStore {
+                    role_ids: vec![role_id],
+                    tenant_role_ids: vec![role_id],
+                    permissions: vec![Permission::USERS_READ],
+                    fail_load: false,
+                },
+                StubCache::default(),
+                StubAssignmentStore::default(),
+            );
 
         let first = resolver
             .resolve_permissions(&tenant_id, &user_id)
@@ -354,16 +355,17 @@ mod tests {
     #[tokio::test]
     async fn role_assignment_operations_invalidate_cached_permissions() {
         let cache = StubCache::default();
-        let resolver = RuntimePermissionResolver::new(
-            StubStore {
-                role_ids: vec![uuid::Uuid::new_v4()],
-                tenant_role_ids: vec![uuid::Uuid::new_v4()],
-                permissions: vec![Permission::PRODUCTS_READ],
-                fail_load: false,
-            },
-            cache,
-            StubAssignmentStore::default(),
-        );
+        let resolver: RuntimePermissionResolver<_, _, _, ResolverError> =
+            RuntimePermissionResolver::new(
+                StubStore {
+                    role_ids: vec![uuid::Uuid::new_v4()],
+                    tenant_role_ids: vec![uuid::Uuid::new_v4()],
+                    permissions: vec![Permission::PRODUCTS_READ],
+                    fail_load: false,
+                },
+                cache,
+                StubAssignmentStore::default(),
+            );
         let tenant_id = uuid::Uuid::new_v4();
         let user_id = uuid::Uuid::new_v4();
 
@@ -411,21 +413,22 @@ mod tests {
     #[tokio::test]
     async fn role_assignment_use_cases_delegate_to_assignment_store() {
         let assignment_store = StubAssignmentStore::default();
-        let resolver = RuntimePermissionResolver::new(
-            StubStore {
-                role_ids: vec![],
-                tenant_role_ids: vec![],
-                permissions: vec![],
-                fail_load: false,
-            },
-            StubCache::default(),
-            assignment_store,
-        );
+        let resolver: RuntimePermissionResolver<_, _, _, ResolverError> =
+            RuntimePermissionResolver::new(
+                StubStore {
+                    role_ids: vec![],
+                    tenant_role_ids: vec![],
+                    permissions: vec![],
+                    fail_load: false,
+                },
+                StubCache::default(),
+                assignment_store,
+            );
         let tenant_id = uuid::Uuid::new_v4();
         let user_id = uuid::Uuid::new_v4();
 
         resolver
-            .assign_role_permissions(&tenant_id, &user_id, UserRole::Editor)
+            .assign_role_permissions(&tenant_id, &user_id, UserRole::Manager)
             .await
             .unwrap();
         resolver
@@ -437,7 +440,7 @@ mod tests {
             .await
             .unwrap();
         resolver
-            .remove_user_role_assignment(&tenant_id, &user_id, UserRole::Editor)
+            .remove_user_role_assignment(&tenant_id, &user_id, UserRole::Manager)
             .await
             .unwrap();
 
@@ -456,10 +459,13 @@ mod tests {
             .await
             .clone();
 
-        assert_eq!(assigned, vec![(tenant_id, user_id, UserRole::Editor)]);
+        assert_eq!(assigned, vec![(tenant_id, user_id, UserRole::Manager)]);
         assert_eq!(replaced, vec![(tenant_id, user_id, UserRole::Admin)]);
         assert_eq!(removed_tenant, vec![(tenant_id, user_id)]);
-        assert_eq!(removed_single, vec![(tenant_id, user_id, UserRole::Editor)]);
+        assert_eq!(
+            removed_single,
+            vec![(tenant_id, user_id, UserRole::Manager)]
+        );
     }
 
     #[tokio::test]

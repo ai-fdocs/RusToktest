@@ -120,7 +120,7 @@ fn generate_registry() -> Result<()> {
     code.push_str("    let mut registry = ModuleRegistry::new();\n\n");
 
     // Register modules
-    for (slug, _spec) in &manifest.modules {
+    for slug in manifest.modules.keys() {
         let module_struct = to_pascal_case(slug);
         code.push_str(&format!("    // Register {} module\n", slug));
         code.push_str(&format!(
