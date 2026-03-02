@@ -233,7 +233,7 @@
 - [x] OpenTelemetry setup работает — `init()` настраивает tracing subscriber с `otel::init_otel_layer()` при наличии `OtelConfig`
 - [x] Tracing subscriber конфигурируется — `init()` принимает `TelemetryConfig` с `log_format: Json|Pretty` и `EnvFilter::try_from_default_env()`
 - [x] Prometheus metrics экспортируются — `MetricsHandle::render()` возвращает текст; `/metrics` endpoint вызывает `handle.render()`
-- [~] Graceful shutdown для telemetry — `opentelemetry::global::shutdown_tracer_provider()` не вызывается при завершении
+- [x] Graceful shutdown для telemetry — `rustok_telemetry::otel::shutdown()` вызывается в `apps/server/src/main.rs` после завершения CLI (при наличии OTEL конфигурации); внутри вызывает `provider.shutdown()` через `TRACER_PROVIDER`
 
 ---
 
