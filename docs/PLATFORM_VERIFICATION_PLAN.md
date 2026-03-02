@@ -384,8 +384,8 @@
 
 - [x] Таблица `tenant_modules` имеет schema: `id, tenant_id, module_slug, enabled, settings, created_at, updated_at` — миграция `m20250101_000003_create_tenant_modules.rs`
 - [x] UNIQUE constraint на `(tenant_id, module_slug)` — `idx_tenant_modules_unique` в миграции
-- [ ] `toggle_module()` проверяет зависимости перед отключением
-- [ ] Core-модули нельзя отключить
+- [x] `toggle_module()` проверяет зависимости перед отключением — `ModuleLifecycleService::toggle_module()` в `apps/server/src/services/module_lifecycle.rs`
+- [x] Core-модули нельзя отключить — `validate_core_toggle()` возвращает `CoreModuleCannotBeDisabled` для "index", "tenant", "rbac"
 
 ### 5.5 Cross-instance Cache Invalidation (Redis mode)
 
@@ -486,14 +486,14 @@
 #### Entities
 - [x] `nodes` entity: id, tenant_id, slug, node_type, status, author_id, created_at, updated_at
 - [x] `node_translations` entity: id, node_id, locale, title, body
-- [ ] `bodies` entity (если отдельная)
+- [x] `bodies` entity — создаётся в миграции `m20250130_000005_create_nodes.rs` (отдельная таблица `bodies` внутри той же миграции, не отдельный файл)
 - [x] Все entities имеют tenant_id
 
 #### Services
 - [x] `NodeService` — CRUD для nodes
 - [x] `create_node()` — валидация, сохранение, публикация `NodeCreated`
 - [x] `update_node()` — валидация, сохранение, публикация `NodeUpdated`
-- [ ] `delete_node()` — soft/hard delete, публикация `NodeDeleted`
+- [x] `delete_node()` — soft delete через `deleted_at`, публикует `NodeDeleted` в транзакции; `hard_delete_node()` тоже присутствует
 - [x] `list_nodes()` — пагинация, фильтрация, tenant_id scope
 - [x] `publish_node()` / `unpublish_node()` — state machine transition
 
@@ -509,10 +509,9 @@
 - [x] Property tests для state machine (`state_machine_proptest.rs`)
 
 #### Migrations
-- [ ] Миграция создаёт таблицу `nodes`
-- [ ] Миграция создаёт таблицу `node_translations`
-- [~] Миграции доступны через `RusToKModule::migrations()`
-  - Примечание: `ContentModule::migrations()` возвращает `Vec::new()` — миграции обрабатываются главным приложением
+- [x] Миграция создаёт таблицу `nodes` — `m20250130_000005_create_nodes.rs`
+- [x] Миграция создаёт таблицу `node_translations` — внутри `m20250130_000005_create_nodes.rs`
+- [~] Миграции доступны через `RusToKModule::migrations()` — `ContentModule::migrations()` возвращает `Vec::new()`, миграции управляются сервером (это намеренный дизайн)
 
 ### 7.2 rustok-commerce
 
@@ -545,8 +544,8 @@
 - [x] Property tests для state machine (`state_machine_proptest.rs`)
 
 #### Migrations
-- [ ] Все commerce-таблицы имеют миграции
-- [ ] Миграции доступны через `RusToKModule::migrations()`
+- [x] Все commerce-таблицы имеют миграции — `m20250130_000012-000018` в server Migrator
+- [~] Миграции через `RusToKModule::migrations()` — `CommerceModule::migrations()` возвращает `Vec::new()`, миграции в server Migrator
 
 ### 7.3 rustok-blog
 
@@ -559,7 +558,7 @@
 - [x] Events: `PostCreated`, `PostPublished`, etc. — исправлено, все события публикуются через `publish_in_tx()` в рамках транзакции
 - [x] DTOs: `CreatePostInput`, `PostResponse`, `PostListItem`
 - [x] Поддержка i18n (locale.rs)
-- [ ] Миграции
+- [~] Миграции — Blog использует таблицы nodes из rustok-content, собственных таблиц не требует
 
 ### 7.4 rustok-forum
 
@@ -573,7 +572,7 @@
 - [x] Events: `TopicCreated`, `ReplyCreated`, etc. — исправлено, все события публикуются через `publish_in_tx()`
 - [x] DTOs: `CreateTopicInput`, `TopicResponse`, etc.
 - [x] Поддержка i18n (locale.rs)
-- [ ] Миграции
+- [~] Миграции — Forum использует таблицы nodes из rustok-content плюс специфичные поля в node_kind
 - [x] Constants (`constants.rs`)
 
 ### 7.5 rustok-pages
@@ -937,9 +936,9 @@
 
 ### 13.2 Module Dependencies
 
-- [ ] При отключении `content` модуля → `blog` и `forum` автоматически отключаются (или ошибка)
-- [ ] При включении `blog` → `content` должен быть включён (или ошибка)
-- [ ] Core modules не могут быть отключены ни при каких условиях
+- [x] При отключении `content` модуля → `blog` и `forum` не отключаются (возвращается `HasDependents` ошибка) — `ModuleLifecycleService::toggle_module()` проверяет dependents
+- [x] При включении `blog` → `content` должен быть включён (`MissingDependencies` ошибка при отсутствии) — проверяется в toggle_module
+- [x] Core modules не могут быть отключены — `validate_core_toggle()` блокирует отключение index/tenant/rbac
 
 ### 13.3 Frontend ↔ Backend API Contracts
 
