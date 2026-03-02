@@ -61,7 +61,7 @@ pub struct BodyInput {
     pub format: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, ToSchema, Validate)]
 pub struct UpdateNodeInput {
     pub status: Option<ContentStatus>,
     pub parent_id: Option<Option<Uuid>>,
@@ -71,7 +71,9 @@ pub struct UpdateNodeInput {
     pub depth: Option<i32>,
     pub reply_count: Option<i32>,
     pub metadata: Option<Value>,
+    #[validate(nested)]
     pub translations: Option<Vec<NodeTranslationInput>>,
+    #[validate(nested)]
     pub bodies: Option<Vec<BodyInput>>,
     /// Expected version for optimistic locking
     pub expected_version: Option<i32>,
