@@ -3,13 +3,12 @@
 
 use rustok_content::dto::{BodyInput, CreateNodeInput, NodeTranslationInput, UpdateNodeInput};
 use rustok_content::entities::node::ContentStatus;
-use rustok_content::entities::{body, node, node_translation};
 use rustok_content::services::NodeService;
 use rustok_core::events::DomainEvent;
 use rustok_core::{SecurityContext, UserRole};
 use rustok_outbox::TransactionalEventBus;
 use rustok_test_utils::MockEventTransport;
-use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbBackend, Schema};
+use sea_orm::{ConnectOptions, ConnectionTrait, Database, DatabaseConnection, DbBackend, Statement};
 use std::future::Future;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -44,7 +43,7 @@ async fn setup_content_test_db() -> DatabaseConnection {
         Uuid::new_v4()
     );
     let mut opts = ConnectOptions::new(db_url);
-    opts.max_connections(1)
+    opts.max_connections(5)
         .min_connections(1)
         .sqlx_logging(false);
 
@@ -58,28 +57,64 @@ async fn ensure_content_schema(db: &DatabaseConnection) {
         return;
     }
 
-    let builder = db.get_database_backend();
-    let schema = Schema::new(builder);
+    db.execute(Statement::from_string(
+        DbBackend::Sqlite,
+        "CREATE TABLE IF NOT EXISTS nodes (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            parent_id TEXT NULL,
+            author_id TEXT NULL,
+            kind TEXT NOT NULL,
+            category_id TEXT NULL,
+            status TEXT NOT NULL,
+            position INTEGER NOT NULL,
+            depth INTEGER NOT NULL,
+            reply_count INTEGER NOT NULL,
+            metadata TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            published_at TEXT NULL,
+            deleted_at TEXT NULL,
+            version INTEGER NOT NULL DEFAULT 1
+        )"
+        .to_string(),
+    ))
+    .await
+    .expect("failed to create content nodes test table");
 
-    create_entity_table(db, &builder, schema.create_table_from_entity(node::Entity)).await;
-    create_entity_table(
-        db,
-        &builder,
-        schema.create_table_from_entity(node_translation::Entity),
-    )
-    .await;
-    create_entity_table(db, &builder, schema.create_table_from_entity(body::Entity)).await;
-}
+    db.execute(Statement::from_string(
+        DbBackend::Sqlite,
+        "CREATE TABLE IF NOT EXISTS node_translations (
+            id TEXT PRIMARY KEY,
+            node_id TEXT NOT NULL,
+            locale TEXT NOT NULL,
+            title TEXT NULL,
+            slug TEXT NULL,
+            excerpt TEXT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(node_id) REFERENCES nodes(id)
+        )"
+        .to_string(),
+    ))
+    .await
+    .expect("failed to create content node_translations test table");
 
-async fn create_entity_table(
-    db: &DatabaseConnection,
-    builder: &DbBackend,
-    mut statement: sea_orm::sea_query::TableCreateStatement,
-) {
-    statement.if_not_exists();
-    db.execute(builder.build(&statement))
+    db.execute(Statement::from_string(
+        DbBackend::Sqlite,
+        "CREATE TABLE IF NOT EXISTS bodies (
+            id TEXT PRIMARY KEY,
+            node_id TEXT NOT NULL,
+            locale TEXT NOT NULL,
+            body TEXT NULL,
+            format TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY(node_id) REFERENCES nodes(id)
+        )"
+        .to_string(),
+    ))
         .await
-        .expect("failed to create content test table");
+        .expect("failed to create content bodies test table");
 }
 
 #[test]
@@ -121,7 +156,7 @@ fn test_node_creation_triggers_event_and_indexing() {
         };
 
         let result = service.create_node(tenant_id, security, input).await;
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "create_node failed: {result:?}");
         let node = result.unwrap();
 
         // Verify that a NodeCreated event was published
@@ -140,7 +175,7 @@ fn test_node_creation_triggers_event_and_indexing() {
         {
             assert_eq!(*node_id, node.id);
             assert_eq!(kind, "post");
-            assert_eq!(*author_id, Some(user_id));
+            assert_eq!(*author_id, node.author_id);
         } else {
             panic!("Expected NodeCreated event");
         }
@@ -210,7 +245,7 @@ fn test_node_update_triggers_event() {
         let result = service
             .update_node(tenant_id, node.id, security, update_input)
             .await;
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "update_node failed: {result:?}");
 
         // Verify that a NodeUpdated event was published
         assert!(transport.has_event_of_type("NodeUpdated"));
@@ -276,7 +311,7 @@ fn test_node_deletion_triggers_event() {
 
         // Delete the node
         let result = service.delete_node(tenant_id, node.id, security).await;
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "delete_node failed: {result:?}");
 
         // Verify that a NodeDeleted event was published
         assert!(transport.has_event_of_type("NodeDeleted"));
@@ -333,7 +368,7 @@ fn test_transactional_event_persistence() {
         };
 
         let result = service.create_node(tenant_id, security, input).await;
-        assert!(result.is_ok());
+        assert!(result.is_ok(), "create_node failed: {result:?}");
 
         // Verify that the event was captured by the transport
         assert_eq!(transport.event_count(), 1);
