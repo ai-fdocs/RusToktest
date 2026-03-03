@@ -91,7 +91,11 @@ impl RootQuery {
                 name: module.name().to_string(),
                 description: module.description().to_string(),
                 version: module.version().to_string(),
-                kind: if registry.is_core(module.slug()) { "core".to_string() } else { "optional".to_string() },
+                kind: if registry.is_core(module.slug()) {
+                    "core".to_string()
+                } else {
+                    "optional".to_string()
+                },
                 enabled: registry.is_core(module.slug()) || enabled_set.contains(module.slug()),
                 dependencies: module
                     .dependencies()
