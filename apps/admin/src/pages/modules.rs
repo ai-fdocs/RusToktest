@@ -1,6 +1,5 @@
 use leptos::prelude::*;
 use leptos_auth::hooks::{use_tenant, use_token};
-use serde_json::json;
 
 use crate::features::modules::api;
 use crate::features::modules::components::ModulesList;
