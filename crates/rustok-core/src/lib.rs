@@ -12,6 +12,7 @@ pub mod metrics;
 pub mod migrations;
 pub mod module;
 pub mod permissions;
+pub mod platform_detection;
 pub mod rbac;
 pub mod registry;
 pub mod resilience;
@@ -61,6 +62,10 @@ pub use migrations::ModuleMigration;
 pub use module::{EventListener, MigrationSource};
 pub use module::{ModuleContext, ModuleKind, RusToKModule};
 pub use permissions::{Action, Permission, Resource};
+pub use platform_detection::{
+    parse_user_agent, is_bot, is_mobile, Browser, DeviceType, OperatingSystem, PlatformDetector,
+    PlatformInfo,
+};
 pub use rbac::{PermissionScope, Rbac, SecurityContext};
 pub use registry::ModuleRegistry;
 pub use resilience::{
