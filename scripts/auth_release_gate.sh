@@ -69,19 +69,32 @@ if [[ "$SKIP_LOCAL_TESTS" != "true" ]]; then
   integration_status="Done"
   integration_note="cargo test -p rustok-server auth_lifecycle + cargo test -p rustok-server auth"
 
+  lifecycle_failed="false"
+  auth_failed="false"
+
   if ! "$CARGO_BIN" test -p rustok-server auth_lifecycle >"$AUTH_LIFECYCLE_LOG" 2>&1; then
-    integration_status="Failed"
-    integration_note="auth_lifecycle suite failed (see log)"
+    lifecycle_failed="true"
     LOCAL_TEST_FAILURE="true"
   fi
 
-  if [[ "$integration_status" == "Done" ]]; then
-    if ! "$CARGO_BIN" test -p rustok-server auth >"$AUTH_LOG" 2>&1; then
-      integration_status="Failed"
-      integration_note="auth suite failed (see log)"
-      LOCAL_TEST_FAILURE="true"
-    fi
+  if ! "$CARGO_BIN" test -p rustok-server auth >"$AUTH_LOG" 2>&1; then
+    auth_failed="true"
+    LOCAL_TEST_FAILURE="true"
   fi
+
+  if [[ "$lifecycle_failed" == "true" && "$auth_failed" == "true" ]]; then
+    integration_status="Failed"
+    integration_note="auth_lifecycle and auth suites failed (see logs)"
+  elif [[ "$lifecycle_failed" == "true" ]]; then
+    integration_status="Failed"
+    integration_note="auth_lifecycle suite failed (see log)"
+  elif [[ "$auth_failed" == "true" ]]; then
+    integration_status="Failed"
+    integration_note="auth suite failed (see log)"
+  fi
+else
+  echo "Skipped (--skip-local-tests)." >"$AUTH_LIFECYCLE_LOG"
+  echo "Skipped (--skip-local-tests)." >"$AUTH_LOG"
 fi
 
 parity_status="Pending"

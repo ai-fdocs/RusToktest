@@ -23,7 +23,7 @@ if [[ "$1" != "test" ]]; then
   exit 2
 fi
 
-suite="${4:-}"
+suite="${@: -1}"
 if [[ "$suite" == "auth_lifecycle" ]]; then
   if [[ "${MOCK_FAIL_AUTH_LIFECYCLE:-0}" == "1" ]]; then
     echo "simulated auth_lifecycle failure" >&2
@@ -117,6 +117,24 @@ test_local_test_failure_exits_non_zero() {
   pass "local test failure returns non-zero and reports integration failure"
 }
 
+test_auth_suite_failure_exits_non_zero() {
+  local tmp
+  tmp="$(mktemp -d)"
+  make_mock_cargo "$tmp"
+
+  set +e
+  MOCK_FAIL_AUTH=1 RUSTOK_CARGO_BIN="$tmp/mock-cargo" "$SCRIPT" --artifacts-dir "$tmp/artifacts" >"$tmp/out.log" 2>&1
+  local code=$?
+  set -e
+
+  [[ $code -eq 1 ]] || fail "expected non-zero exit when auth suite fails"
+  local report
+  report="$(rg -o 'Report: .*' "$tmp/out.log" | sed 's/Report: //')"
+  [[ -n "$report" && -f "$report" ]] || fail "expected report path on auth suite failure"
+  rg -q '| Integration .* | Failed | auth suite failed \(see log\) |' "$report" || fail "expected auth failure detail in report"
+  pass "auth suite failure is reported and blocks gate"
+}
+
 test_skip_local_tests_marks_integration_pending() {
   local tmp
   tmp="$(mktemp -d)"
@@ -136,5 +154,6 @@ test_require_all_gates_fails_when_external_evidence_missing
 test_require_all_gates_passes_with_evidence_files
 test_skip_local_tests_marks_integration_pending
 test_local_test_failure_exits_non_zero
+test_auth_suite_failure_exits_non_zero
 
 echo "auth_release_gate tests passed"
