@@ -17,12 +17,24 @@ const DEFAULT_RESET_TOKEN_TTL_SECS: u64 = 15 * 60;
 fn map_auth_lifecycle_error(error: AuthLifecycleError) -> FieldError {
     match error {
         AuthLifecycleError::EmailAlreadyExists => FieldError::new("Email already exists"),
-        AuthLifecycleError::InvalidCredentials => FieldError::new("Invalid credentials"),
-        AuthLifecycleError::UserInactive => FieldError::new("User is inactive"),
-        AuthLifecycleError::InvalidRefreshToken => FieldError::new("Invalid refresh token"),
-        AuthLifecycleError::SessionExpired => FieldError::new("Session expired"),
-        AuthLifecycleError::UserNotFound => FieldError::new("User not found"),
-        AuthLifecycleError::InvalidResetToken => FieldError::new("Invalid reset token"),
+        AuthLifecycleError::InvalidCredentials => {
+            <FieldError as GraphQLError>::unauthorized("Invalid credentials")
+        }
+        AuthLifecycleError::UserInactive => {
+            <FieldError as GraphQLError>::unauthorized("User is inactive")
+        }
+        AuthLifecycleError::InvalidRefreshToken => {
+            <FieldError as GraphQLError>::unauthorized("Invalid refresh token")
+        }
+        AuthLifecycleError::SessionExpired => {
+            <FieldError as GraphQLError>::unauthorized("Session expired")
+        }
+        AuthLifecycleError::UserNotFound => {
+            <FieldError as GraphQLError>::unauthorized("User not found")
+        }
+        AuthLifecycleError::InvalidResetToken => {
+            <FieldError as GraphQLError>::unauthorized("Invalid reset token")
+        }
         AuthLifecycleError::Internal(err) => {
             <FieldError as GraphQLError>::internal_error(&err.to_string())
         }
@@ -276,6 +288,20 @@ mod tests {
     fn maps_user_not_found_message() {
         let err = map_auth_lifecycle_error(AuthLifecycleError::UserNotFound);
         assert!(err.message.contains("User not found"));
+    }
+
+    #[test]
+    fn maps_auth_errors_with_unauthenticated_code() {
+        let err = map_auth_lifecycle_error(AuthLifecycleError::InvalidCredentials);
+        let code = err
+            .extensions
+            .as_ref()
+            .and_then(|ext| ext.get("code"))
+            .and_then(|value| match value {
+                async_graphql::Value::String(s) => Some(s.as_str()),
+                _ => None,
+            });
+        assert_eq!(code, Some("UNAUTHENTICATED"));
     }
 
     #[test]
