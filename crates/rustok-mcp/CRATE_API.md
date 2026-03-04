@@ -17,5 +17,5 @@
 - `rustok-core`
 
 ## Частые ошибки ИИ
-- Путает app-wrapper `apps/mcp` и crate `rustok-mcp`.
+- Упоминание несуществующего `apps/mcp` — MCP сервер реализован как встроенный binary `rustok-mcp-server` внутри crate `rustok-mcp`.
 - Нарушает формат MCP tool/result payload.

@@ -12,7 +12,6 @@ graph TD
         SF[apps/storefront - Leptos Storefront]
         NEXT_ADMIN[apps/next-admin - Next.js Admin]
         NEXT_SF[apps/next-frontend - Next.js Storefront]
-        MCP_APP[apps/mcp - MCP stdio server]
     end
 
     subgraph Domain Modules
@@ -33,7 +32,7 @@ graph TD
         OUTBOX[crates/rustok-outbox - Core Infra]
         IGGY[crates/rustok-iggy]
         IGGY_CONN[crates/rustok-iggy-connector]
-        MCP[crates/rustok-mcp]
+        MCP[crates/rustok-mcp - includes rustok-mcp-server binary]
         TELEMETRY[crates/rustok-telemetry]
         TEST_UTILS[crates/rustok-test-utils]
     end
@@ -68,8 +67,6 @@ graph TD
     ADMIN --> L_PAGINATION
     SF --> L_UI
     SF --> L_GRAPHQL
-
-    MCP_APP --> MCP
 
     COMMERCE --> CORE
     COMMERCE --> EVENTS

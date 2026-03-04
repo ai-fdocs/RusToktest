@@ -33,7 +33,6 @@ graph TD
     A --> ASF[apps/storefront/README.md]
     A --> ANEXTADMIN[apps/next-admin/docs/*]
     A --> ANEXTSF[apps/next-frontend/docs/*]
-    A --> AMCP[apps/mcp → crates/rustok-mcp/docs/*]
 
     C --> CDOMAIN[crates/rustok-*/docs/*]
     C --> CUI[crates/leptos-*/docs/*]
@@ -160,7 +159,6 @@ graph TD
 - [Next.js Admin themes](../apps/next-admin/docs/themes.md)
 - [Leptos Storefront README](../apps/storefront/README.md)
 - [Next.js Storefront docs](../apps/next-frontend/docs/README.md)
-- [MCP crate docs](../crates/rustok-mcp/docs/README.md) (`apps/mcp` uses this crate)
 
 ### Module and crate docs
 
@@ -237,8 +235,6 @@ graph TD
 - `apps/server`
   - [README](../apps/server/README.md)
   - [docs/README](../apps/server/docs/README.md)
-- `apps/mcp`
-  - (uses `crates/rustok-mcp` — see MCP crate docs below)
 - `apps/storefront`
   - [README](../apps/storefront/README.md)
 

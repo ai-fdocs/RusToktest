@@ -66,8 +66,7 @@ RusToK/
 │   ├── admin/           # ⚙️ Admin Panel (Leptos CSR)
 │   ├── storefront/      # 🛍️ Витрина (Leptos SSR)
 │   ├── next-admin/      # ⚙️ Admin (Next.js)
-│   ├── next-frontend/   # 🛍️ Витрина (Next.js)
-│   └── mcp/             # 🤖 MCP сервер
+│   └── next-frontend/   # 🛍️ Витрина (Next.js)
 │
 ├── crates/
 │   ├── rustok-core/     # 🧠 Ядро (Auth, Events, RBAC)
@@ -79,6 +78,7 @@ RusToK/
 │   ├── rustok-tenant/   # 🏢 Мультиарендность
 │   ├── rustok-rbac/     # 🔐 Права доступа
 │   ├── rustok-outbox/   # 📤 Transactional Outbox
+│   ├── rustok-mcp/      # 🤖 MCP сервер (встроенный binary)
 │   └── ...
 │
 └── docs/                # 📚 Документация
