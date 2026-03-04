@@ -535,11 +535,11 @@
 Используется как короткий операционный статус до завершения relation-only cutover.
 
 - [ ] **MVP-блокер 1 (Фаза 4):** staged rehearsal завершён (dry-run/backfill/rollback) + приложен отчёт по инвариантам.
-  - Артефакты: `artifacts/rbac-staging/*`, stage-report markdown, pre/post JSON consistency reports.
+  - Артефакты: `artifacts/rbac-staging/*`, stage-report markdown, pre/post JSON consistency reports; проверка проходит по runbook-последовательности из раздела 13.1/13.5.
 - [ ] **MVP-блокер 2 (Фаза 5 prep):** ADR final cutover согласован с явным rollback-gate и stop-the-line условиями.
   - Артефакты: ADR в `DECISIONS/` + ссылка в этом плане.
 - [ ] **MVP-блокер 3 (Фаза 5):** production dual-read окно наблюдения завершено, baseline зафиксирован, принято go/no-go решение для relation-only.
-  - Артефакты: baseline report/json из `artifacts/rbac-cutover/*`, запись решения (go/no-go) в release-notes/runbook.
+  - Артефакты: baseline report/json из `artifacts/rbac-cutover/*`, запись решения (go/no-go) в release-notes/runbook; gate проверяется по разделам 13.2/13.3/13.5.
 
 Правило обновления: после каждого merge меняется только статус соответствующего блокера и ссылка на артефакт; scope этапа не расширяется.
 
@@ -627,6 +627,32 @@
 3. **Decision health:** mismatch trend, deny/error trend, latency p95/p99.
 4. **Инциденты:** любые отклонения, ручные интервенции, rollback-шаги (если были).
 5. **Решение:** Go/No-Go + ответственные и timestamp.
+
+### 13.5 Минимальный набор команд и артефактов (операционный baseline)
+
+Для снижения вариативности между дежурными сменами используем стандартный каркас команд (параметры окружения подставляются release-менеджером):
+
+1. **Staging rehearsal:** `scripts/rbac_relation_staging.sh --require-report-artifacts`.
+2. **Production baseline:** `scripts/rbac_cutover_baseline.sh <...параметры окна наблюдения...>`.
+3. **Auth gate перед переключением:** `scripts/auth_release_gate.sh --require-all-gates`.
+
+Минимальный набор артефактов, который должен быть приложен к go/no-go решению:
+
+- stage-report markdown из rehearsal-цикла,
+- dry-run/apply/rollback JSON-отчёты backfill-циклов,
+- baseline json/markdown для dual-read окна,
+- финальная запись решения (go/no-go) в release-notes/runbook.
+
+Если хотя бы один обязательный артефакт отсутствует, решение автоматически трактуется как **No-Go**.
+
+### 13.6 Режим rollback: приоритеты и SLA реакции
+
+При срабатывании stop-the-line условий из раздела 12.2:
+
+1. **Приоритет P0:** вернуть предыдущий enforcement-режим (отключить relation-only, восстановить предыдущее состояние флага).
+2. **SLA реакции:** начало rollback-операции не позднее 15 минут с момента подтверждения инцидента on-call инженером.
+3. **Коммуникация:** инцидент фиксируется в on-call канале и в release-notes с указанием tenant scope и impact.
+4. **Post-incident:** в течение 24 часов оформляется краткий RCA и решение о повторном окне cutover.
 
 ---
 
