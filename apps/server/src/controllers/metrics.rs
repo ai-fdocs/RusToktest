@@ -247,6 +247,15 @@ mod tests {
     }
 
     #[test]
+    fn rbac_metrics_include_engine_decision_and_latency_counters() {
+        let payload = format_rbac_metrics(AuthService::metrics_snapshot(), 0, 0, 0);
+        assert!(payload.contains("rustok_rbac_engine_decisions_relation_total"));
+        assert!(payload.contains("rustok_rbac_engine_decisions_casbin_total"));
+        assert!(payload.contains("rustok_rbac_engine_eval_duration_ms_total"));
+        assert!(payload.contains("rustok_rbac_engine_eval_duration_samples"));
+    }
+
+    #[test]
     fn rbac_metrics_include_users_without_roles_counter() {
         let payload = format_rbac_metrics(AuthService::metrics_snapshot(), 0, 0, 0);
         assert!(payload.contains("rustok_rbac_users_without_roles_total"));

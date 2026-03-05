@@ -46,4 +46,24 @@ mod tests {
 
         assert!(!result);
     }
+
+    #[test]
+    fn casbin_shadow_any_all_respect_manage_wildcard() {
+        let tenant_id = uuid::Uuid::new_v4();
+        let permissions = [Permission::USERS_MANAGE];
+
+        let allows_any = evaluate_casbin_shadow(
+            &tenant_id,
+            &permissions,
+            ShadowCheck::Any(&[Permission::USERS_READ, Permission::USERS_DELETE]),
+        );
+        let allows_all = evaluate_casbin_shadow(
+            &tenant_id,
+            &permissions,
+            ShadowCheck::All(&[Permission::USERS_READ, Permission::USERS_UPDATE]),
+        );
+
+        assert!(allows_any);
+        assert!(allows_all);
+    }
 }
