@@ -166,33 +166,35 @@ fn format_rbac_metrics(
 
     format!(
         "rustok_rbac_permission_cache_hits {cache_hits}\n\
-rustok_rbac_permission_cache_misses {cache_misses}\n\
-rustok_rbac_permission_checks_allowed {checks_allowed}\n\
-rustok_rbac_permission_checks_denied {checks_denied}\n\
-rustok_rbac_permission_check_latency_ms_total {check_latency_ms_total}\n\
-rustok_rbac_permission_check_latency_samples {check_latency_samples}\n\
-rustok_rbac_permission_lookup_latency_ms_total {lookup_latency_ms_total}\n\
-rustok_rbac_permission_lookup_latency_samples {lookup_latency_samples}\n\
-rustok_rbac_permission_denied_reason_no_permissions_resolved {denied_no_permissions_resolved}\n\
-rustok_rbac_permission_denied_reason_missing_permissions {denied_missing_permissions}\n\
-rustok_rbac_permission_denied_reason_unknown {denied_unknown}\n\
-rustok_rbac_claim_role_mismatch_total {claim_role_mismatch_total}\n\
-rustok_rbac_decision_mismatch_total {decision_mismatch_total}\n\
-rustok_rbac_shadow_compare_failures_total {shadow_compare_failures_total}\n\
-rbac_engine_decisions_total {engine_decisions_total}\n\
-rustok_rbac_engine_decisions_relation_total {engine_decisions_relation_total}\n\
-rustok_rbac_engine_decisions_casbin_total {engine_decisions_casbin_total}\n\
-rbac_engine_mismatch_total {engine_mismatch_total}\n\
-rustok_rbac_engine_mismatch_total {engine_mismatch_total}\n\
-rbac_engine_eval_duration_ms {engine_eval_duration_ms_total}\n\
-rustok_rbac_engine_eval_duration_ms_total {engine_eval_duration_ms_total}\n\
-rustok_rbac_engine_eval_duration_samples {engine_eval_duration_samples}\n\
-rustok_rbac_users_without_roles_total {users_without_roles_total}\n\
-rustok_rbac_orphan_user_roles_total {orphan_user_roles_total}\n\
-rustok_rbac_orphan_role_permissions_total {orphan_role_permissions_total}\n\
-rustok_rbac_consistency_query_failures_total {consistency_query_failures_total}\n\
-rustok_rbac_consistency_query_latency_ms_total {consistency_query_latency_ms_total}\n\
-rustok_rbac_consistency_query_latency_samples {consistency_query_latency_samples}\n",
+    rustok_rbac_permission_cache_misses {cache_misses}\n\
+    rustok_rbac_permission_checks_allowed {checks_allowed}\n\
+    rustok_rbac_permission_checks_denied {checks_denied}\n\
+    rustok_rbac_permission_check_latency_ms_total {check_latency_ms_total}\n\
+    rustok_rbac_permission_check_latency_samples {check_latency_samples}\n\
+    rustok_rbac_permission_lookup_latency_ms_total {lookup_latency_ms_total}\n\
+    rustok_rbac_permission_lookup_latency_samples {lookup_latency_samples}\n\
+    rustok_rbac_permission_denied_reason_no_permissions_resolved {denied_no_permissions_resolved}\n\
+    rustok_rbac_permission_denied_reason_missing_permissions {denied_missing_permissions}\n\
+    rustok_rbac_permission_denied_reason_unknown {denied_unknown}\n\
+    rustok_rbac_claim_role_mismatch_total {claim_role_mismatch_total}\n\
+    rustok_rbac_decision_mismatch_total {decision_mismatch_total}\n\
+    rustok_rbac_shadow_compare_failures_total {shadow_compare_failures_total}\n\
+    rbac_engine_decisions_total {engine_decisions_total}\n\
+    rustok_rbac_engine_decisions_relation_total {engine_decisions_relation_total}\n\
+    rustok_rbac_engine_decisions_casbin_total {engine_decisions_casbin_total}\n\
+    rbac_engine_mismatch_total {engine_mismatch_total}\n\
+    rbac_engine_mismatch_total{source="relation",target="casbin"} {engine_mismatch_total}\n\
+    rustok_rbac_engine_mismatch_total {engine_mismatch_total}\n\
+    rbac_engine_eval_duration_ms {engine_eval_duration_ms_total}\n\
+    rbac_engine_eval_latency_ms{engine="casbin"} {engine_eval_duration_ms_total}\n\
+    rustok_rbac_engine_eval_duration_ms_total {engine_eval_duration_ms_total}\n\
+    rustok_rbac_engine_eval_duration_samples {engine_eval_duration_samples}\n\
+    rustok_rbac_users_without_roles_total {users_without_roles_total}\n\
+    rustok_rbac_orphan_user_roles_total {orphan_user_roles_total}\n\
+    rustok_rbac_orphan_role_permissions_total {orphan_role_permissions_total}\n\
+    rustok_rbac_consistency_query_failures_total {consistency_query_failures_total}\n\
+    rustok_rbac_consistency_query_latency_ms_total {consistency_query_latency_ms_total}\n\
+    rustok_rbac_consistency_query_latency_samples {consistency_query_latency_samples}\n",
         cache_hits = stats.permission_cache_hits,
         cache_misses = stats.permission_cache_misses,
         checks_allowed = stats.permission_checks_allowed,
@@ -238,6 +240,17 @@ mod tests {
         );
     }
 
+    fn assert_metric_labeled_line(payload: &str, metric_name: &str, labels: &str) {
+        let prefix = format!("{metric_name}{labels}");
+        let has_exact_line = payload.lines().any(|line| {
+            line.starts_with(&prefix) && line.as_bytes().get(prefix.len()) == Some(&b' ')
+        });
+        assert!(
+            has_exact_line,
+            "labeled metric line `{prefix}` not found in payload: {payload}"
+        );
+    }
+
     #[test]
     fn rbac_metrics_include_claim_role_mismatch_counter() {
         let payload = format_rbac_metrics(AuthService::metrics_snapshot(), 0, 0, 0);
@@ -269,8 +282,18 @@ mod tests {
         assert_metric_line(&payload, "rustok_rbac_engine_decisions_relation_total");
         assert_metric_line(&payload, "rustok_rbac_engine_decisions_casbin_total");
         assert_metric_line(&payload, "rbac_engine_mismatch_total");
+        assert_metric_labeled_line(
+            &payload,
+            "rbac_engine_mismatch_total",
+            "{source=\"relation\",target=\"casbin\"}",
+        );
         assert_metric_line(&payload, "rustok_rbac_engine_mismatch_total");
         assert_metric_line(&payload, "rbac_engine_eval_duration_ms");
+        assert_metric_labeled_line(
+            &payload,
+            "rbac_engine_eval_latency_ms",
+            "{engine=\"casbin\"}",
+        );
         assert_metric_line(&payload, "rustok_rbac_engine_eval_duration_ms_total");
         assert_metric_line(&payload, "rustok_rbac_engine_eval_duration_samples");
     }
