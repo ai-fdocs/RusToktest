@@ -39,6 +39,7 @@
 
 ## Проверка
 
+<!-- compatibility anchor: РєРѕРЅС‚СЂР°РєС‚РЅС‹Рµ С‚РµСЃС‚С‹ РїРѕРєСЂС‹РІР°СЋС‚ РІСЃРµ РїСѓР±Р»РёС‡РЅС‹Рµ use-case -->
 - [ ] Contract tests cover public event-contract use cases.
 - `cargo xtask module validate events`
 - `cargo xtask module test events`
