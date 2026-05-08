@@ -389,7 +389,7 @@ async fn test_promote_topic_to_post_is_idempotent_and_publishes_single_event() {
         DomainEvent::CanonicalUrlChanged { target_id, target_kind, locale, new_canonical_url, old_urls }
             if *target_id == bridge.promoted_post_id
                 && target_kind == "blog_post"
-                && locale == "en-us"
+                && locale == "en-US"
                 && new_canonical_url == "/modules/blog?slug=hello"
                 && old_urls == &vec!["/modules/forum?topic=legacy".to_string()]
     ));
@@ -398,7 +398,7 @@ async fn test_promote_topic_to_post_is_idempotent_and_publishes_single_event() {
         DomainEvent::UrlAliasPurged { target_id, target_kind, locale, urls }
             if *target_id == bridge.promoted_post_id
                 && target_kind == "blog_post"
-                && locale == "en-us"
+                && locale == "en-US"
                 && urls == &vec!["/modules/forum?topic=legacy".to_string()]
     ));
     assert!(matches!(
