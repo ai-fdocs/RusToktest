@@ -704,7 +704,15 @@ async fn catalog_service_supports_multilingual_catalog_data_on_migrated_schema()
     assert!(created.translations.iter().any(|item| item.locale == "en"));
     assert!(created.translations.iter().any(|item| item.locale == "ru"));
     assert_eq!(created.options.len(), 1);
-    assert_eq!(created.options[0].translations.len(), 1);
+    assert_eq!(created.options[0].translations.len(), 2);
+    assert!(created.options[0]
+        .translations
+        .iter()
+        .any(|item| item.locale == "en"));
+    assert!(created.options[0]
+        .translations
+        .iter()
+        .any(|item| item.locale == "ru"));
     assert_eq!(created.variants[0].translations.len(), 2);
 
     let fetched = service
@@ -713,8 +721,11 @@ async fn catalog_service_supports_multilingual_catalog_data_on_migrated_schema()
         .expect("catalog get_product should work on migrated schema");
 
     assert_eq!(fetched.translations.len(), 2);
-    assert_eq!(fetched.options[0].translations.len(), 1);
-    assert_eq!(fetched.options[0].translations[0].values.len(), 2);
+    assert_eq!(fetched.options[0].translations.len(), 2);
+    assert!(fetched.options[0]
+        .translations
+        .iter()
+        .all(|item| item.values.len() == 2));
     assert_eq!(fetched.variants[0].translations.len(), 2);
     assert_eq!(
         fetched
