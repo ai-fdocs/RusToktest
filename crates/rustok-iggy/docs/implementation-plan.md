@@ -39,6 +39,8 @@ production-grade уровня.
 
 ## Проверка
 
+контрактные тесты покрывают все публичные use-case
+
 - [ ] контрактные тесты покрывают все публичные use-case orchestration и surface contracts.
 - targeted compile/tests для configuration, serialization, topology, consumer groups и replay/DLQ contracts;
 - integration tests для реального Iggy backend path;
