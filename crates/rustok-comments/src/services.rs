@@ -93,7 +93,7 @@ mod locale_fallback_tests {
         )
         .expect("body should resolve");
 
-        assert_eq!(resolved.effective_locale, "en-us");
+        assert_eq!(resolved.effective_locale, "en-US");
         assert_eq!(resolved.body, "Hello");
     }
 }
