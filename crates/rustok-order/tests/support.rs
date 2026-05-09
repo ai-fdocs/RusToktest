@@ -15,6 +15,26 @@ pub async fn ensure_order_schema(db: &DatabaseConnection) {
     let builder = db.get_database_backend();
     let schema = Schema::new(builder);
 
+    let tenants_table = sea_orm::sea_query::Table::create()
+        .table(sea_orm::sea_query::Alias::new("tenants"))
+        .if_not_exists()
+        .col(
+            sea_orm::sea_query::ColumnDef::new(sea_orm::sea_query::Alias::new("id"))
+                .uuid()
+                .not_null()
+                .primary_key(),
+        )
+        .col(
+            sea_orm::sea_query::ColumnDef::new(sea_orm::sea_query::Alias::new("default_locale"))
+                .string_len(32)
+                .not_null()
+                .default("en"),
+        )
+        .to_owned();
+    db.execute(builder.build(&tenants_table))
+        .await
+        .expect("tenants table should be created for locale resolution");
+
     create_entity_table(db, &builder, schema.create_table_from_entity(order::Entity)).await;
     create_entity_table(
         db,
