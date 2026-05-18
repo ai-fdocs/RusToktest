@@ -146,6 +146,8 @@ async-trait = "0.1"
 casbin = { version = "2.20.0", default-features = false, features = ["runtime-tokio"] }
 
 # OpenTelemetry
+# NOTE: tracing-opentelemetry 0.32.x is coupled with opentelemetry 0.31.x.
+# Keep this quartet aligned until upstream crates move to the same major/minor line.
 opentelemetry = "0.31"
 opentelemetry-otlp = "0.31.1"
 tracing-opentelemetry = "0.32.1"
