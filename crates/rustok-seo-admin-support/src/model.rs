@@ -131,19 +131,19 @@ impl SeoEntityForm {
             match structured_data {
                 Value::Object(object) => {
                     if let Some(schema_type) = extract_primary_type_value(object.get("@type")) {
-                        self.structured_data_type = schema_type;
+                        self.structured_data_type =
+                            normalize_schema_type_input(schema_type.as_str()).unwrap_or(schema_type);
                     }
                     let mut payload = object.clone();
                     payload.remove("@type");
                     if !payload.is_empty() {
-                        self.structured_data_payload =
-                            serde_json::to_string_pretty(&Value::Object(payload))
-                                .unwrap_or_else(|_| "{}".to_string());
+                        self.structured_data_payload = serde_json::to_string_pretty(&Value::Object(payload))
+                            .unwrap_or_else(|_| "{}".to_string());
                     }
                 }
                 other => {
-                    self.structured_data_payload =
-                        serde_json::to_string_pretty(other).unwrap_or_else(|_| "{}".to_string());
+                    self.structured_data_payload = serde_json::to_string_pretty(other)
+                        .unwrap_or_else(|_| "{}".to_string());
                 }
             }
         }
@@ -245,9 +245,7 @@ impl SeoEntityForm {
             recommendations.push(SeoRecommendation::AddOpenGraphImage);
         }
 
-        if !self.structured_data_type.trim().is_empty()
-            || !self.structured_data_payload.trim().is_empty()
-        {
+        if !self.structured_data_type.trim().is_empty() || !self.structured_data_payload.trim().is_empty() {
             score += 5;
         }
 
@@ -258,7 +256,8 @@ impl SeoEntityForm {
     }
 
     fn parse_structured_data(&self) -> Result<Option<Value>, String> {
-        let schema_type = self.structured_data_type.trim();
+        let normalized_schema_type = normalize_schema_type_input(self.structured_data_type.as_str());
+        let schema_type = normalized_schema_type.as_deref().unwrap_or("");
         let payload = self.structured_data_payload.trim();
         if schema_type.is_empty() && payload.is_empty() {
             return Ok(None);
@@ -290,7 +289,9 @@ impl SeoEntityForm {
                 if let Some(existing_type) =
                     extract_primary_type_value(object.get("@type")).as_deref()
                 {
-                    if existing_type != schema_type {
+                    let normalized_existing_type =
+                        normalize_schema_type_input(existing_type).unwrap_or_else(|| existing_type.to_string());
+                    if normalized_existing_type != schema_type {
                         return Err(
                             "Structured data payload @type must match schema type field."
                                 .to_string(),
@@ -315,10 +316,20 @@ impl SeoEntityForm {
 
 fn has_non_empty_json_ld_type(value: &Value) -> bool {
     match value {
-        Value::Object(object) => object
-            .get("@type")
-            .map(has_non_empty_type_value)
-            .unwrap_or(false),
+        Value::Object(object) => {
+            let has_direct_type = object
+                .get("@type")
+                .map(has_non_empty_type_value)
+                .unwrap_or(false);
+            if has_direct_type {
+                return true;
+            }
+
+            object
+                .get("@graph")
+                .map(has_non_empty_json_ld_type)
+                .unwrap_or(false)
+        }
         Value::Array(values) => values.iter().any(has_non_empty_json_ld_type),
         _ => false,
     }
@@ -360,6 +371,20 @@ fn extract_primary_type_value(value: Option<&Value>) -> Option<String> {
     }
 }
 
+fn normalize_schema_type_input(value: &str) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+
+    let without_leading_at = trimmed.trim_start_matches('@').trim();
+    if without_leading_at.is_empty() {
+        None
+    } else {
+        Some(without_leading_at.to_string())
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct SeoCompletenessReport {
     pub score: u8,
@@ -398,6 +423,7 @@ fn non_empty_option(value: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{SeoEntityForm, SeoMetaTranslationView, SeoMetaView, SeoRecommendation};
+    use serde_json::json;
     use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
     use serde_json::json;
     use uuid::Uuid;
@@ -456,10 +482,7 @@ mod tests {
             )
             .expect("input should build");
 
-        assert_eq!(
-            input.structured_data,
-            Some(json!({"@type":"Product","name":"Demo"}))
-        );
+        assert_eq!(input.structured_data, Some(json!({"@type":"Product","name":"Demo"})));
     }
 
     #[test]
@@ -566,5 +589,87 @@ mod tests {
         form.apply_record(&record);
 
         assert_eq!(form.structured_data_type, "FAQPage");
+    }
+
+    #[test]
+    fn build_input_accepts_graph_payload_with_nested_typed_nodes() {
+        let mut form = SeoEntityForm::new("en-US".to_string());
+        form.structured_data_payload =
+            r#"{"@graph":[{"@type":"BreadcrumbList","itemListElement":[]}]}"#.to_string();
+
+        let input = form
+            .build_input(
+                SeoTargetSlug::new(seo_builtin_slug::PAGE).expect("builtin SEO target slug"),
+                Uuid::new_v4().to_string().as_str(),
+            )
+            .expect("graph payload with nested type should be valid");
+
+        assert_eq!(
+            input.structured_data,
+            Some(json!({"@graph":[{"@type":"BreadcrumbList","itemListElement":[]}]}))
+        );
+    }
+
+    #[test]
+    fn build_input_normalizes_schema_type_without_leading_at() {
+        let mut form = SeoEntityForm::new("en-US".to_string());
+        form.structured_data_type = "  @Product  ".to_string();
+        form.structured_data_payload = r#"{"name":"Demo"}"#.to_string();
+
+        let input = form
+            .build_input(
+                SeoTargetSlug::new(seo_builtin_slug::PRODUCT).expect("builtin SEO target slug"),
+                Uuid::new_v4().to_string().as_str(),
+            )
+            .expect("input should build");
+
+        assert_eq!(
+            input.structured_data,
+            Some(json!({"@type":"Product","name":"Demo"}))
+        );
+    }
+
+    #[test]
+    fn build_input_accepts_payload_type_with_leading_at_when_matching() {
+        let mut form = SeoEntityForm::new("en-US".to_string());
+        form.structured_data_type = "Product".to_string();
+        form.structured_data_payload = r#"{"@type":"@Product","name":"Demo"}"#.to_string();
+
+        let input = form
+            .build_input(
+                SeoTargetSlug::new(seo_builtin_slug::PRODUCT).expect("builtin SEO target slug"),
+                Uuid::new_v4().to_string().as_str(),
+            )
+            .expect("input should build");
+
+        assert_eq!(
+            input.structured_data,
+            Some(json!({"@type":"Product","name":"Demo"}))
+        );
+    }
+
+    #[test]
+    fn apply_record_normalizes_schema_type_with_leading_at() {
+        let mut form = SeoEntityForm::new("en-US".to_string());
+        let record = SeoMetaView {
+            target_kind: None,
+            target_id: None,
+            requested_locale: None,
+            effective_locale: "en-US".to_string(),
+            available_locales: vec!["en-US".to_string()],
+            noindex: false,
+            nofollow: false,
+            canonical_url: None,
+            translation: SeoMetaTranslationView {
+                locale: "en-US".to_string(),
+                ..SeoMetaTranslationView::default()
+            },
+            source: "explicit".to_string(),
+            structured_data: Some(json!({"@type":"@Product","name":"Demo"})),
+        };
+
+        form.apply_record(&record);
+
+        assert_eq!(form.structured_data_type, "Product");
     }
 }
