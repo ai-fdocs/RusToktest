@@ -131,7 +131,8 @@ impl SeoEntityForm {
             match structured_data {
                 Value::Object(object) => {
                     if let Some(schema_type) = extract_primary_type_value(object.get("@type")) {
-                        self.structured_data_type = schema_type;
+                        self.structured_data_type =
+                            normalize_schema_type_input(schema_type.as_str()).unwrap_or(schema_type);
                     }
                     let mut payload = object.clone();
                     payload.remove("@type");
@@ -288,7 +289,9 @@ impl SeoEntityForm {
                 if let Some(existing_type) =
                     extract_primary_type_value(object.get("@type")).as_deref()
                 {
-                    if existing_type != schema_type {
+                    let normalized_existing_type =
+                        normalize_schema_type_input(existing_type).unwrap_or_else(|| existing_type.to_string());
+                    if normalized_existing_type != schema_type {
                         return Err(
                             "Structured data payload @type must match schema type field."
                                 .to_string(),
@@ -623,5 +626,49 @@ mod tests {
             input.structured_data,
             Some(json!({"@type":"Product","name":"Demo"}))
         );
+    }
+
+    #[test]
+    fn build_input_accepts_payload_type_with_leading_at_when_matching() {
+        let mut form = SeoEntityForm::new("en-US".to_string());
+        form.structured_data_type = "Product".to_string();
+        form.structured_data_payload = r#"{"@type":"@Product","name":"Demo"}"#.to_string();
+
+        let input = form
+            .build_input(
+                SeoTargetSlug::new(seo_builtin_slug::PRODUCT).expect("builtin SEO target slug"),
+                Uuid::new_v4().to_string().as_str(),
+            )
+            .expect("input should build");
+
+        assert_eq!(
+            input.structured_data,
+            Some(json!({"@type":"Product","name":"Demo"}))
+        );
+    }
+
+    #[test]
+    fn apply_record_normalizes_schema_type_with_leading_at() {
+        let mut form = SeoEntityForm::new("en-US".to_string());
+        let record = SeoMetaView {
+            target_kind: None,
+            target_id: None,
+            requested_locale: None,
+            effective_locale: "en-US".to_string(),
+            available_locales: vec!["en-US".to_string()],
+            noindex: false,
+            nofollow: false,
+            canonical_url: None,
+            translation: SeoMetaTranslationView {
+                locale: "en-US".to_string(),
+                ..SeoMetaTranslationView::default()
+            },
+            source: "explicit".to_string(),
+            structured_data: Some(json!({"@type":"@Product","name":"Demo"})),
+        };
+
+        form.apply_record(&record);
+
+        assert_eq!(form.structured_data_type, "Product");
     }
 }
