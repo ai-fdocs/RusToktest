@@ -136,13 +136,14 @@ impl SeoEntityForm {
                     let mut payload = object.clone();
                     payload.remove("@type");
                     if !payload.is_empty() {
-                        self.structured_data_payload = serde_json::to_string_pretty(&Value::Object(payload))
-                            .unwrap_or_else(|_| "{}".to_string());
+                        self.structured_data_payload =
+                            serde_json::to_string_pretty(&Value::Object(payload))
+                                .unwrap_or_else(|_| "{}".to_string());
                     }
                 }
                 other => {
-                    self.structured_data_payload = serde_json::to_string_pretty(other)
-                        .unwrap_or_else(|_| "{}".to_string());
+                    self.structured_data_payload =
+                        serde_json::to_string_pretty(other).unwrap_or_else(|_| "{}".to_string());
                 }
             }
         }
@@ -244,7 +245,9 @@ impl SeoEntityForm {
             recommendations.push(SeoRecommendation::AddOpenGraphImage);
         }
 
-        if !self.structured_data_type.trim().is_empty() || !self.structured_data_payload.trim().is_empty() {
+        if !self.structured_data_type.trim().is_empty()
+            || !self.structured_data_payload.trim().is_empty()
+        {
             score += 5;
         }
 
@@ -395,8 +398,8 @@ fn non_empty_option(value: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::{SeoEntityForm, SeoMetaTranslationView, SeoMetaView, SeoRecommendation};
-    use serde_json::json;
     use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
+    use serde_json::json;
     use uuid::Uuid;
 
     #[test]
@@ -453,7 +456,10 @@ mod tests {
             )
             .expect("input should build");
 
-        assert_eq!(input.structured_data, Some(json!({"@type":"Product","name":"Demo"})));
+        assert_eq!(
+            input.structured_data,
+            Some(json!({"@type":"Product","name":"Demo"}))
+        );
     }
 
     #[test]
