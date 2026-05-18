@@ -84,8 +84,15 @@ pub mod schema {
 
     pub fn offer(price: f64, price_currency: &str, availability: Option<&str>) -> Value {
         let mut object = schema_object("Offer");
-        object.insert("price".to_string(), json!(price));
-        insert_string(&mut object, "priceCurrency", Some(price_currency));
+        insert_number(&mut object, "price", Some(price));
+        let currency = price_currency
+            .trim()
+            .to_ascii_uppercase();
+        insert_string(
+            &mut object,
+            "priceCurrency",
+            (!currency.is_empty()).then_some(currency.as_str()),
+        );
         insert_string(&mut object, "availability", availability);
         Value::Object(object)
     }
@@ -206,6 +213,12 @@ pub mod schema {
     fn insert_value(object: &mut Map<String, Value>, key: &str, value: Option<Value>) {
         if let Some(value) = value.filter(|value| !value.is_null()) {
             object.insert(key.to_string(), value);
+        }
+    }
+
+    fn insert_number(object: &mut Map<String, Value>, key: &str, value: Option<f64>) {
+        if let Some(value) = value.filter(|value| value.is_finite()) {
+            object.insert(key.to_string(), json!(value));
         }
     }
 }
@@ -739,6 +752,9 @@ mod tests {
         assert_eq!(offer["@type"], json!("Offer"));
         assert_eq!(offer["price"], json!(49.9));
         assert_eq!(offer["priceCurrency"], json!("USD"));
+        let offer_without_valid_price = schema::offer(f64::NAN, " usd ", None);
+        assert!(offer_without_valid_price.get("price").is_none());
+        assert_eq!(offer_without_valid_price["priceCurrency"], json!("USD"));
 
         let review = schema::review(Some("Jane"), Some("Great"), Some(5.0), Some(5.0));
         assert_eq!(review["@type"], json!("Review"));
