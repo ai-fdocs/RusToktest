@@ -114,11 +114,10 @@ pub mod schema {
         }
         if rating_value.is_some() || best_rating.is_some() {
             let mut rating = typed_object("Rating");
-            if let Some(rating_value) = rating_value {
-                rating.insert("ratingValue".to_string(), json!(rating_value));
-            }
-            if let Some(best_rating) = best_rating {
-                rating.insert("bestRating".to_string(), json!(best_rating));
+            insert_number(&mut rating, "ratingValue", rating_value);
+            insert_number(&mut rating, "bestRating", best_rating);
+            if rating.len() == 1 {
+                return Value::Object(object);
             }
             object.insert("reviewRating".to_string(), Value::Object(rating));
         }
@@ -229,7 +228,8 @@ pub mod schema {
         if trimmed.is_empty() {
             return None;
         }
-        if trimmed.starts_with("https://schema.org/") {
+        if trimmed.starts_with("https://schema.org/") || trimmed.starts_with("http://schema.org/")
+        {
             return Some(trimmed);
         }
         None
@@ -771,12 +771,21 @@ mod tests {
         assert_eq!(offer_without_valid_price["priceCurrency"], json!("USD"));
         let offer_with_invalid_availability = schema::offer(10.0, "USD", Some("InStock"));
         assert!(offer_with_invalid_availability.get("availability").is_none());
+        let offer_with_http_availability =
+            schema::offer(10.0, "USD", Some("http://schema.org/InStock"));
+        assert_eq!(
+            offer_with_http_availability["availability"],
+            json!("http://schema.org/InStock")
+        );
 
         let review = schema::review(Some("Jane"), Some("Great"), Some(5.0), Some(5.0));
         assert_eq!(review["@type"], json!("Review"));
         assert_eq!(review["author"]["name"], json!("Jane"));
         assert_eq!(review["reviewRating"]["ratingValue"], json!(5.0));
         assert!(review["reviewRating"].get("@context").is_none());
+        let review_with_invalid_rating =
+            schema::review(Some("Jane"), Some("Great"), Some(f64::NAN), Some(f64::INFINITY));
+        assert!(review_with_invalid_rating.get("reviewRating").is_none());
 
         let breadcrumbs = schema::breadcrumb_list([
             ("Catalog", "https://demo.test/catalog".to_string()),
