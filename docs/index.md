@@ -231,6 +231,7 @@
 - [Сравнение архитектуры RusTok и Medusa](./research/medusa-vs-rustok-architecture.md)
 - [Fluid Frontend Architecture для RusTok](./research/fluid-frontend-architecture.md)
 - [Fluid Backend Architecture для RusTok](./research/fluid-backend-architecture.md)
+- [План реализации Fluid Backend Architecture](./research/fluid-backend-architecture-implementation-plan.md)
 - [Verified TODO по control plane и module lifecycle](./research/deep-research-report%20(4).md)
 - [Исследования и ADR-черновики](./research/ADR-xxxx-grpc-adoption.md)
 
