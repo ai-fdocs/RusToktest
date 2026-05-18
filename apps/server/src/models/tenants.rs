@@ -17,7 +17,7 @@ impl Model {
 
 impl ActiveModel {
     pub fn new(name: &str, slug: &str) -> Self {
-        let now = Utc::now();
+        let now = Utc::now().fixed_offset();
 
         Self {
             id: sea_orm::ActiveValue::Set(generate_id()),
