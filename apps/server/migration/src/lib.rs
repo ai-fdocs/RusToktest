@@ -153,8 +153,8 @@ impl MigrationDescriptor {
     }
 }
 
-impl From<rustok_product::migrations::MigrationDependencyDescriptor> for MigrationDescriptor {
-    fn from(descriptor: rustok_product::migrations::MigrationDependencyDescriptor) -> Self {
+impl From<rustok_core::MigrationDependencyDescriptor> for MigrationDescriptor {
+    fn from(descriptor: rustok_core::MigrationDependencyDescriptor) -> Self {
         Self {
             migration: descriptor.migration.to_string(),
             after: descriptor.after.into_iter().map(str::to_string).collect(),

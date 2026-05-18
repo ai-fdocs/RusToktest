@@ -13,18 +13,7 @@ mod m20260405_000006_add_is_localized_to_product_field_definitions;
 mod m20260409_000007_add_product_seller_id;
 
 use sea_orm_migration::MigrationTrait;
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MigrationDependencyDescriptor {
-    pub migration: &'static str,
-    pub after: Vec<&'static str>,
-}
-
-impl MigrationDependencyDescriptor {
-    pub fn new(migration: &'static str, after: Vec<&'static str>) -> Self {
-        Self { migration, after }
-    }
-}
+use rustok_core::MigrationDependencyDescriptor;
 
 pub fn migrations() -> Vec<Box<dyn MigrationTrait>> {
     vec![
