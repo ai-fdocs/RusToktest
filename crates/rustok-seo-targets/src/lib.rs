@@ -236,8 +236,21 @@ pub mod schema {
         if trimmed.is_empty() {
             return None;
         }
-        if trimmed.starts_with("https://schema.org/") || trimmed.starts_with("http://schema.org/")
-        {
+        let suffix = trimmed
+            .strip_prefix("https://schema.org/")
+            .or_else(|| trimmed.strip_prefix("http://schema.org/"))?;
+        if matches!(
+            suffix,
+            "Discontinued"
+                | "InStock"
+                | "InStoreOnly"
+                | "LimitedAvailability"
+                | "OnlineOnly"
+                | "OutOfStock"
+                | "PreOrder"
+                | "PreSale"
+                | "SoldOut"
+        ) {
             return Some(trimmed);
         }
         None
@@ -789,6 +802,9 @@ mod tests {
             offer_with_http_availability["availability"],
             json!("http://schema.org/InStock")
         );
+        let offer_with_unknown_availability =
+            schema::offer(10.0, "USD", Some("https://schema.org/UnknownAvailability"));
+        assert!(offer_with_unknown_availability.get("availability").is_none());
 
         let review = schema::review(Some("Jane"), Some("Great"), Some(5.0), Some(5.0));
         assert_eq!(review["@type"], json!("Review"));
