@@ -17,6 +17,7 @@
 - **contract sync**: `CRATE_API.md`, `README.md`, `docs/README.md` синхронизированы с актуальным public surface;
 - **deps cleanup**: удалены `jsonwebtoken` и `argon2` из `Cargo.toml` (больше не нужны после удаления auth);
 - **targeted tests**: добавлен `tests/foundation_primitives.rs` с coverage для `UserRole`/`UserStatus` (display, parse, serde), `generate_id`/`parse_id`, locale normalization и field-schema guardrails;
+- **security/validation tests**: добавлен `tests/security_validation.rs` с coverage для `SecurityHeaders`, `RateLimiter`, `InputValidator`, `SsrfProtection` и utils (`is_valid_email`, `is_valid_uuid`, `html_escape`, `slugify`);
 - **contract tests**: расширен `tests/contract_surface.rs` проверками на отсутствие auth re-exports и лишних auth-зависимостей в `Cargo.toml`;
 - local docs и root `README.md` удерживаются как часть scoped audit path.
 
