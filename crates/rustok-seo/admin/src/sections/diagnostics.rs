@@ -33,7 +33,7 @@ pub fn SeoDiagnosticsPane(
             </div>
 
             <div class="grid gap-6 xl:grid-cols-2">
-                <DiagnosticsHealthCard diagnostics=diagnostics on_queue_schema_fix=on_queue_schema_fix />
+                <DiagnosticsHealthCard diagnostics=diagnostics ui_locale=ui_locale.clone() on_queue_schema_fix=on_queue_schema_fix />
                 <DiagnosticsSettingsCard settings=settings />
                 <DiagnosticsRedirectsCard redirects=redirects />
                 <DiagnosticsSitemapCard sitemap_status=sitemap_status />
@@ -54,6 +54,7 @@ const SCHEMA_ISSUE_CODES: &[&str] = &[
 #[component]
 fn DiagnosticsHealthCard(
     diagnostics: Resource<Result<SeoDiagnosticsSummaryRecord, ApiError>>,
+    ui_locale: Option<String>,
     #[prop(into)] on_queue_schema_fix: Callback<(SeoTargetSlug, SeoBulkApplyMode, String)>,
 ) -> impl IntoView {
     view! {
@@ -83,7 +84,7 @@ fn DiagnosticsHealthCard(
                                 <Show when=move || has_schema_issues>
                                     <div class="space-y-2">
                                         <h4 class="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                                            {t(Some("en"), "seo.diagnostics.schema_remediation", "Schema remediation")}
+                                            {t(ui_locale.as_deref(), "seo.diagnostics.schema_remediation", "Schema remediation")}
                                         </h4>
                                         <ul class="space-y-2">
                                             {schema_issue_counts.clone().into_iter().map(|count| {
@@ -100,7 +101,7 @@ fn DiagnosticsHealthCard(
                                                             class="rounded-lg border border-border px-3 py-1 text-xs font-medium text-foreground transition hover:bg-accent"
                                                             on:click=move |_| on_click.run((kind_clone.clone(), SeoBulkApplyMode::ApplyMissingSchemaOnly, payload.clone()))
                                                         >
-                                                            {t(Some("en"), "seo.diagnostics.queue_fix", "Queue fix")}
+                                                            {t(ui_locale.as_deref(), "seo.diagnostics.queue_fix", "Queue fix")}
                                                         </button>
                                                     }.into_any()
                                                 } else {
@@ -111,7 +112,7 @@ fn DiagnosticsHealthCard(
                                                         <div class="min-w-0">
                                                             <div class="font-medium text-foreground">{count.key.clone()}</div>
                                                             <div class="text-xs text-muted-foreground">
-                                                                {t(Some("en"), "seo.diagnostics.affected_targets", "{} affected targets").replace("{}", &count.count.to_string())}
+                                                                {t(ui_locale.as_deref(), "seo.diagnostics.affected_targets", "{} affected targets").replace("{}", &count.count.to_string())}
                                                             </div>
                                                         </div>
                                                         {fix_button}
