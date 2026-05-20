@@ -43,7 +43,12 @@ Support/crate/capability слой может жить рядом с модуле
 - если capability introspect-ится общими operator/admin surface-ами, provider должен публиковать owner-aware metadata вместо того, чтобы заставлять host жёстко маппить slugs в labels;
 - capability crate не получает из-за этого собственный slug в `modules.toml` автоматически.
 
-Для SEO-capable модулей действует дополнительное правило: provider в `rustok-seo-targets` отдаёт только typed target records и безопасный `template_fields` map (`title`, `description`, `route`, `locale`, slug/handle/id поля). Шаблоны для `title`, `meta_description`, canonical, robots, Open Graph и Twitter рендерит только `rustok-seo`; owner module не должен вводить собственный SEO-template runtime или передавать сырой HTML/JSON в template context.
+Для SEO-capable модулей действует дополнительное правило:
+
+- provider в `rustok-seo-targets` отдаёт только typed target records и безопасный `template_fields` map (`title`, `description`, `route`, `locale`, slug/handle/id поля);
+- шаблоны для `title`, `meta_description`, canonical, robots, Open Graph и Twitter рендерит только `rustok-seo`;
+- owner module не должен вводить собственный SEO-template runtime или передавать сырой HTML/JSON в template context.
+
 Если target участвует в bulk SEO, provider должен давать стабильные summaries и fields, достаточные для safe remediation: `preview_only`, `apply_missing_only`, `overwrite_generated_only` и `force_overwrite_explicit` выполняются в `rustok-seo`, а не в owner module.
 
 ## Backend
