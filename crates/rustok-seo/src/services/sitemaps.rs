@@ -13,6 +13,9 @@ use crate::{SeoError, SeoResult};
 use super::routing::locale_prefixed_path;
 use super::{normalize_effective_locale, SeoService, SITEMAP_CHUNK_SIZE};
 
+const SITEMAP_SUBMIT_TIMEOUT_SECS: u64 = 5;
+const SITEMAP_SUBMIT_MAX_ERROR_LEN: usize = 4000;
+
 impl SeoService {
     pub async fn generate_sitemaps(
         &self,
@@ -265,7 +268,10 @@ impl SeoService {
             return Ok(());
         }
         let sitemap_index_url = format!("{}/sitemap.xml", public_base_url(tenant));
-        let client = reqwest::Client::new();
+        let client = reqwest::Client::builder()
+            .timeout(std::time::Duration::from_secs(SITEMAP_SUBMIT_TIMEOUT_SECS))
+            .build()
+            .map_err(|error| format!("failed to create sitemap submission client: {error}"))?;
         let mut failures = Vec::new();
         for endpoint in &settings.sitemap_submission_endpoints {
             let Some(url) = build_sitemap_submission_url(endpoint.as_str(), sitemap_index_url.as_str())
@@ -288,7 +294,12 @@ impl SeoService {
         if failures.is_empty() {
             Ok(())
         } else {
-            Err(failures.join("; "))
+            let mut message = failures.join("; ");
+            if message.len() > SITEMAP_SUBMIT_MAX_ERROR_LEN {
+                message.truncate(SITEMAP_SUBMIT_MAX_ERROR_LEN);
+                message.push_str("...");
+            }
+            Err(message)
         }
     }
 }
@@ -372,9 +383,17 @@ fn build_sitemap_submission_url(endpoint: &str, sitemap_index_url: &str) -> Opti
     if normalized.contains("{sitemap_url}") {
         let encoded: String = url::form_urlencoded::byte_serialize(sitemap_index_url.as_bytes())
             .collect();
-        return Some(normalized.replace("{sitemap_url}", encoded.as_str()));
+        let replaced = normalized.replace("{sitemap_url}", encoded.as_str());
+        let parsed = Url::parse(replaced.as_str()).ok()?;
+        if !matches!(parsed.scheme(), "http" | "https") {
+            return None;
+        }
+        return Some(parsed.to_string());
     }
     let mut parsed = Url::parse(normalized).ok()?;
+    if !matches!(parsed.scheme(), "http" | "https") {
+        return None;
+    }
     if !parsed
         .query_pairs()
         .any(|(name, _)| name.eq_ignore_ascii_case("sitemap"))
@@ -607,6 +626,23 @@ mod tests {
             appended,
             "https://example.com/ping?source=rustok&sitemap=https%3A%2F%2Fstore.example.com%2Fsitemap.xml"
         );
+    }
+
+    #[test]
+    fn build_sitemap_submission_url_rejects_non_http_and_keeps_existing_sitemap() {
+        let keeps_existing = super::build_sitemap_submission_url(
+            "https://example.com/ping?sitemap=https://preset.example.com/sitemap.xml",
+            "https://store.example.com/sitemap.xml",
+        )
+        .expect("existing sitemap");
+        assert_eq!(
+            keeps_existing,
+            "https://example.com/ping?sitemap=https://preset.example.com/sitemap.xml"
+        );
+
+        let invalid_scheme =
+            super::build_sitemap_submission_url("ftp://example.com/ping", "https://store.example.com/sitemap.xml");
+        assert!(invalid_scheme.is_none());
     }
 
     #[tokio::test]

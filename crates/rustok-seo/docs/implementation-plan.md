@@ -107,6 +107,8 @@
   - [x] Runtime foundation: `generate_sitemaps` выполняет best-effort HTTP submit на configured endpoints
     (placeholder `{sitemap_url}` или auto-append `sitemap=`), сохраняя ошибки в `seo_sitemap_jobs.last_error`
     без падения основной генерации sitemap.
+  - [x] Submit path ограничивает runtime-risk: только `http/https`, короткий client timeout и bounded
+    `last_error` payload (truncate) вместо неограниченного error blob.
 - [ ] Image SEO hooks через `rustok-media` после стабилизации templates + diagnostics.
 - [ ] Расширять Next route coverage только вместе с появлением реальных storefront routes.
 
