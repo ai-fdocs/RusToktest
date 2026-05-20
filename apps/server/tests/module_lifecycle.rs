@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use rustok_core::{ModuleContext, ModuleRegistry, RusToKModule};
-use rustok_server::models::_entities::tenant_modules;
+use rustok_server::models::_entities::{module_operations, tenant_modules};
 use rustok_server::services::module_lifecycle::{ModuleLifecycleService, ToggleModuleError};
 use sea_orm::{
     ColumnTrait, ConnectionTrait, Database, DatabaseConnection, DbBackend, EntityTrait,
@@ -118,6 +118,27 @@ async fn setup_db() -> DatabaseConnection {
     .await
     .expect("create tenant_modules");
 
+    db.execute(Statement::from_string(
+        DbBackend::Sqlite,
+        r#"
+        CREATE TABLE module_operations (
+            id TEXT PRIMARY KEY,
+            tenant_id TEXT NOT NULL,
+            module_slug TEXT NOT NULL,
+            requested_enabled BOOLEAN NOT NULL,
+            previous_effective_enabled BOOLEAN NOT NULL,
+            status TEXT NOT NULL,
+            requested_by TEXT NULL,
+            error_message TEXT NULL,
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+        );
+        "#,
+    ))
+    .await
+    .expect("create module_operations");
+
     db
 }
 
@@ -211,4 +232,31 @@ async fn concurrent_toggle_requests_keep_consistent_state() {
     assert!(matches!(state.enabled, true | false));
     assert!(enable_calls.load(Ordering::SeqCst) <= 1);
     assert!(disable_calls.load(Ordering::SeqCst) <= 1);
+}
+
+#[tokio::test]
+async fn successful_toggle_writes_done_module_operation() {
+    let db = setup_db().await;
+    let tenant_id = uuid::Uuid::new_v4();
+    seed_tenant(&db, tenant_id).await;
+
+    let registry = ModuleRegistry::new().register(TestModule::new("pricing"));
+
+    let enabled = ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "pricing", true)
+        .await
+        .expect("enable should succeed");
+    assert!(enabled.enabled);
+
+    let operation = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .filter(module_operations::Column::ModuleSlug.eq("pricing"))
+        .one(&db)
+        .await
+        .expect("load operation")
+        .expect("operation exists");
+
+    assert_eq!(operation.status, "done");
+    assert!(operation.error_message.is_none());
+    assert!(operation.requested_enabled);
+    assert!(!operation.previous_effective_enabled);
 }
