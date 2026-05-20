@@ -23,6 +23,7 @@ use crate::models::release::{
 };
 use crate::modules::BuildExecutionPlan;
 use crate::services::oauth_app::sync_manifest_managed_apps_for_all_tenants;
+use crate::services::platform_composition::hash_manifest_snapshot;
 
 #[derive(Debug, Clone)]
 pub struct BuildRequest {
@@ -697,10 +698,23 @@ impl BuildService {
 }
 
 fn compute_manifest_snapshot_hash(snapshot: &serde_json::Value) -> String {
-    use sha2::{Digest, Sha256};
+    hash_manifest_snapshot(snapshot)
+}
 
-    let json = serde_json::to_string(snapshot).unwrap_or_default();
-    let mut hasher = Sha256::new();
-    hasher.update(json.as_bytes());
-    hex::encode(hasher.finalize())
+#[cfg(test)]
+mod tests {
+    use super::compute_manifest_snapshot_hash;
+    use crate::services::platform_composition::hash_manifest_snapshot;
+
+    #[test]
+    fn build_service_uses_shared_manifest_snapshot_hash_builder() {
+        let snapshot = serde_json::json!({
+            "modules": {"catalog": {"version": "1.0.0"}},
+            "profile": "default"
+        });
+        assert_eq!(
+            compute_manifest_snapshot_hash(&snapshot),
+            hash_manifest_snapshot(&snapshot)
+        );
+    }
 }
