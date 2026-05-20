@@ -28,7 +28,7 @@ post-v0 resolution architecture.
 
 - [x] довести policy trace в admin bootstrap/runtime diagnostics;
 - [x] добавить базовые operator flows для policy-set activation и policy-rule authoring/removal;
-- [ ] добавить полный operator flow для policy reorder и disable;
+- [x] добавить полный operator flow для policy reorder и disable (REST `reorder` + `update rule` и admin UI controls);
 - [ ] решить, остаётся ли built-in host slice отдельным fast-path после полного policy rollout.
 
 ### 3. Semantic expansion
