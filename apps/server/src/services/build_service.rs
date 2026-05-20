@@ -700,3 +700,21 @@ impl BuildService {
 fn compute_manifest_snapshot_hash(snapshot: &serde_json::Value) -> String {
     hash_manifest_snapshot(snapshot)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::compute_manifest_snapshot_hash;
+    use crate::services::platform_composition::hash_manifest_snapshot;
+
+    #[test]
+    fn build_service_uses_shared_manifest_snapshot_hash_builder() {
+        let snapshot = serde_json::json!({
+            "modules": {"catalog": {"version": "1.0.0"}},
+            "profile": "default"
+        });
+        assert_eq!(
+            compute_manifest_snapshot_hash(&snapshot),
+            hash_manifest_snapshot(&snapshot)
+        );
+    }
+}
