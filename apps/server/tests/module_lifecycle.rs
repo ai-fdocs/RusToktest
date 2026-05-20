@@ -509,3 +509,30 @@ async fn core_module_disable_failure_does_not_create_journal_row() {
         "core-module pre-validation failure must not create module_operations rows",
     );
 }
+
+#[tokio::test]
+async fn noop_disable_for_already_disabled_module_does_not_create_journal_row() {
+    let db = setup_db().await;
+    let tenant_id = uuid::Uuid::new_v4();
+    seed_tenant(&db, tenant_id).await;
+
+    let registry = ModuleRegistry::new().register(TestModule::new("inventory"));
+
+    let module =
+        ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "inventory", false)
+            .await
+            .expect("no-op disable should succeed");
+    assert!(!module.enabled);
+
+    let operations = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .filter(module_operations::Column::ModuleSlug.eq("inventory"))
+        .all(&db)
+        .await
+        .expect("query operations");
+
+    assert!(
+        operations.is_empty(),
+        "no-op state transitions must not create module_operations rows",
+    );
+}
