@@ -536,3 +536,34 @@ async fn noop_disable_for_already_disabled_module_does_not_create_journal_row() 
         "no-op state transitions must not create module_operations rows",
     );
 }
+
+#[tokio::test]
+async fn noop_enable_for_already_enabled_module_does_not_create_extra_journal_row() {
+    let db = setup_db().await;
+    let tenant_id = uuid::Uuid::new_v4();
+    seed_tenant(&db, tenant_id).await;
+
+    let registry = ModuleRegistry::new().register(TestModule::new("catalog"));
+
+    ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "catalog", true)
+        .await
+        .expect("initial enable should succeed");
+    let second = ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "catalog", true)
+        .await
+        .expect("no-op enable should succeed");
+    assert!(second.enabled);
+
+    let operations = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .filter(module_operations::Column::ModuleSlug.eq("catalog"))
+        .all(&db)
+        .await
+        .expect("query operations");
+
+    assert_eq!(
+        operations.len(),
+        1,
+        "no-op enable transition must not create extra module_operations rows",
+    );
+    assert_eq!(operations[0].status, "done");
+}
