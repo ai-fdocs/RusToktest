@@ -94,8 +94,8 @@ SELECT
     COALESCE(NULLIF(tenant.default_locale, ''), 'en'),
     entry_row.tenant_id,
     COALESCE(
-        jsonb_object_agg(localized_key.field_key, entry_row.data -> localized_key.field_key)
-            FILTER (WHERE entry_row.data ? localized_key.field_key),
+        jsonb_object_agg(localized_kv.field_key, localized_kv.field_value)
+            FILTER (WHERE localized_kv.field_value IS NOT NULL),
         '{}'::jsonb
     ),
     entry_row.created_at,
@@ -104,12 +104,14 @@ FROM flex_entries AS entry_row
 JOIN flex_schemas AS schema_row ON schema_row.id = entry_row.schema_id
 JOIN tenants AS tenant ON tenant.id = entry_row.tenant_id
 LEFT JOIN LATERAL (
-    SELECT definition ->> 'field_key' AS field_key
+    SELECT
+        definition ->> 'field_key' AS field_key,
+        entry_row.data -> (definition ->> 'field_key') AS field_value
     FROM jsonb_array_elements(schema_row.fields_config) AS definition
     WHERE COALESCE((definition ->> 'is_localized')::boolean, false)
       AND (definition ->> 'field_key') IS NOT NULL
       AND NULLIF(definition ->> 'field_key', '') IS NOT NULL
-) AS localized_key ON TRUE
+) AS localized_kv ON TRUE
 GROUP BY
     entry_row.id,
     entry_row.tenant_id,
@@ -167,15 +169,13 @@ WHERE EXISTS (
                 .execute_unprepared(
                     r#"
 UPDATE flex_entries AS entry_row
-SET data = COALESCE(entry_row.data, '{}'::jsonb) || COALESCE(localized.data, '{}'::jsonb)
+SET data = COALESCE(entry_row.data, '{}'::jsonb) || COALESCE(localized.locales_data, '{}'::jsonb)
 FROM (
     SELECT
         localized_row.entry_id,
-        localized_row.data
+        jsonb_object_agg(localized_row.locale, localized_row.data) AS locales_data
     FROM flex_entry_localized_values AS localized_row
-    JOIN flex_entries AS entry_row ON entry_row.id = localized_row.entry_id
-    JOIN tenants AS tenant ON tenant.id = entry_row.tenant_id
-    WHERE localized_row.locale = COALESCE(NULLIF(tenant.default_locale, ''), 'en')
+    GROUP BY localized_row.entry_id
 ) AS localized
 WHERE entry_row.id = localized.entry_id
 "#,
