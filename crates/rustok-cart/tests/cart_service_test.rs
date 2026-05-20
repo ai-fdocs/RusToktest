@@ -682,6 +682,48 @@ async fn object_channel_tax_provider_mapping_uses_provider_key_alias() {
 }
 
 #[tokio::test]
+async fn channel_tax_provider_alias_is_ignored_without_channel_context() {
+    let (db, service) = setup_with_db().await;
+    let tenant_id = support::TEST_TENANT_ID;
+    let region_id = Uuid::new_v4();
+    let mapped_channel_id = Uuid::new_v4();
+
+    insert_region(
+        &db,
+        tenant_id,
+        region_id,
+        "usd",
+        Some("region_default"),
+        serde_json::json!({
+            "channel_tax_provider_ids": {
+                mapped_channel_id.to_string(): {"provider": "external_tax"}
+            }
+        }),
+    )
+    .await;
+
+    let cart = service
+        .create_cart(
+            tenant_id,
+            CreateCartInput {
+                region_id: Some(region_id),
+                ..create_cart_input()
+            },
+        )
+        .await
+        .unwrap();
+
+    let updated = service
+        .add_line_item(tenant_id, cart.id, line_item_input())
+        .await
+        .expect("alias mapping should be ignored without channel context");
+
+    assert_eq!(updated.tax_lines.len(), 1);
+    assert_eq!(updated.tax_lines[0].provider_id, "region_default");
+    assert_eq!(updated.tax_lines[0].metadata["channel_id"], serde_json::json!(null));
+}
+
+#[tokio::test]
 async fn channel_tax_provider_alias_is_normalized_and_snapshots_channel_id() {
     let (db, service) = setup_with_db().await;
     let tenant_id = support::TEST_TENANT_ID;
