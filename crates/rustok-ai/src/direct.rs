@@ -32,9 +32,11 @@ use crate::service::AiOperatorContext;
 use crate::{AiError, AiResult};
 use rustok_core::{SecurityContext, CONTENT_FORMAT_MARKDOWN};
 mod direct_content_moderation;
+mod direct_domain_commerce;
 mod direct_order_tasks;
 mod direct_product_attributes;
 use direct_content_moderation::ContentModerationHandler;
+use direct_domain_commerce::register_commerce_direct_handlers;
 use direct_order_tasks::{OrderAnalyticsHandler, OrderOpsAssistantHandler};
 use direct_product_attributes::ProductAttributesHandler;
 
@@ -74,16 +76,18 @@ pub struct DirectExecutionRegistry {
 }
 
 impl DirectExecutionRegistry {
-    pub fn with_defaults() -> Self {
+    pub fn with_core_defaults() -> Self {
         let mut registry = Self::default();
         registry.register(Arc::new(AlloyScriptAssistHandler));
         registry.register(Arc::new(MediaImageAssetHandler));
-        registry.register(Arc::new(ProductCopyHandler));
         registry.register(Arc::new(BlogDraftHandler));
         registry.register(Arc::new(ContentModerationHandler));
-        registry.register(Arc::new(ProductAttributesHandler));
-        registry.register(Arc::new(OrderAnalyticsHandler));
-        registry.register(Arc::new(OrderOpsAssistantHandler));
+        registry
+    }
+
+    pub fn with_defaults() -> Self {
+        let mut registry = Self::with_core_defaults();
+        register_commerce_direct_handlers(&mut registry);
         registry
     }
 
