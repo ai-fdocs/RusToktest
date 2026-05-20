@@ -318,9 +318,31 @@ fn xml_escape(value: &str) -> String {
         .replace('\'', "&apos;")
 }
 
+pub(super) fn normalize_sitemap_submission_endpoints(values: &[String]) -> Vec<String> {
+    use std::collections::BTreeSet;
+
+    let mut unique = BTreeSet::new();
+    for value in values {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        let Ok(parsed) = url::Url::parse(trimmed) else {
+            continue;
+        };
+        if !matches!(parsed.scheme(), "http" | "https") {
+            continue;
+        }
+        let mut normalized = parsed;
+        normalized.set_fragment(None);
+        unique.insert(normalized.to_string());
+    }
+    unique.into_iter().collect()
+}
+
 #[cfg(test)]
 mod tests {
-    use super::render_robots_body;
+    use super::{normalize_sitemap_submission_endpoints, render_robots_body};
     use crate::SeoService;
     use rustok_api::TenantContext;
     use rustok_tenant::entities::tenant_module;
@@ -428,6 +450,7 @@ mod tests {
         assert!(settings.allowed_redirect_hosts.is_empty());
         assert!(settings.allowed_canonical_hosts.is_empty());
         assert_eq!(settings.x_default_locale, None);
+        assert!(settings.sitemap_submission_endpoints.is_empty());
     }
 
     #[tokio::test]
@@ -443,7 +466,13 @@ mod tests {
                 "sitemap_enabled": true,
                 "allowed_redirect_hosts": [" Example.com ", "cdn.example.com", "example.com"],
                 "allowed_canonical_hosts": [" Blog.Example.com "],
-                "x_default_locale": " EN-us "
+                "x_default_locale": " EN-us ",
+                "sitemap_submission_endpoints": [
+                    "https://www.google.com/ping?sitemap=https://store.example.com/sitemap.xml",
+                    "http://localhost:8080/seo/ping#ignored-fragment",
+                    "invalid://endpoint",
+                    "https://www.google.com/ping?sitemap=https://store.example.com/sitemap.xml"
+                ]
             }),
         )
         .await;
@@ -464,6 +493,29 @@ mod tests {
         );
         assert_eq!(settings.allowed_canonical_hosts, vec!["blog.example.com"]);
         assert_eq!(settings.x_default_locale.as_deref(), Some("en-US"));
+        assert_eq!(
+            settings.sitemap_submission_endpoints,
+            vec![
+                "http://localhost:8080/seo/ping".to_string(),
+                "https://www.google.com/ping?sitemap=https://store.example.com/sitemap.xml"
+                    .to_string()
+            ]
+        );
+    }
+
+    #[test]
+    fn normalize_sitemap_submission_endpoints_filters_invalid_and_deduplicates() {
+        let normalized = normalize_sitemap_submission_endpoints(&[
+            " https://example.com/ping?sitemap=https://store/sitemap.xml ".to_string(),
+            "ftp://example.com/not-supported".to_string(),
+            "not a url".to_string(),
+            "https://example.com/ping?sitemap=https://store/sitemap.xml#fragment".to_string(),
+        ]);
+
+        assert_eq!(
+            normalized,
+            vec!["https://example.com/ping?sitemap=https://store/sitemap.xml".to_string()]
+        );
     }
 
     #[tokio::test]

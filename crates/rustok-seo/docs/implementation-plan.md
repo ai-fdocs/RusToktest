@@ -15,6 +15,8 @@
 - module bootstrap, manifest wiring, migrations, permissions и local docs подключены;
 - core storage использует `meta` / `meta_translations`, `seo_redirects`, `seo_revisions`, `seo_sitemap_jobs`, `seo_sitemap_files`, `seo_bulk_jobs`, `seo_bulk_job_items`, `seo_bulk_job_artifacts`;
 - locale columns для SEO-related tables расширены до `VARCHAR(32)`, rollback остаётся forward-only и не сужает locale;
+- `SeoModuleSettings` уже включает typed `sitemap_submission_endpoints` с server-side normalization
+  (`http/https`, trim, dedupe, strip fragment) как foundation для внешних sitemap ping adapters;
 - storefront SEO read-side живёт на permanent contract `SeoPageContext = route + document`;
 - Rust-side SSR head rendering вынесен в `rustok-seo-render`;
 - `rustok-seo-admin` разбит на `lib/component/model/api/i18n/sections` и больше не содержит central entity metadata editor;
@@ -101,6 +103,7 @@
 
 - [ ] Cross-linking engine с controlled insertion points без silent HTML mutation.
 - [ ] Google Indexing API / sitemap ping и позже Search Console-style diagnostics adapters.
+  - [x] Foundation: tenant settings уже держат normalized `sitemap_submission_endpoints` для будущих ping providers.
 - [ ] Image SEO hooks через `rustok-media` после стабилизации templates + diagnostics.
 - [ ] Расширять Next route coverage только вместе с появлением реальных storefront routes.
 
