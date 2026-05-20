@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rustok_core::{ModuleContext, ModuleRegistry, RusToKModule};
+use rustok_core::{ModuleContext, ModuleKind, ModuleRegistry, RusToKModule};
 use rustok_server::models::_entities::{module_operations, tenant_modules};
 use rustok_server::services::module_lifecycle::{ModuleLifecycleService, ToggleModuleError};
 use sea_orm::{
@@ -23,6 +23,10 @@ struct DependentModule {
     dependency: &'static str,
 }
 
+struct CoreTestModule {
+    slug: &'static str,
+}
+
 impl TestModule {
     fn new(slug: &'static str) -> Self {
         Self {
@@ -38,6 +42,11 @@ impl TestModule {
         self.should_fail_enable = true;
         self
     }
+
+    fn with_disable_failure(mut self) -> Self {
+        self.should_fail_disable = true;
+        self
+    }
 }
 
 impl rustok_core::MigrationSource for TestModule {
@@ -47,6 +56,12 @@ impl rustok_core::MigrationSource for TestModule {
 }
 
 impl rustok_core::MigrationSource for DependentModule {
+    fn migrations(&self) -> Vec<Box<dyn MigrationTrait>> {
+        vec![]
+    }
+}
+
+impl rustok_core::MigrationSource for CoreTestModule {
     fn migrations(&self) -> Vec<Box<dyn MigrationTrait>> {
         vec![]
     }
@@ -107,6 +122,29 @@ impl RusToKModule for DependentModule {
 
     fn dependencies(&self) -> Vec<&'static str> {
         vec![self.dependency]
+    }
+}
+
+#[async_trait]
+impl RusToKModule for CoreTestModule {
+    fn slug(&self) -> &'static str {
+        self.slug
+    }
+
+    fn name(&self) -> &'static str {
+        "core-test-module"
+    }
+
+    fn description(&self) -> &'static str {
+        "test core module"
+    }
+
+    fn version(&self) -> &'static str {
+        "0.1.0"
+    }
+
+    fn kind(&self) -> ModuleKind {
+        ModuleKind::Core
     }
 }
 
@@ -447,5 +485,195 @@ async fn unknown_module_failure_does_not_create_journal_row() {
     assert!(
         operations.is_empty(),
         "unknown module validation must not create module_operations journal rows",
+    );
+}
+
+#[tokio::test]
+async fn core_module_disable_failure_does_not_create_journal_row() {
+    let db = setup_db().await;
+    let tenant_id = uuid::Uuid::new_v4();
+    seed_tenant(&db, tenant_id).await;
+
+    let registry = ModuleRegistry::new().register(CoreTestModule { slug: "tenant" });
+
+    let err = ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "tenant", false)
+        .await
+        .expect_err("core module disable should fail");
+    assert!(matches!(
+        err,
+        ToggleModuleError::CoreModuleCannotBeDisabled(module) if module == "tenant"
+    ));
+
+    let operations = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .all(&db)
+        .await
+        .expect("query operations");
+    assert!(
+        operations.is_empty(),
+        "core-module pre-validation failure must not create module_operations rows",
+    );
+}
+
+#[tokio::test]
+async fn noop_disable_for_already_disabled_module_does_not_create_journal_row() {
+    let db = setup_db().await;
+    let tenant_id = uuid::Uuid::new_v4();
+    seed_tenant(&db, tenant_id).await;
+
+    let registry = ModuleRegistry::new().register(TestModule::new("inventory"));
+
+    let module =
+        ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "inventory", false)
+            .await
+            .expect("no-op disable should succeed");
+    assert!(!module.enabled);
+
+    let operations = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .filter(module_operations::Column::ModuleSlug.eq("inventory"))
+        .all(&db)
+        .await
+        .expect("query operations");
+
+    assert!(
+        operations.is_empty(),
+        "no-op state transitions must not create module_operations rows",
+    );
+}
+
+#[tokio::test]
+async fn noop_enable_for_already_enabled_module_does_not_create_extra_journal_row() {
+    let db = setup_db().await;
+    let tenant_id = uuid::Uuid::new_v4();
+    seed_tenant(&db, tenant_id).await;
+
+    let registry = ModuleRegistry::new().register(TestModule::new("catalog"));
+
+    ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "catalog", true)
+        .await
+        .expect("initial enable should succeed");
+    let second = ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "catalog", true)
+        .await
+        .expect("no-op enable should succeed");
+    assert!(second.enabled);
+
+    let operations = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .filter(module_operations::Column::ModuleSlug.eq("catalog"))
+        .all(&db)
+        .await
+        .expect("query operations");
+
+    assert_eq!(
+        operations.len(),
+        1,
+        "no-op enable transition must not create extra module_operations rows",
+    );
+    assert_eq!(operations[0].status, "done");
+}
+
+#[tokio::test]
+async fn toggle_without_actor_records_null_requested_by() {
+    let db = setup_db().await;
+    let tenant_id = uuid::Uuid::new_v4();
+    seed_tenant(&db, tenant_id).await;
+
+    let registry = ModuleRegistry::new().register(TestModule::new("forum"));
+
+    ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "forum", true)
+        .await
+        .expect("enable should succeed");
+
+    let operation = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .filter(module_operations::Column::ModuleSlug.eq("forum"))
+        .one(&db)
+        .await
+        .expect("query operation")
+        .expect("operation exists");
+
+    assert_eq!(operation.status, "done");
+    assert!(
+        operation.requested_by.is_none(),
+        "toggle_module wrapper without actor must persist requested_by as NULL",
+    );
+}
+
+#[tokio::test]
+async fn hook_failure_with_actor_records_failed_operation_with_actor() {
+    let db = setup_db().await;
+    let tenant_id = uuid::Uuid::new_v4();
+    seed_tenant(&db, tenant_id).await;
+
+    let registry = ModuleRegistry::new().register(TestModule::new("billing"));
+
+    ModuleLifecycleService::toggle_module_with_actor(
+        &db,
+        &registry,
+        tenant_id,
+        "billing",
+        true,
+        Some("admin:user-2".to_string()),
+    )
+    .await
+    .expect("enable should succeed");
+
+    let failing_registry =
+        ModuleRegistry::new().register(TestModule::new("billing").with_disable_failure());
+    let err = ModuleLifecycleService::toggle_module_with_actor(
+        &db,
+        &failing_registry,
+        tenant_id,
+        "billing",
+        false,
+        Some("admin:user-2".to_string()),
+    )
+    .await
+    .expect_err("disable hook failure expected");
+    assert!(matches!(err, ToggleModuleError::HookFailed(_)));
+
+    let failed_operation = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .filter(module_operations::Column::ModuleSlug.eq("billing"))
+        .filter(module_operations::Column::RequestedEnabled.eq(false))
+        .one(&db)
+        .await
+        .expect("query failed operation")
+        .expect("failed operation exists");
+
+    assert_eq!(failed_operation.status, "failed");
+    assert_eq!(
+        failed_operation.requested_by.as_deref(),
+        Some("admin:user-2"),
+        "actor metadata must be preserved for failed operations too",
+    );
+}
+
+#[tokio::test]
+async fn hook_failure_without_actor_records_failed_operation_with_null_actor() {
+    let db = setup_db().await;
+    let tenant_id = uuid::Uuid::new_v4();
+    seed_tenant(&db, tenant_id).await;
+
+    let registry = ModuleRegistry::new().register(TestModule::new("orders").with_enable_failure());
+    let err = ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "orders", true)
+        .await
+        .expect_err("enable hook failure expected");
+    assert!(matches!(err, ToggleModuleError::HookFailed(_)));
+
+    let failed_operation = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .filter(module_operations::Column::ModuleSlug.eq("orders"))
+        .filter(module_operations::Column::RequestedEnabled.eq(true))
+        .one(&db)
+        .await
+        .expect("query failed operation")
+        .expect("failed operation exists");
+
+    assert_eq!(failed_operation.status, "failed");
+    assert!(
+        failed_operation.requested_by.is_none(),
+        "wrapper toggle_module without actor must keep requested_by=NULL even on failed operations",
     );
 }
