@@ -2110,3 +2110,53 @@ where
 
     Ok(default_locale)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::channel_tax_provider_id;
+    use serde_json::json;
+    use uuid::Uuid;
+
+    #[test]
+    fn channel_tax_provider_id_reads_string_mapping_for_channel() {
+        let channel_id = Uuid::new_v4();
+        let metadata = json!({
+            "channel_tax_provider_ids": {
+                channel_id.to_string(): "provider_alpha"
+            }
+        });
+
+        let resolved = channel_tax_provider_id(&metadata, Some(channel_id));
+        assert_eq!(resolved.as_deref(), Some("provider_alpha"));
+    }
+
+    #[test]
+    fn channel_tax_provider_id_ignores_blank_or_non_string_values() {
+        let channel_id = Uuid::new_v4();
+
+        let blank_metadata = json!({
+            "channel_tax_provider_ids": {
+                channel_id.to_string(): "   "
+            }
+        });
+        assert_eq!(channel_tax_provider_id(&blank_metadata, Some(channel_id)), None);
+
+        let non_string_metadata = json!({
+            "channel_tax_provider_ids": {
+                channel_id.to_string(): {"provider": "external_tax"}
+            }
+        });
+        assert_eq!(channel_tax_provider_id(&non_string_metadata, Some(channel_id)), None);
+    }
+
+    #[test]
+    fn channel_tax_provider_id_returns_none_without_channel_context() {
+        let metadata = json!({
+            "channel_tax_provider_ids": {
+                Uuid::new_v4().to_string(): "provider_alpha"
+            }
+        });
+
+        assert_eq!(channel_tax_provider_id(&metadata, None), None);
+    }
+}
