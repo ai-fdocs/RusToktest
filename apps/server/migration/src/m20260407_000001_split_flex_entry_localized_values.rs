@@ -167,15 +167,13 @@ WHERE EXISTS (
                 .execute_unprepared(
                     r#"
 UPDATE flex_entries AS entry_row
-SET data = COALESCE(entry_row.data, '{}'::jsonb) || COALESCE(localized.data, '{}'::jsonb)
+SET data = COALESCE(entry_row.data, '{}'::jsonb) || COALESCE(localized.locales_data, '{}'::jsonb)
 FROM (
     SELECT
         localized_row.entry_id,
-        localized_row.data
+        jsonb_object_agg(localized_row.locale, localized_row.data) AS locales_data
     FROM flex_entry_localized_values AS localized_row
-    JOIN flex_entries AS entry_row ON entry_row.id = localized_row.entry_id
-    JOIN tenants AS tenant ON tenant.id = entry_row.tenant_id
-    WHERE localized_row.locale = COALESCE(NULLIF(tenant.default_locale, ''), 'en')
+    GROUP BY localized_row.entry_id
 ) AS localized
 WHERE entry_row.id = localized.entry_id
 "#,
