@@ -4103,30 +4103,6 @@ async fn rollback_build_native(build_id: String) -> Result<BuildJob, ServerFnErr
     }
 }
 
-#[server(prefix = "/api/fn", endpoint = "admin/install-module")]
-async fn install_module_native(slug: String, version: String) -> Result<BuildJob, ServerFnError> {
-    let _ = (slug, version);
-    Err(ServerFnError::new(
-        "admin/install-module native path is disabled; use canonical GraphQL composition entrypoint",
-    ))
-}
-
-#[server(prefix = "/api/fn", endpoint = "admin/uninstall-module")]
-async fn uninstall_module_native(slug: String) -> Result<BuildJob, ServerFnError> {
-    let _ = slug;
-    Err(ServerFnError::new(
-        "admin/uninstall-module native path is disabled; use canonical GraphQL composition entrypoint",
-    ))
-}
-
-#[server(prefix = "/api/fn", endpoint = "admin/upgrade-module")]
-async fn upgrade_module_native(slug: String, version: String) -> Result<BuildJob, ServerFnError> {
-    let _ = (slug, version);
-    Err(ServerFnError::new(
-        "admin/upgrade-module native path is disabled; use canonical GraphQL composition entrypoint",
-    ))
-}
-
 #[server(
     prefix = "/api/fn",
     endpoint = "admin/registry-fetch-publish-request-status"
