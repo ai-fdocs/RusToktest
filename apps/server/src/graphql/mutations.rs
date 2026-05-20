@@ -1343,4 +1343,17 @@ mod tests {
         assert!(err.message.to_lowercase().contains("internal"));
     }
 
+    #[test]
+    fn platform_composition_build_error_maps_composition_conflict_consistently() {
+        let err = map_platform_composition_build_error(PlatformCompositionBuildError::Composition(
+            PlatformCompositionError::RevisionConflict {
+                expected: 10,
+                current: 11,
+            },
+        ));
+        assert!(err.message.contains("revision conflict"));
+        assert!(err.message.contains("expected 10"));
+        assert!(err.message.contains("current 11"));
+    }
+
 }
