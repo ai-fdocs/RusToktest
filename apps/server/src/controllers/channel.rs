@@ -603,13 +603,13 @@ fn normalize_optional_string(value: Option<String>) -> Option<String> {
 }
         host_equals: normalize_optional_string(input.host_equals),
         host_suffix: normalize_optional_string(input.host_suffix),
-        oauth_app_id: normalize_optional_string(input.oauth_app_id),
+        oauth_app_id: input.oauth_app_id,
         surface: normalize_optional_string(input.surface),
         locale: normalize_optional_string(input.locale),
         action_channel_id: input.action_channel_id,
         host_equals: normalize_optional_string(input.host_equals),
         host_suffix: normalize_optional_string(input.host_suffix),
-        oauth_app_id: normalize_optional_string(input.oauth_app_id),
+        oauth_app_id: input.oauth_app_id,
         surface: normalize_optional_string(input.surface),
         locale: normalize_optional_string(input.locale),
     }
