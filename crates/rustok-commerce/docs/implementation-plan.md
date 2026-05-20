@@ -1,5 +1,14 @@
 ﻿# План реализации `rustok-commerce`
 
+## Execution checkpoint
+
+- Current phase: plan_sync
+- Last checkpoint: Initial bootstrap by registry workflow.
+- Next step: Синхронизировать план с текущим кодом и выбрать первый незавершённый пункт.
+- Open blockers: None.
+- Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
+- Last updated at (UTC): 2026-05-20T00:00:00Z
+
 ## Статус документа
 
 Этот документ фиксирует актуальный roadmap umbrella-модуля `rustok-commerce` после отказа от legacy REST surface `/api/commerce/*` и после появления platform-level `rustok-channel`.
@@ -593,3 +602,10 @@ Release gates:
 5. Любые изменения схемы проходят i18n-аудит: локализованные строки не храним в base-таблицах, display-поля живут только в `*_translations`.
 6. Module-owned UI пакеты не вводят package-local locale override: write-side использует host-provided effective locale, а edit/detail hydration резолвит переводы по нему же, с fallback только после попытки точного locale match.
 7. Read-side/runtime helpers не сравнивают locale raw-строкой: резолв локализованных данных идёт через shared locale normalization и одну цепочку fallback `requested -> tenant default -> first available`.
+
+
+## Quality backlog
+
+- [ ] Актуализировать покрытие тестами по ключевым сценариям модуля.
+- [ ] Проверить полноту и актуальность `README.md` и локальных docs.
+- [ ] Зафиксировать/обновить verification gates для текущего состояния модуля.

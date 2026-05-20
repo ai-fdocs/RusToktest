@@ -4,6 +4,15 @@
 
 Текущий typed tax policy contract: `region.tax_provider_id` стал first-class полем региона, а metadata-derived hook для выбора tax provider больше не является source of truth.
 
+## Execution checkpoint
+
+- Current phase: plan_sync
+- Last checkpoint: Initial bootstrap by registry workflow.
+- Next step: Синхронизировать план с текущим кодом и выбрать первый незавершённый пункт.
+- Open blockers: None.
+- Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
+- Last updated at (UTC): 2026-05-20T00:00:00Z
+
 ## Область работ
 
 - удерживать `rustok-region` как owner region/country/currency policy baseline;
@@ -57,3 +66,10 @@
 2. При изменении public/runtime surface синхронизировать `README.md`, `docs/README.md`, `admin/README.md`, `storefront/README.md` и `rustok-module.toml`.
 3. При изменении admin wiring синхронизировать `apps/admin` docs и central UI indexes.
 4. При изменении region/pricing/tax orchestration обновлять umbrella docs.
+
+
+## Quality backlog
+
+- [ ] Актуализировать покрытие тестами по ключевым сценариям модуля.
+- [ ] Проверить полноту и актуальность `README.md` и локальных docs.
+- [ ] Зафиксировать/обновить verification gates для текущего состояния модуля.
