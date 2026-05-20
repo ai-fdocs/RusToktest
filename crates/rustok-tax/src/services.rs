@@ -444,6 +444,64 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn region_provider_snapshots_channel_id_metadata() {
+        let provider = RegionTaxProvider;
+        let channel_id = Uuid::new_v4();
+        let result = provider
+            .calculate(TaxCalculationInput {
+                currency_code: "usd".to_string(),
+                channel_id: Some(channel_id),
+                policy: TaxPolicySnapshot {
+                    provider_id: None,
+                    channel_provider_id: None,
+                    country_code: None,
+                    tax_rate: Decimal::from(10),
+                    tax_included: false,
+                    country_rules: Vec::new(),
+                },
+                taxable_amounts: vec![TaxableAmount {
+                    line_item_id: None,
+                    shipping_option_id: None,
+                    description: Some("line_item".to_string()),
+                    amount: Decimal::from(10),
+                }],
+            })
+            .await
+            .expect("tax calculation should succeed");
+
+        assert_eq!(result.lines.len(), 1);
+        assert_eq!(
+            result.lines[0].metadata["channel_id"],
+            json!(channel_id.to_string())
+        );
+
+        let without_channel = provider
+            .calculate(TaxCalculationInput {
+                currency_code: "usd".to_string(),
+                channel_id: None,
+                policy: TaxPolicySnapshot {
+                    provider_id: None,
+                    channel_provider_id: None,
+                    country_code: None,
+                    tax_rate: Decimal::from(10),
+                    tax_included: false,
+                    country_rules: Vec::new(),
+                },
+                taxable_amounts: vec![TaxableAmount {
+                    line_item_id: None,
+                    shipping_option_id: None,
+                    description: Some("line_item".to_string()),
+                    amount: Decimal::from(10),
+                }],
+            })
+            .await
+            .expect("tax calculation should succeed without channel");
+
+        assert_eq!(without_channel.lines.len(), 1);
+        assert_eq!(without_channel.lines[0].metadata["channel_id"], json!(null));
+    }
+
+    #[tokio::test]
     async fn region_provider_prefers_country_rule_over_region_baseline() {
         let provider = RegionTaxProvider;
         let result = provider
