@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use rustok_core::{ModuleContext, ModuleRegistry, RusToKModule};
+use rustok_core::{ModuleContext, ModuleKind, ModuleRegistry, RusToKModule};
 use rustok_server::models::_entities::{module_operations, tenant_modules};
 use rustok_server::services::module_lifecycle::{ModuleLifecycleService, ToggleModuleError};
 use sea_orm::{
@@ -21,6 +21,10 @@ struct TestModule {
 struct DependentModule {
     slug: &'static str,
     dependency: &'static str,
+}
+
+struct CoreTestModule {
+    slug: &'static str,
 }
 
 impl TestModule {
@@ -47,6 +51,12 @@ impl rustok_core::MigrationSource for TestModule {
 }
 
 impl rustok_core::MigrationSource for DependentModule {
+    fn migrations(&self) -> Vec<Box<dyn MigrationTrait>> {
+        vec![]
+    }
+}
+
+impl rustok_core::MigrationSource for CoreTestModule {
     fn migrations(&self) -> Vec<Box<dyn MigrationTrait>> {
         vec![]
     }
@@ -107,6 +117,29 @@ impl RusToKModule for DependentModule {
 
     fn dependencies(&self) -> Vec<&'static str> {
         vec![self.dependency]
+    }
+}
+
+#[async_trait]
+impl RusToKModule for CoreTestModule {
+    fn slug(&self) -> &'static str {
+        self.slug
+    }
+
+    fn name(&self) -> &'static str {
+        "core-test-module"
+    }
+
+    fn description(&self) -> &'static str {
+        "test core module"
+    }
+
+    fn version(&self) -> &'static str {
+        "0.1.0"
+    }
+
+    fn kind(&self) -> ModuleKind {
+        ModuleKind::Core
     }
 }
 
@@ -447,5 +480,32 @@ async fn unknown_module_failure_does_not_create_journal_row() {
     assert!(
         operations.is_empty(),
         "unknown module validation must not create module_operations journal rows",
+    );
+}
+
+#[tokio::test]
+async fn core_module_disable_failure_does_not_create_journal_row() {
+    let db = setup_db().await;
+    let tenant_id = uuid::Uuid::new_v4();
+    seed_tenant(&db, tenant_id).await;
+
+    let registry = ModuleRegistry::new().register(CoreTestModule { slug: "tenant" });
+
+    let err = ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "tenant", false)
+        .await
+        .expect_err("core module disable should fail");
+    assert!(matches!(
+        err,
+        ToggleModuleError::CoreModuleCannotBeDisabled(module) if module == "tenant"
+    ));
+
+    let operations = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .all(&db)
+        .await
+        .expect("query operations");
+    assert!(
+        operations.is_empty(),
+        "core-module pre-validation failure must not create module_operations rows",
     );
 }
