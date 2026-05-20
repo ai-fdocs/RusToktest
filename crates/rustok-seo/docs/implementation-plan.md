@@ -104,6 +104,9 @@
 - [ ] Cross-linking engine с controlled insertion points без silent HTML mutation.
 - [ ] Google Indexing API / sitemap ping и позже Search Console-style diagnostics adapters.
   - [x] Foundation: tenant settings уже держат normalized `sitemap_submission_endpoints` для будущих ping providers.
+  - [x] Runtime foundation: `generate_sitemaps` выполняет best-effort HTTP submit на configured endpoints
+    (placeholder `{sitemap_url}` или auto-append `sitemap=`), сохраняя ошибки в `seo_sitemap_jobs.last_error`
+    без падения основной генерации sitemap.
 - [ ] Image SEO hooks через `rustok-media` после стабилизации templates + diagnostics.
 - [ ] Расширять Next route coverage только вместе с появлением реальных storefront routes.
 

@@ -1,6 +1,7 @@
 use rustok_seo_targets::{SeoTargetCapabilityKind, SeoTargetSitemapRequest};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, Order, QueryFilter, QueryOrder};
+use url::Url;
 use uuid::Uuid;
 
 use rustok_api::TenantContext;
@@ -43,6 +44,13 @@ impl SeoService {
         active_job.status = Set("completed".to_string());
         active_job.file_count = Set(file_models.len() as i32);
         active_job.completed_at = Set(Some(now));
+        active_job.last_error = match self.submit_sitemap_endpoints(tenant, &settings).await {
+            Ok(()) => Set(None),
+            Err(error) => {
+                tracing::warn!(tenant_id = %tenant.id, error = %error, "SEO sitemap submission failed");
+                Set(Some(error))
+            }
+        };
         active_job.updated_at = Set(now);
         active_job.update(&self.db).await?;
 
@@ -247,6 +255,44 @@ impl SeoService {
     }
 }
 
+impl SeoService {
+    async fn submit_sitemap_endpoints(
+        &self,
+        tenant: &TenantContext,
+        settings: &crate::dto::SeoModuleSettings,
+    ) -> Result<(), String> {
+        if settings.sitemap_submission_endpoints.is_empty() {
+            return Ok(());
+        }
+        let sitemap_index_url = format!("{}/sitemap.xml", public_base_url(tenant));
+        let client = reqwest::Client::new();
+        let mut failures = Vec::new();
+        for endpoint in &settings.sitemap_submission_endpoints {
+            let Some(url) = build_sitemap_submission_url(endpoint.as_str(), sitemap_index_url.as_str())
+            else {
+                failures.push(format!("invalid endpoint: {endpoint}"));
+                continue;
+            };
+            let response = client.get(url.clone()).send().await.map_err(|err| {
+                format!("request failed for endpoint `{endpoint}` with error: {err}")
+            });
+            match response {
+                Ok(response) if response.status().is_success() => {}
+                Ok(response) => failures.push(format!(
+                    "endpoint `{endpoint}` responded with status {}",
+                    response.status()
+                )),
+                Err(message) => failures.push(message),
+            }
+        }
+        if failures.is_empty() {
+            Ok(())
+        } else {
+            Err(failures.join("; "))
+        }
+    }
+}
+
 fn disabled_sitemap_status() -> SeoSitemapStatusRecord {
     SeoSitemapStatusRecord {
         enabled: false,
@@ -316,6 +362,28 @@ fn xml_escape(value: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&apos;")
+}
+
+fn build_sitemap_submission_url(endpoint: &str, sitemap_index_url: &str) -> Option<String> {
+    let normalized = endpoint.trim();
+    if normalized.is_empty() {
+        return None;
+    }
+    if normalized.contains("{sitemap_url}") {
+        let encoded: String = url::form_urlencoded::byte_serialize(sitemap_index_url.as_bytes())
+            .collect();
+        return Some(normalized.replace("{sitemap_url}", encoded.as_str()));
+    }
+    let mut parsed = Url::parse(normalized).ok()?;
+    if !parsed
+        .query_pairs()
+        .any(|(name, _)| name.eq_ignore_ascii_case("sitemap"))
+    {
+        parsed
+            .query_pairs_mut()
+            .append_pair("sitemap", sitemap_index_url);
+    }
+    Some(parsed.to_string())
 }
 
 pub(super) fn normalize_sitemap_submission_endpoints(values: &[String]) -> Vec<String> {
@@ -515,6 +583,29 @@ mod tests {
         assert_eq!(
             normalized,
             vec!["https://example.com/ping?sitemap=https://store/sitemap.xml".to_string()]
+        );
+    }
+
+    #[test]
+    fn build_sitemap_submission_url_supports_placeholder_and_query_append() {
+        let placeholder = super::build_sitemap_submission_url(
+            "https://example.com/ping?source=rustok&sitemap={sitemap_url}",
+            "https://store.example.com/sitemap.xml",
+        )
+        .expect("placeholder url");
+        assert_eq!(
+            placeholder,
+            "https://example.com/ping?source=rustok&sitemap=https%3A%2F%2Fstore.example.com%2Fsitemap.xml"
+        );
+
+        let appended = super::build_sitemap_submission_url(
+            "https://example.com/ping?source=rustok",
+            "https://store.example.com/sitemap.xml",
+        )
+        .expect("query append url");
+        assert_eq!(
+            appended,
+            "https://example.com/ping?source=rustok&sitemap=https%3A%2F%2Fstore.example.com%2Fsitemap.xml"
         );
     }
 
