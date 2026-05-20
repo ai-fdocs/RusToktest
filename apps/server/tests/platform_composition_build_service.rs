@@ -137,3 +137,40 @@ async fn build_insert_error_rolls_back_platform_revision() {
         "revision must be rolled back when build enqueue fails"
     );
 }
+
+#[tokio::test]
+async fn successful_enqueue_sets_manifest_ref_to_platform_state_revision() {
+    let db = setup_db(true).await;
+    let registry = ModuleRegistry::new();
+    let publisher = Arc::new(NoopBuildEventPublisher);
+    let manifest = ModulesManifest::default();
+
+    let seeded = PlatformCompositionService::active_snapshot(&db)
+        .await
+        .expect("seed active snapshot");
+
+    let result = PlatformCompositionBuildService::update_manifest_and_request_build(
+        &db,
+        publisher,
+        &registry,
+        Some(seeded.revision),
+        manifest,
+        ManifestDiff::default(),
+        "test-admin".to_string(),
+        "success case".to_string(),
+    )
+    .await
+    .expect("build request should succeed");
+
+    assert_eq!(result.snapshot.revision, seeded.revision + 1);
+    assert_eq!(
+        result.build.manifest_ref,
+        format!("platform_state:{}", result.snapshot.revision)
+    );
+    assert_eq!(result.build.manifest_revision, result.snapshot.revision);
+
+    let state_after = PlatformCompositionService::active_snapshot(&db)
+        .await
+        .expect("load state after success");
+    assert_eq!(state_after.revision, result.snapshot.revision);
+}
