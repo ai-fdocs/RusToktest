@@ -567,3 +567,30 @@ async fn noop_enable_for_already_enabled_module_does_not_create_extra_journal_ro
     );
     assert_eq!(operations[0].status, "done");
 }
+
+#[tokio::test]
+async fn toggle_without_actor_records_null_requested_by() {
+    let db = setup_db().await;
+    let tenant_id = uuid::Uuid::new_v4();
+    seed_tenant(&db, tenant_id).await;
+
+    let registry = ModuleRegistry::new().register(TestModule::new("forum"));
+
+    ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "forum", true)
+        .await
+        .expect("enable should succeed");
+
+    let operation = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .filter(module_operations::Column::ModuleSlug.eq("forum"))
+        .one(&db)
+        .await
+        .expect("query operation")
+        .expect("operation exists");
+
+    assert_eq!(operation.status, "done");
+    assert!(
+        operation.requested_by.is_none(),
+        "toggle_module wrapper without actor must persist requested_by as NULL",
+    );
+}
