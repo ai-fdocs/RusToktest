@@ -35,3 +35,20 @@ pub fn validate_order_ops_assistant_confidence(confidence: u8) -> Result<(), Str
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::validate_order_ops_assistant_confidence;
+
+    #[test]
+    fn accepts_confidence_bounds() {
+        assert!(validate_order_ops_assistant_confidence(0).is_ok());
+        assert!(validate_order_ops_assistant_confidence(100).is_ok());
+    }
+
+    #[test]
+    fn rejects_confidence_over_100() {
+        let err = validate_order_ops_assistant_confidence(101).unwrap_err();
+        assert!(err.contains("between 0 and 100"));
+    }
+}
