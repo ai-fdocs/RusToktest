@@ -3276,6 +3276,102 @@ async fn admin_graphql_order_query_exposes_shipping_total_and_shipping_scoped_ad
 }
 
 #[tokio::test]
+async fn admin_graphql_order_query_exposes_tax_breakdown_with_provider_ids() {
+    let db = setup_test_db().await;
+    support::ensure_commerce_schema(&db).await;
+    let tenant_id = Uuid::new_v4();
+    let actor_id = Uuid::new_v4();
+    seed_tenant_context(&db, tenant_id).await;
+
+    let order = OrderService::new(db.clone(), mock_transactional_event_bus())
+        .create_order(
+            tenant_id,
+            actor_id,
+            CreateOrderInput {
+                customer_id: Some(Uuid::new_v4()),
+                currency_code: "eur".to_string(),
+                shipping_total: Decimal::ZERO,
+                line_items: vec![CreateOrderLineItemInput {
+                    product_id: Some(Uuid::new_v4()),
+                    variant_id: Some(Uuid::new_v4()),
+                    shipping_profile_slug: "default".to_string(),
+                    seller_id: None,
+                    sku: Some("ADMIN-TAX-LINE-1".to_string()),
+                    title: "Admin Taxed Order".to_string(),
+                    quantity: 1,
+                    unit_price: Decimal::from_str("100.00").expect("valid decimal"),
+                    metadata: serde_json::json!({ "source": "graphql-admin-tax-order" }),
+                }],
+                adjustments: Vec::new(),
+                tax_lines: vec![rustok_order::dto::CreateOrderTaxLineInput {
+                    line_item_index: Some(0),
+                    shipping_option_index: None,
+                    rate: Decimal::from_str("19.00").expect("valid decimal"),
+                    amount: Decimal::from_str("19.00").expect("valid decimal"),
+                    name: "VAT".to_string(),
+                    provider_id: "region_default".to_string(),
+                    metadata: serde_json::json!({
+                        "tax_included": false,
+                        "scope": "line_item"
+                    }),
+                }],
+                metadata: serde_json::json!({ "source": "graphql-admin-tax-order" }),
+            },
+        )
+        .await
+        .expect("order should be created");
+
+    let schema = build_schema(
+        &db,
+        tenant_context(tenant_id),
+        request_context(tenant_id, "en"),
+        Some(admin_order_auth_context(tenant_id)),
+    );
+    let response = schema
+        .execute(Request::new(format!(
+            r#"
+            query {{
+              order(tenantId: "{tenant_id}", id: "{order_id}") {{
+                order {{
+                  id
+                  taxTotal
+                  taxIncluded
+                  taxLines {{
+                    providerId
+                    name
+                    amount
+                    rate
+                    lineItemId
+                    metadata
+                  }}
+                }}
+              }}
+            }}
+            "#,
+            order_id = order.id
+        )))
+        .await;
+    assert!(
+        response.errors.is_empty(),
+        "unexpected admin tax GraphQL errors: {:?}",
+        response.errors
+    );
+    let json = response
+        .data
+        .into_json()
+        .expect("admin tax query response should serialize");
+    assert_eq!(json["order"]["order"]["taxTotal"], Value::from("19"));
+    assert_eq!(json["order"]["order"]["taxIncluded"], Value::from(false));
+    assert_eq!(
+        json["order"]["order"]["taxLines"][0]["providerId"],
+        Value::from("region_default")
+    );
+    assert_eq!(json["order"]["order"]["taxLines"][0]["name"], Value::from("VAT"));
+    assert_eq!(json["order"]["order"]["taxLines"][0]["amount"], Value::from("19"));
+    assert_eq!(json["order"]["order"]["taxLines"][0]["rate"], Value::from("19"));
+}
+
+#[tokio::test]
 async fn admin_graphql_create_fulfillment_supports_typed_manual_post_order_items() {
     let db = setup_test_db().await;
     support::ensure_commerce_schema(&db).await;
