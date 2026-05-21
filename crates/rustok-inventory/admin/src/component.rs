@@ -708,6 +708,8 @@ mod tests {
             healthy_count,
             variants.len().saturating_sub(counts.non_healthy_total())
         );
+        let summary = summarize_inventory(&variants);
+        assert_eq!(summary.healthy, healthy_count);
     }
 
     #[test]
@@ -750,6 +752,21 @@ mod tests {
             inventory_health_badge(&backorder),
             "border-sky-200 bg-sky-50 text-sky-700"
         );
+    }
+
+    #[test]
+    fn summary_partition_is_complete_including_healthy_bucket() {
+        let variants = vec![
+            variant(true, "deny", LOW_STOCK_THRESHOLD + 3),
+            variant(true, "deny", LOW_STOCK_THRESHOLD),
+            variant(false, "deny", 0),
+            variant(true, "continue", -1),
+        ];
+
+        let summary = summarize_inventory(&variants);
+        let partition_total =
+            summary.healthy + summary.low_stock + summary.out_of_stock + summary.backorder;
+        assert_eq!(partition_total, summary.variant_count);
     }
 
     #[test]
