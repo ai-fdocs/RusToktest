@@ -104,6 +104,33 @@ fn invalid_manifest_with_missing_dependency() -> ModulesManifest {
     invalid_manifest
 }
 
+async fn assert_snapshot_unchanged(
+    db: &DatabaseConnection,
+    seeded: &rustok_server::services::platform_composition::PlatformCompositionSnapshot,
+    context: &str,
+) {
+    let state_after = PlatformCompositionService::active_snapshot(db)
+        .await
+        .expect("load state after failed operation");
+    assert_eq!(
+        state_after.revision, seeded.revision,
+        "revision must stay unchanged for {context}"
+    );
+    assert_eq!(
+        state_after.manifest_hash, seeded.manifest_hash,
+        "manifest hash must stay unchanged for {context}"
+    );
+    assert_eq!(
+        state_after.manifest, seeded.manifest,
+        "manifest payload must stay unchanged for {context}"
+    );
+}
+
+async fn assert_no_builds_enqueued(db: &DatabaseConnection, context: &str) {
+    let builds = BuildEntity::find().all(db).await.expect("list builds");
+    assert!(builds.is_empty(), "no builds expected for {context}");
+}
+
 #[tokio::test]
 async fn stale_revision_does_not_enqueue_build() {
     let db = setup_db(true).await;
@@ -214,27 +241,8 @@ async fn manifest_validation_error_does_not_update_state_or_enqueue_build() {
         )
     ));
 
-    let state_after = PlatformCompositionService::active_snapshot(&db)
-        .await
-        .expect("load state after validation error");
-    assert_eq!(
-        state_after.revision, seeded.revision,
-        "revision must stay unchanged when manifest validation fails"
-    );
-    assert_eq!(
-        state_after.manifest_hash, seeded.manifest_hash,
-        "manifest hash must stay unchanged when manifest validation fails"
-    );
-    assert_eq!(
-        state_after.manifest, seeded.manifest,
-        "manifest payload must stay unchanged when manifest validation fails"
-    );
-
-    let builds = BuildEntity::find().all(&db).await.expect("list builds");
-    assert!(
-        builds.is_empty(),
-        "no build should be enqueued when manifest validation fails"
-    );
+    assert_snapshot_unchanged(&db, &seeded, "manifest validation failure (build path)").await;
+    assert_no_builds_enqueued(&db, "manifest validation failure (build path)").await;
 }
 
 #[tokio::test]
@@ -263,18 +271,8 @@ async fn update_manifest_validation_error_does_not_update_platform_state() {
         rustok_server::services::platform_composition::PlatformCompositionError::Manifest(_)
     ));
 
-    let state_after = PlatformCompositionService::active_snapshot(&db)
-        .await
-        .expect("load state after validation error");
-    assert_eq!(state_after.revision, seeded.revision);
-    assert_eq!(state_after.manifest_hash, seeded.manifest_hash);
-    assert_eq!(state_after.manifest, seeded.manifest);
-
-    let builds = BuildEntity::find().all(&db).await.expect("list builds");
-    assert!(
-        builds.is_empty(),
-        "update_manifest must not enqueue builds on validation failure"
-    );
+    assert_snapshot_unchanged(&db, &seeded, "manifest validation failure (update path)").await;
+    assert_no_builds_enqueued(&db, "manifest validation failure (update path)").await;
 }
 
 #[tokio::test]
@@ -301,18 +299,8 @@ async fn update_manifest_stale_revision_conflict_does_not_update_platform_state(
         rustok_server::services::platform_composition::PlatformCompositionError::RevisionConflict { .. }
     ));
 
-    let state_after = PlatformCompositionService::active_snapshot(&db)
-        .await
-        .expect("load state after stale revision conflict");
-    assert_eq!(state_after.revision, seeded.revision);
-    assert_eq!(state_after.manifest_hash, seeded.manifest_hash);
-    assert_eq!(state_after.manifest, seeded.manifest);
-
-    let builds = BuildEntity::find().all(&db).await.expect("list builds");
-    assert!(
-        builds.is_empty(),
-        "update_manifest stale revision conflict must not enqueue builds"
-    );
+    assert_snapshot_unchanged(&db, &seeded, "stale revision conflict (update path)").await;
+    assert_no_builds_enqueued(&db, "stale revision conflict (update path)").await;
 }
 
 #[tokio::test]
