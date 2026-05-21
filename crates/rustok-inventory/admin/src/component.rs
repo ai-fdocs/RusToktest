@@ -354,7 +354,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                     </div>
                                 </div>
 
-                                <div class="grid gap-4 md:grid-cols-4">
+                                <div class="grid gap-4 md:grid-cols-5">
                                     <StatCard
                                         title=t(ui_locale_for_detail.as_deref(), "inventory.stat.variants", "Variants")
                                         value=summary.variant_count.to_string()
@@ -374,6 +374,11 @@ pub fn InventoryAdmin() -> impl IntoView {
                                         title=t(ui_locale_for_detail.as_deref(), "inventory.stat.backorder", "Backorder")
                                         value=summary.backorder.to_string()
                                         hint=t(ui_locale_for_detail.as_deref(), "inventory.stat.backorderHint", "Variants that continue selling below zero.")
+                                    />
+                                    <StatCard
+                                        title=t(ui_locale_for_detail.as_deref(), "inventory.stat.outOfStock", "Out of stock")
+                                        value=summary.out_of_stock.to_string()
+                                        hint=t(ui_locale_for_detail.as_deref(), "inventory.stat.outOfStockHint", "Variants currently unavailable for immediate sale.")
                                     />
                                 </div>
 
@@ -455,6 +460,7 @@ struct InventorySummary {
     total_quantity: i32,
     low_stock: usize,
     backorder: usize,
+    out_of_stock: usize,
 }
 
 fn summarize_inventory(variants: &[InventoryVariant]) -> InventorySummary {
@@ -472,6 +478,7 @@ fn summarize_inventory(variants: &[InventoryVariant]) -> InventorySummary {
             .iter()
             .filter(|variant| variant.inventory_policy.eq_ignore_ascii_case("continue"))
             .count(),
+        out_of_stock: variants.iter().filter(|variant| !variant.in_stock).count(),
     }
 }
 
