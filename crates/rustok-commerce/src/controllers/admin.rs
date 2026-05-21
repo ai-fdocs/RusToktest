@@ -2073,6 +2073,10 @@ mod tests {
             json!(payment_collection.id)
         );
         assert_eq!(payload["payment_collection"]["order_id"], json!(order.id));
+        assert_eq!(
+            payload["payment_collection"]["amount"],
+            payload["order"]["total_amount"]
+        );
         assert_eq!(payload["fulfillment"]["id"], json!(fulfillment.id));
         assert_eq!(payload["fulfillment"]["order_id"], json!(order.id));
     }
