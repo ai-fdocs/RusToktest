@@ -560,7 +560,8 @@ export function AiAdminPage(props: AiAdminPageProps) {
       ) ?? null,
     [taskProfiles]
   );
-
+  const canSubmitProductAttributes =
+    !!productAttributesTaskProfile && productAttributesForm.productId.trim().length > 0;
 
   const loadBootstrap = React.useCallback(async () => {
     setLoading(true);
@@ -1947,9 +1948,15 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     <br />
                     Mode: direct
                   </div>
+                  {!canSubmitProductAttributes ? (
+                    <p className='text-muted-foreground text-xs'>
+                      Product id and active task profile `product_attributes` are required.
+                    </p>
+                  ) : null}
                   <button
-                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium'
+                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
+                    disabled={!canSubmitProductAttributes}
                   >
                     Generate blog draft
                   </button>
@@ -2143,6 +2150,8 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   className='space-y-3'
                   onSubmit={async (event) => {
                     event.preventDefault();
+                    setError(null);
+                    setFeedback(null);
                     if (!productAttributesTaskProfile) {
                       setError(
                         'Task profile `product_attributes` is not configured. Create/activate it first.'
@@ -2344,9 +2353,15 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     <br />
                     Mode: direct
                   </div>
+                  {!canSubmitProductAttributes ? (
+                    <p className='text-muted-foreground text-xs'>
+                      Product id and active task profile `product_attributes` are required.
+                    </p>
+                  ) : null}
                   <button
-                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium'
+                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
+                    disabled={!canSubmitProductAttributes}
                   >
                     Generate product attributes
                   </button>
@@ -2496,9 +2511,15 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     <br />
                     Mode: direct
                   </div>
+                  {!canSubmitProductAttributes ? (
+                    <p className='text-muted-foreground text-xs'>
+                      Product id and active task profile `product_attributes` are required.
+                    </p>
+                  ) : null}
                   <button
-                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium'
+                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
+                    disabled={!canSubmitProductAttributes}
                   >
                     Generate media image
                   </button>
@@ -2633,9 +2654,15 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     <br />
                     Mode: direct
                   </div>
+                  {!canSubmitProductAttributes ? (
+                    <p className='text-muted-foreground text-xs'>
+                      Product id and active task profile `product_attributes` are required.
+                    </p>
+                  ) : null}
                   <button
-                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium'
+                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
+                    disabled={!canSubmitProductAttributes}
                   >
                     Run Alloy job
                   </button>
@@ -2716,9 +2743,15 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     <br />
                     Tool profile: {sessionForm.toolProfileId || 'optional'}
                   </div>
+                  {!canSubmitProductAttributes ? (
+                    <p className='text-muted-foreground text-xs'>
+                      Product id and active task profile `product_attributes` are required.
+                    </p>
+                  ) : null}
                   <button
-                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium'
+                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
+                    disabled={!canSubmitProductAttributes}
                   >
                     Start session
                   </button>
@@ -2861,8 +2894,9 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     value={reply}
                   />
                   <button
-                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium'
+                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
+                    disabled={!canSubmitProductAttributes}
                   >
                     Send
                   </button>
