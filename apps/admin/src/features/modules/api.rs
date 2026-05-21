@@ -641,11 +641,9 @@ mod tests {
     fn toggle_module_native_is_explicitly_disabled() {
         let error = block_on(super::toggle_module_native("catalog".to_string(), true))
             .expect_err("native toggle path must stay disabled");
-        assert!(
-            error
-                .to_string()
-                .contains("native path is disabled; use canonical GraphQL lifecycle entrypoint")
-        );
+        assert!(error
+            .to_string()
+            .contains("native path is disabled; use canonical GraphQL lifecycle entrypoint"));
     }
 }
 
@@ -1141,10 +1139,51 @@ fn runtime_manifest_hash(manifest: &RuntimeModulesManifest) -> String {
     use sha2::{Digest, Sha256};
 
     let snapshot = serde_json::to_value(manifest).unwrap_or(serde_json::Value::Null);
-    let serialized = serde_json::to_string(&snapshot).unwrap_or_default();
+    let canonical_snapshot = runtime_canonicalize_json_value(&snapshot);
+    let serialized = serde_json::to_string(&canonical_snapshot).unwrap_or_default();
     let mut hasher = Sha256::new();
     hasher.update(serialized.as_bytes());
     hex::encode(hasher.finalize())
+}
+
+#[cfg(feature = "ssr")]
+fn runtime_canonicalize_json_value(value: &serde_json::Value) -> serde_json::Value {
+    match value {
+        serde_json::Value::Object(map) => {
+            let mut entries = map.iter().collect::<Vec<_>>();
+            entries.sort_by(|(left, _), (right, _)| left.cmp(right));
+            let canonical = entries
+                .into_iter()
+                .map(|(key, nested)| (key.clone(), runtime_canonicalize_json_value(nested)))
+                .collect::<serde_json::Map<String, serde_json::Value>>();
+            serde_json::Value::Object(canonical)
+        }
+        serde_json::Value::Array(items) => serde_json::Value::Array(
+            items
+                .iter()
+                .map(runtime_canonicalize_json_value)
+                .collect::<Vec<serde_json::Value>>(),
+        ),
+        _ => value.clone(),
+    }
+}
+
+#[cfg(all(test, feature = "ssr"))]
+mod runtime_manifest_hash_tests {
+    use super::runtime_canonicalize_json_value;
+
+    #[test]
+    fn canonicalizer_sorts_nested_object_keys() {
+        let input = serde_json::json!({
+            "z": {"b": 2, "a": 1},
+            "a": {"d": 4, "c": 3}
+        });
+
+        let canonical = runtime_canonicalize_json_value(&input);
+        let serialized = serde_json::to_string(&canonical).expect("canonical json");
+
+        assert_eq!(serialized, r#"{"a":{"c":3,"d":4},"z":{"a":1,"b":2}}"#);
+    }
 }
 
 #[cfg(feature = "ssr")]
