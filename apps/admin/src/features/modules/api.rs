@@ -1175,7 +1175,41 @@ fn runtime_canonicalize_json_value(value: &serde_json::Value) -> serde_json::Val
 
 #[cfg(all(test, feature = "ssr"))]
 mod runtime_manifest_hash_tests {
-    use super::{runtime_canonicalize_json_value, runtime_manifest_snapshot_hash};
+    use super::{
+        runtime_canonicalize_json_value, runtime_manifest_hash, runtime_manifest_snapshot_hash,
+        RuntimeBuildConfig, RuntimeManifestModuleSpec, RuntimeModulesManifest,
+        RuntimeSettingsManifest,
+    };
+    use std::collections::HashMap;
+
+    fn sample_manifest() -> RuntimeModulesManifest {
+        let mut modules = HashMap::new();
+        modules.insert(
+            "catalog".to_string(),
+            RuntimeManifestModuleSpec {
+                source: "git".to_string(),
+                crate_name: "rustok-catalog".to_string(),
+                path: Some("crates/rustok-catalog".to_string()),
+                version: Some("1.0.0".to_string()),
+                git: Some("https://example.invalid/catalog.git".to_string()),
+                rev: Some("abc123".to_string()),
+                required: false,
+                depends_on: vec!["pricing".to_string()],
+            },
+        );
+        RuntimeModulesManifest {
+            schema: 1,
+            app: "rustok".to_string(),
+            build: RuntimeBuildConfig {
+                profile: "release".to_string(),
+                ..Default::default()
+            },
+            modules,
+            settings: RuntimeSettingsManifest {
+                default_enabled: vec!["catalog".to_string()],
+            },
+        }
+    }
 
     #[test]
     fn canonicalizer_sorts_nested_object_keys() {
@@ -1221,6 +1255,42 @@ mod runtime_manifest_hash_tests {
         let right = runtime_manifest_snapshot_hash(&serde_json::json!({"settings": {"locale": "ru"}}));
 
         assert_ne!(left, right);
+    }
+
+    #[test]
+    fn runtime_manifest_hash_changes_when_profile_changes() {
+        let left = sample_manifest();
+        let mut right = left.clone();
+        right.build.profile = "debug".to_string();
+
+        assert_ne!(runtime_manifest_hash(&left), runtime_manifest_hash(&right));
+    }
+
+    #[test]
+    fn runtime_manifest_hash_changes_when_dependency_metadata_changes() {
+        let left = sample_manifest();
+        let mut right = left.clone();
+        right
+            .modules
+            .get_mut("catalog")
+            .expect("catalog module exists")
+            .depends_on
+            .push("inventory".to_string());
+
+        assert_ne!(runtime_manifest_hash(&left), runtime_manifest_hash(&right));
+    }
+
+    #[test]
+    fn runtime_manifest_hash_changes_when_source_pin_changes() {
+        let left = sample_manifest();
+        let mut right = left.clone();
+        right
+            .modules
+            .get_mut("catalog")
+            .expect("catalog module exists")
+            .rev = Some("def456".to_string());
+
+        assert_ne!(runtime_manifest_hash(&left), runtime_manifest_hash(&right));
     }
 }
 
