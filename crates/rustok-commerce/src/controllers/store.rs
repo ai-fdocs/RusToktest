@@ -5527,6 +5527,8 @@ mod tests {
         assert_eq!(order["customer_id"], json!(customer_id));
         assert_eq!(order["status"], json!("paid"));
         assert_eq!(order["currency_code"], json!("EUR"));
+        assert_eq!(order["subtotal_amount"], completed["order"]["subtotal_amount"]);
+        assert_eq!(order["total_amount"], completed["order"]["total_amount"]);
         assert_eq!(order["tax_included"], completed["order"]["tax_included"]);
         assert_eq!(order["tax_total"], completed["order"]["tax_total"]);
         assert_eq!(
