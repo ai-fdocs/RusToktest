@@ -5030,11 +5030,12 @@ mod tests {
             .await
             .expect("payment collection body should read");
         assert_eq!(status, StatusCode::BAD_REQUEST);
-        let payload = String::from_utf8_lossy(&body);
-        assert!(
-            payload.contains("completed") || payload.contains("Invalid transition"),
-            "unexpected error payload: {}",
-            payload
+        let payload: serde_json::Value =
+            serde_json::from_slice(&body).expect("payment collection error should be JSON");
+        assert_eq!(payload["error"], json!("Bad Request"));
+        assert_eq!(
+            payload["description"],
+            json!("Cannot create payment collection for completed cart")
         );
     }
 
