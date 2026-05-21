@@ -530,6 +530,28 @@ mod tests {
         assert_eq!(summary.out_of_stock, 1);
         assert_eq!(summary.backorder, 2);
     }
+
+    #[test]
+    fn health_label_and_badge_follow_backorder_precedence() {
+        let variant = variant(false, "continue", -1);
+
+        let label = inventory_health_label(None, &variant);
+        let badge = inventory_health_badge(&variant);
+
+        assert_eq!(label, "Backorder");
+        assert_eq!(badge, "border-sky-200 bg-sky-50 text-sky-700");
+    }
+
+    #[test]
+    fn health_label_and_badge_mark_out_of_stock_when_backorder_disabled() {
+        let variant = variant(false, "deny", 0);
+
+        let label = inventory_health_label(None, &variant);
+        let badge = inventory_health_badge(&variant);
+
+        assert_eq!(label, "Out of stock");
+        assert_eq!(badge, "border-rose-200 bg-rose-50 text-rose-700");
+    }
 }
 
 fn inventory_translation_for_locale<'a>(
