@@ -744,6 +744,24 @@ mod tests {
             "border-sky-200 bg-sky-50 text-sky-700"
         );
     }
+
+    #[test]
+    fn state_label_helper_matches_variant_label_projection() {
+        let variants = vec![
+            variant(true, "deny", LOW_STOCK_THRESHOLD + 3),
+            variant(true, "deny", LOW_STOCK_THRESHOLD),
+            variant(false, "deny", 0),
+            variant(false, "continue", -2),
+        ];
+
+        for variant in variants {
+            let state = inventory_health_state(&variant);
+            assert_eq!(
+                inventory_health_label_for_state(None, state),
+                inventory_health_label(None, &variant)
+            );
+        }
+    }
 }
 
 fn inventory_translation_for_locale<'a>(
@@ -808,12 +826,7 @@ fn format_variant_price(locale: Option<&str>, variant: &InventoryVariant) -> Str
 }
 
 fn inventory_health_label(locale: Option<&str>, variant: &InventoryVariant) -> String {
-    match inventory_health_state(variant) {
-        InventoryHealthState::Backorder => t(locale, "inventory.health.backorder", "Backorder"),
-        InventoryHealthState::OutOfStock => t(locale, "inventory.health.outOfStock", "Out of stock"),
-        InventoryHealthState::LowStock => t(locale, "inventory.health.lowStock", "Low stock"),
-        InventoryHealthState::Healthy => t(locale, "inventory.health.healthy", "Healthy"),
-    }
+    inventory_health_label_for_state(locale, inventory_health_state(variant))
 }
 
 fn inventory_health_badge(variant: &InventoryVariant) -> &'static str {
@@ -822,6 +835,15 @@ fn inventory_health_badge(variant: &InventoryVariant) -> &'static str {
         InventoryHealthState::OutOfStock => "border-rose-200 bg-rose-50 text-rose-700",
         InventoryHealthState::LowStock => "border-amber-200 bg-amber-50 text-amber-700",
         InventoryHealthState::Healthy => "border-emerald-200 bg-emerald-50 text-emerald-700",
+    }
+}
+
+fn inventory_health_label_for_state(locale: Option<&str>, state: InventoryHealthState) -> String {
+    match state {
+        InventoryHealthState::Backorder => t(locale, "inventory.health.backorder", "Backorder"),
+        InventoryHealthState::OutOfStock => t(locale, "inventory.health.outOfStock", "Out of stock"),
+        InventoryHealthState::LowStock => t(locale, "inventory.health.lowStock", "Low stock"),
+        InventoryHealthState::Healthy => t(locale, "inventory.health.healthy", "Healthy"),
     }
 }
 
