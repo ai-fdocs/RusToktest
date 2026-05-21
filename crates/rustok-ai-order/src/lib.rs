@@ -36,9 +36,31 @@ pub fn validate_order_ops_assistant_confidence(confidence: u8) -> Result<(), Str
     Ok(())
 }
 
+pub fn validate_order_analytics_payload(payload: &GeneratedOrderAnalytics) -> Result<(), String> {
+    if payload.summary.trim().is_empty() {
+        return Err("order_analytics summary must not be empty".to_string());
+    }
+    Ok(())
+}
+
+pub fn validate_order_ops_assistant_payload(
+    payload: &GeneratedOrderOpsAssistant,
+) -> Result<(), String> {
+    if payload.recommended_action.trim().is_empty() {
+        return Err("order_ops_assistant recommended_action must not be empty".to_string());
+    }
+    if payload.rationale.trim().is_empty() {
+        return Err("order_ops_assistant rationale must not be empty".to_string());
+    }
+    validate_order_ops_assistant_confidence(payload.confidence)
+}
+
 #[cfg(test)]
 mod tests {
-    use super::validate_order_ops_assistant_confidence;
+    use super::{
+        validate_order_analytics_payload, validate_order_ops_assistant_confidence,
+        validate_order_ops_assistant_payload, GeneratedOrderAnalytics, GeneratedOrderOpsAssistant,
+    };
 
     #[test]
     fn accepts_confidence_bounds() {
@@ -50,5 +72,51 @@ mod tests {
     fn rejects_confidence_over_100() {
         let err = validate_order_ops_assistant_confidence(101).unwrap_err();
         assert!(err.contains("between 0 and 100"));
+    }
+
+    #[test]
+    fn validates_order_analytics_payload() {
+        let payload = GeneratedOrderAnalytics {
+            summary: "Ready".to_string(),
+            key_findings: vec![],
+            risk_flags: vec![],
+            recommended_actions: vec![],
+        };
+        assert!(validate_order_analytics_payload(&payload).is_ok());
+    }
+
+    #[test]
+    fn rejects_empty_order_analytics_summary() {
+        let payload = GeneratedOrderAnalytics {
+            summary: "  ".to_string(),
+            key_findings: vec![],
+            risk_flags: vec![],
+            recommended_actions: vec![],
+        };
+        assert!(validate_order_analytics_payload(&payload).is_err());
+    }
+
+    #[test]
+    fn validates_order_ops_assistant_payload() {
+        let payload = GeneratedOrderOpsAssistant {
+            recommended_action: "contact_customer".to_string(),
+            rationale: "Address mismatch".to_string(),
+            prefill: serde_json::json!({}),
+            requires_human: true,
+            confidence: 80,
+        };
+        assert!(validate_order_ops_assistant_payload(&payload).is_ok());
+    }
+
+    #[test]
+    fn rejects_empty_ops_fields() {
+        let payload = GeneratedOrderOpsAssistant {
+            recommended_action: " ".to_string(),
+            rationale: " ".to_string(),
+            prefill: serde_json::json!({}),
+            requires_human: false,
+            confidence: 50,
+        };
+        assert!(validate_order_ops_assistant_payload(&payload).is_err());
     }
 }

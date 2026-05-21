@@ -12,7 +12,8 @@ use crate::model::{
 use crate::provider::ModelProvider;
 use crate::{AiError, AiResult};
 use rustok_ai_order::{
-    validate_order_ops_assistant_confidence, GeneratedOrderAnalytics, GeneratedOrderOpsAssistant,
+    validate_order_analytics_payload, validate_order_ops_assistant_payload,
+    GeneratedOrderAnalytics, GeneratedOrderOpsAssistant,
 };
 
 pub(crate) async fn generate_order_analytics(
@@ -72,7 +73,10 @@ pub(crate) async fn generate_order_analytics(
         AiError::Provider("provider returned empty content for order_analytics".to_string())
     })?;
     let parsed = parse_json_object_from_text(&content)?;
-    serde_json::from_value(parsed).map_err(AiError::Json)
+    let generated: GeneratedOrderAnalytics =
+        serde_json::from_value(parsed).map_err(AiError::Json)?;
+    validate_order_analytics_payload(&generated).map_err(AiError::Validation)?;
+    Ok(generated)
 }
 
 pub(crate) async fn generate_order_ops_assistant(
@@ -134,6 +138,6 @@ pub(crate) async fn generate_order_ops_assistant(
     let parsed = parse_json_object_from_text(&content)?;
     let decision: GeneratedOrderOpsAssistant =
         serde_json::from_value(parsed).map_err(AiError::Json)?;
-    validate_order_ops_assistant_confidence(decision.confidence).map_err(AiError::Validation)?;
+    validate_order_ops_assistant_payload(&decision).map_err(AiError::Validation)?;
     Ok(decision)
 }
