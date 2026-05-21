@@ -1341,6 +1341,8 @@ impl CartService {
             taxable_amounts.push(TaxableAmount {
                 line_item_id: Some(item.id),
                 shipping_option_id: None,
+                item_tax_class: None,
+                shipping_tax_class: None,
                 description: Some("line_item".to_string()),
                 amount: item.total_price,
             });
@@ -1366,6 +1368,8 @@ impl CartService {
             taxable_amounts.push(TaxableAmount {
                 line_item_id: None,
                 shipping_option_id: Some(option.id),
+                item_tax_class: None,
+                shipping_tax_class: None,
                 description: Some("shipping".to_string()),
                 amount: option.amount,
             });
@@ -1376,6 +1380,7 @@ impl CartService {
             .calculate(TaxCalculationInput {
                 currency_code: cart.currency_code.clone(),
                 channel_id: cart.channel_id,
+                customer_tax_exempt: false,
                 policy: TaxPolicySnapshot {
                     provider_id: region.tax_provider_id.clone(),
                     channel_provider_id: channel_tax_provider_id(&region.metadata, cart.channel_id),

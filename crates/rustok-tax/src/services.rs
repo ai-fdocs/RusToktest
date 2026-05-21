@@ -29,6 +29,8 @@ pub struct TaxPolicyCountryRule {
 pub struct TaxableAmount {
     pub line_item_id: Option<Uuid>,
     pub shipping_option_id: Option<Uuid>,
+    pub item_tax_class: Option<String>,
+    pub shipping_tax_class: Option<String>,
     pub description: Option<String>,
     pub amount: Decimal,
 }
@@ -37,6 +39,7 @@ pub struct TaxableAmount {
 pub struct TaxCalculationInput {
     pub currency_code: String,
     pub channel_id: Option<Uuid>,
+    pub customer_tax_exempt: bool,
     pub policy: TaxPolicySnapshot,
     pub taxable_amounts: Vec<TaxableAmount>,
 }
@@ -97,6 +100,13 @@ impl TaxProvider for RegionTaxProvider {
         }
 
         let resolved_policy = resolve_effective_policy(&input.policy)?;
+        if input.customer_tax_exempt {
+            return Ok(TaxCalculationResult {
+                tax_total: Decimal::ZERO,
+                tax_included: false,
+                lines: Vec::new(),
+            });
+        }
 
         let currency_code = input.currency_code.trim().to_ascii_uppercase();
         if resolved_policy.tax_rate <= Decimal::ZERO {
@@ -324,16 +334,21 @@ mod tests {
                     TaxableAmount {
                         line_item_id: Some(line_item_id),
                         shipping_option_id: None,
+                        item_tax_class: Some("standard".to_string()),
+                        shipping_tax_class: None,
                         description: Some("line_item".to_string()),
                         amount: Decimal::from(100),
                     },
                     TaxableAmount {
                         line_item_id: None,
                         shipping_option_id: Some(shipping_option_id),
+                        item_tax_class: None,
+                        shipping_tax_class: Some("default_shipping".to_string()),
                         description: Some("shipping".to_string()),
                         amount: Decimal::from(10),
                     },
                 ],
+                customer_tax_exempt: false,
             })
             .await
             .expect("tax calculation should succeed");
@@ -372,9 +387,12 @@ mod tests {
                 taxable_amounts: vec![TaxableAmount {
                     line_item_id: None,
                     shipping_option_id: None,
+                    item_tax_class: None,
+                    shipping_tax_class: None,
                     description: Some("line_item".to_string()),
                     amount: Decimal::from(10),
                 }],
+                customer_tax_exempt: false,
             })
             .await
             .expect_err("unknown provider should be rejected");
@@ -402,9 +420,12 @@ mod tests {
                 taxable_amounts: vec![TaxableAmount {
                     line_item_id: None,
                     shipping_option_id: None,
+                    item_tax_class: None,
+                    shipping_tax_class: None,
                     description: Some("line_item".to_string()),
                     amount: Decimal::from(10),
                 }],
+                customer_tax_exempt: false,
             })
             .await
             .expect("normalized channel provider should be used");
@@ -431,9 +452,12 @@ mod tests {
                 taxable_amounts: vec![TaxableAmount {
                     line_item_id: None,
                     shipping_option_id: None,
+                    item_tax_class: None,
+                    shipping_tax_class: None,
                     description: Some("line_item".to_string()),
                     amount: Decimal::from(10),
                 }],
+                customer_tax_exempt: false,
             })
             .await
             .expect_err("unknown channel provider should be rejected");
@@ -461,9 +485,12 @@ mod tests {
                 taxable_amounts: vec![TaxableAmount {
                     line_item_id: None,
                     shipping_option_id: None,
+                    item_tax_class: None,
+                    shipping_tax_class: None,
                     description: Some("line_item".to_string()),
                     amount: Decimal::from(10),
                 }],
+                customer_tax_exempt: false,
             })
             .await
             .expect("region provider should be used when channel context is absent");
@@ -491,9 +518,12 @@ mod tests {
                 taxable_amounts: vec![TaxableAmount {
                     line_item_id: None,
                     shipping_option_id: None,
+                    item_tax_class: None,
+                    shipping_tax_class: None,
                     description: Some("line_item".to_string()),
                     amount: Decimal::from(10),
                 }],
+                customer_tax_exempt: false,
             })
             .await
             .expect("tax calculation should succeed");
@@ -519,9 +549,12 @@ mod tests {
                 taxable_amounts: vec![TaxableAmount {
                     line_item_id: None,
                     shipping_option_id: None,
+                    item_tax_class: None,
+                    shipping_tax_class: None,
                     description: Some("line_item".to_string()),
                     amount: Decimal::from(10),
                 }],
+                customer_tax_exempt: false,
             })
             .await
             .expect("tax calculation should succeed without channel");
@@ -552,9 +585,12 @@ mod tests {
                 taxable_amounts: vec![TaxableAmount {
                     line_item_id: None,
                     shipping_option_id: None,
+                    item_tax_class: None,
+                    shipping_tax_class: None,
                     description: Some("line_item".to_string()),
                     amount: Decimal::from(107),
                 }],
+                customer_tax_exempt: false,
             })
             .await
             .expect("tax calculation should succeed");
@@ -563,5 +599,38 @@ mod tests {
         assert!(result.tax_included);
         assert_eq!(result.lines[0].metadata["country_code"], json!("DE"));
         assert_eq!(result.lines[0].metadata["policy_scope"], json!("country"));
+    }
+
+    #[tokio::test]
+    async fn region_provider_returns_empty_result_for_tax_exempt_customer() {
+        let provider = RegionTaxProvider;
+        let result = provider
+            .calculate(TaxCalculationInput {
+                currency_code: "usd".to_string(),
+                channel_id: None,
+                customer_tax_exempt: true,
+                policy: TaxPolicySnapshot {
+                    provider_id: None,
+                    channel_provider_id: None,
+                    country_code: None,
+                    tax_rate: Decimal::from(20),
+                    tax_included: true,
+                    country_rules: Vec::new(),
+                },
+                taxable_amounts: vec![TaxableAmount {
+                    line_item_id: Some(Uuid::new_v4()),
+                    shipping_option_id: None,
+                    item_tax_class: Some("standard".to_string()),
+                    shipping_tax_class: None,
+                    description: Some("line_item".to_string()),
+                    amount: Decimal::from(100),
+                }],
+            })
+            .await
+            .expect("tax-exempt calculation should succeed");
+
+        assert_eq!(result.tax_total, Decimal::ZERO);
+        assert!(!result.tax_included);
+        assert!(result.lines.is_empty());
     }
 }
