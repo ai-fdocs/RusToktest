@@ -883,6 +883,11 @@ fn storefront_customer_order_query(tenant_id: Uuid, order_id: Uuid) -> String {
             customerId
             status
             currencyCode
+            taxTotal
+            taxIncluded
+            taxLines {{
+              providerId
+            }}
             totalAmount
             lineItems {{
               title
@@ -3878,7 +3883,15 @@ async fn storefront_graphql_customer_and_order_queries_match_customer_owned_read
                     metadata: serde_json::json!({ "source": "storefront-graphql-order-parity" }),
                 }],
                 adjustments: Vec::new(),
-                tax_lines: Vec::new(),
+                tax_lines: vec![rustok_order::dto::CreateOrderTaxLineInput {
+                    line_item_index: Some(0),
+                    shipping_option_index: None,
+                    rate: Decimal::from_str("19.00").expect("valid decimal"),
+                    amount: Decimal::from_str("5.70").expect("valid decimal"),
+                    name: "VAT".to_string(),
+                    provider_id: "region_default".to_string(),
+                    metadata: serde_json::json!({ "tax_included": false }),
+                }],
                 metadata: serde_json::json!({ "source": "storefront-graphql-order-parity" }),
             },
         )
@@ -3921,7 +3934,13 @@ async fn storefront_graphql_customer_and_order_queries_match_customer_owned_read
     );
     assert_eq!(json["storefrontOrder"]["status"], Value::from("pending"));
     assert_eq!(json["storefrontOrder"]["currencyCode"], Value::from("EUR"));
-    assert_eq!(json["storefrontOrder"]["totalAmount"], Value::from("30"));
+    assert_eq!(json["storefrontOrder"]["taxTotal"], Value::from("5.7"));
+    assert_eq!(json["storefrontOrder"]["taxIncluded"], Value::from(false));
+    assert_eq!(
+        json["storefrontOrder"]["taxLines"][0]["providerId"],
+        Value::from("region_default")
+    );
+    assert_eq!(json["storefrontOrder"]["totalAmount"], Value::from("35.7"));
     assert_eq!(
         json["storefrontOrder"]["lineItems"][0]["title"],
         Value::from("Storefront Order")
