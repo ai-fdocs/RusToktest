@@ -635,6 +635,21 @@ mod tests {
             other => panic!("expected graphql error, got {other:?}"),
         }
     }
+
+    #[test]
+    fn combine_error_keeps_graphql_toggle_taxonomy_code() {
+        let combined = combine_native_and_graphql_error(
+            ServerFnError::new("native adapter unavailable"),
+            ApiError::Graphql("MODULE_HAS_DEPENDENTS: module 'checkout' has dependents".to_string()),
+        );
+        match combined {
+            ApiError::Graphql(message) => {
+                assert!(message.contains("MODULE_HAS_DEPENDENTS"));
+                assert!(message.contains("native adapter unavailable"));
+            }
+            other => panic!("expected graphql error, got {other:?}"),
+        }
+    }
 }
 
 #[cfg(feature = "ssr")]
