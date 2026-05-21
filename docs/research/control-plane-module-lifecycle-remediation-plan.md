@@ -314,22 +314,22 @@ rollback-стратегии и Definition of Done по итерациям.
 
 **Scope.**
 
-- [ ] Ввести единый server-side orchestration API для composition update + build enqueue.
-- [ ] Обеспечить единый transaction boundary (`platform_state` + `builds`).
-- [ ] Переключить GraphQL mutation path на orchestration API.
-- [ ] Переключить Leptos SSR path на тот же orchestration API/adapter.
+- [x] Ввести единый server-side orchestration API для composition update + build enqueue.
+- [x] Обеспечить единый transaction boundary (`platform_state` + `builds`).
+- [x] Переключить GraphQL mutation path на orchestration API.
+- [x] Переключить Leptos SSR path на тот же orchestration API/adapter.
 
 **Deliverables.**
 
-- [ ] Новый сервисный слой (или расширение существующего) с public методом вида
+- [x] Новый сервисный слой (или расширение существующего) с public методом вида
       `apply_manifest_and_enqueue_build(expected_revision, actor, reason, source)`.
-- [ ] Удалены/ограничены raw SQL path-ы, которые отдельно пишут `platform_state` и `builds`.
+- [x] Удалены/ограничены raw SQL path-ы, которые отдельно пишут `platform_state` и `builds`.
 - [ ] Единая error taxonomy для GraphQL и Leptos SSR (conflict/validation/internal).
 
 **Негативные сценарии, обязательные до merge.**
 
-- [ ] Конфликт CAS: stale revision → `platform_state` не меняется, build не создаётся.
-- [ ] Ошибка insert в `builds` → транзакция откатывается, revision не инкрементируется.
+- [x] Конфликт CAS: stale revision → `platform_state` не меняется, build не создаётся.
+- [x] Ошибка insert в `builds` → транзакция откатывается, revision не инкрементируется.
 - [ ] Ошибка валидации manifest → нет ни update state, ни build enqueue.
 
 ### Итерация B — закрыть P0.2 (canonical lifecycle entrypoint)
@@ -348,8 +348,8 @@ rollback-стратегии и Definition of Done по итерациям.
 
 **Негативные сценарии, обязательные до merge.**
 
-- [ ] Unknown module, core module, missing dependency, dependent modules: одинаковые ошибки в обоих surfaces.
-- [ ] При успешном toggle всегда пишется journal (`module_operations`) и actor/correlation metadata.
+- [~] Unknown module, core module, missing dependency, dependent modules: одинаковые ошибки в обоих surfaces (GraphQL-side mapping и guard rails закрыты; остаётся закрыть full parity matrix tests для Leptos SSR vs GraphQL runtime taxonomy).
+- [~] При успешном toggle всегда пишется journal (`module_operations`) и actor/correlation metadata (server integration tests покрывают success/failure actor metadata и no-op/predvalidation no-journal rules; остаётся cross-surface parity coverage).
 
 ### Итерация C — закрыть P0.3 (hook semantics + recovery)
 
