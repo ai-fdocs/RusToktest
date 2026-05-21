@@ -607,9 +607,10 @@ fn default_module_trust_level() -> String {
 }
 
 fn combine_native_and_graphql_error(server_err: ServerFnError, graphql_err: ApiError) -> ApiError {
+    let native_message = server_err.to_string();
+    let graphql_message = graphql_err.to_string();
     ApiError::Graphql(format!(
-        "native path failed: {}; graphql path failed: {}",
-        server_err, graphql_err
+        "dual-path failure [native={native_message}] [graphql={graphql_message}]"
     ))
 }
 
@@ -627,8 +628,9 @@ mod tests {
         );
         match combined {
             ApiError::Graphql(message) => {
-                assert!(message.contains("native path failed"));
-                assert!(message.contains("graphql path failed"));
+                assert!(message.contains("dual-path failure"));
+                assert!(message.contains("[native="));
+                assert!(message.contains("[graphql="));
                 assert!(message.contains("native disabled"));
                 assert!(message.contains("unknown module"));
             }
