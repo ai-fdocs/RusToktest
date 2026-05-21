@@ -525,6 +525,7 @@ fn admin_order_parity_query(
             order {{
               id
               status
+              totalAmount
               taxTotal
               taxIncluded
               taxLines {{
@@ -554,6 +555,7 @@ fn admin_order_parity_query(
             items {{
               id
               status
+              totalAmount
               taxTotal
               taxIncluded
               taxLines {{
@@ -2796,6 +2798,7 @@ async fn admin_graphql_order_payment_and_fulfillment_surface_matches_runtime_ser
         query_json["order"]["order"]["status"],
         Value::from("delivered")
     );
+    assert_eq!(query_json["order"]["order"]["totalAmount"], Value::from("30"));
     assert_eq!(query_json["order"]["order"]["taxTotal"], Value::from("5"));
     assert_eq!(query_json["order"]["order"]["taxIncluded"], Value::from(false));
     assert_eq!(
@@ -2822,6 +2825,10 @@ async fn admin_graphql_order_payment_and_fulfillment_surface_matches_runtime_ser
     assert_eq!(
         query_json["orders"]["items"][0]["id"],
         Value::from(confirmed_order.id.to_string())
+    );
+    assert_eq!(
+        query_json["orders"]["items"][0]["totalAmount"],
+        Value::from("30")
     );
     assert_eq!(query_json["orders"]["items"][0]["taxTotal"], Value::from("5"));
     assert_eq!(
