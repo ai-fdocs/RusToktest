@@ -1210,6 +1210,36 @@ mod tests {
         assert!(err.message.contains("required"));
     }
 
+    #[test]
+    fn platform_composition_error_maps_revision_conflict_with_expected_and_current() {
+        let err = map_platform_composition_error(PlatformCompositionError::RevisionConflict {
+            expected: 3,
+            current: 5,
+        });
+        assert_eq!(
+            err.message,
+            "Platform composition revision conflict: expected 3, current 5"
+        );
+    }
+
+    #[test]
+    fn platform_composition_build_error_maps_build_failures_to_internal_error() {
+        let err = map_platform_composition_build_error(PlatformCompositionBuildError::Build(
+            sea_orm::DbErr::Custom("enqueue failed".to_string()),
+        ));
+        assert!(!err.message.is_empty());
+    }
+
+    #[test]
+    fn platform_composition_build_error_maps_manifest_validation_to_user_facing_message() {
+        let err = map_platform_composition_build_error(PlatformCompositionBuildError::Composition(
+            PlatformCompositionError::Manifest(ManifestError::RequiredModule(
+                "pages".to_string(),
+            )),
+        ));
+        assert!(err.message.contains("required"));
+    }
+
     #[tokio::test]
     async fn validate_custom_fields_applies_defaults() {
         let tenant_id = Uuid::new_v4();
