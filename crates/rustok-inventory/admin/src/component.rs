@@ -702,6 +702,48 @@ mod tests {
             variants.len().saturating_sub(counts.non_healthy_total())
         );
     }
+
+    #[test]
+    fn health_state_label_and_badge_are_consistent_for_each_state() {
+        let healthy = variant(true, "deny", LOW_STOCK_THRESHOLD + 3);
+        let low_stock = variant(true, "deny", LOW_STOCK_THRESHOLD);
+        let out_of_stock = variant(false, "deny", 0);
+        let backorder = variant(false, "continue", -2);
+
+        assert_eq!(inventory_health_state(&healthy), InventoryHealthState::Healthy);
+        assert_eq!(inventory_health_label(None, &healthy), "Healthy");
+        assert_eq!(
+            inventory_health_badge(&healthy),
+            "border-emerald-200 bg-emerald-50 text-emerald-700"
+        );
+
+        assert_eq!(inventory_health_state(&low_stock), InventoryHealthState::LowStock);
+        assert_eq!(inventory_health_label(None, &low_stock), "Low stock");
+        assert_eq!(
+            inventory_health_badge(&low_stock),
+            "border-amber-200 bg-amber-50 text-amber-700"
+        );
+
+        assert_eq!(
+            inventory_health_state(&out_of_stock),
+            InventoryHealthState::OutOfStock
+        );
+        assert_eq!(inventory_health_label(None, &out_of_stock), "Out of stock");
+        assert_eq!(
+            inventory_health_badge(&out_of_stock),
+            "border-rose-200 bg-rose-50 text-rose-700"
+        );
+
+        assert_eq!(
+            inventory_health_state(&backorder),
+            InventoryHealthState::Backorder
+        );
+        assert_eq!(inventory_health_label(None, &backorder), "Backorder");
+        assert_eq!(
+            inventory_health_badge(&backorder),
+            "border-sky-200 bg-sky-50 text-sky-700"
+        );
+    }
 }
 
 fn inventory_translation_for_locale<'a>(
