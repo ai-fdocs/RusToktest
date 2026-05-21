@@ -220,6 +220,10 @@ async fn manifest_validation_error_does_not_update_state_or_enqueue_build() {
         state_after.manifest_hash, seeded.manifest_hash,
         "manifest hash must stay unchanged when manifest validation fails"
     );
+    assert_eq!(
+        state_after.manifest, seeded.manifest,
+        "manifest payload must stay unchanged when manifest validation fails"
+    );
 
     let builds = BuildEntity::find().all(&db).await.expect("list builds");
     assert!(
