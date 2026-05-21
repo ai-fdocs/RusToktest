@@ -1051,6 +1051,40 @@ async fn apply_percentage_shipping_promotion_uses_shipping_total_as_base() {
 }
 
 #[tokio::test]
+async fn completed_cart_rejects_typed_promotion_mutations() {
+    let service = setup().await;
+    let tenant_id = support::TEST_TENANT_ID;
+
+    let cart = service
+        .create_cart(tenant_id, create_cart_input())
+        .await
+        .unwrap();
+    let cart = service
+        .add_line_item(tenant_id, cart.id, line_item_input())
+        .await
+        .unwrap();
+    let completed = service.complete_cart(tenant_id, cart.id).await.unwrap();
+    assert_eq!(completed.status, "completed");
+
+    let err = service
+        .apply_percentage_promotion(
+            tenant_id,
+            cart.id,
+            None,
+            "promo-on-completed",
+            Decimal::from_str("10.00").unwrap(),
+            serde_json::json!({"source": "completed-guard-test"}),
+        )
+        .await
+        .unwrap_err();
+
+    match err {
+        CartError::InvalidTransition { from, .. } => assert_eq!(from, "completed"),
+        other => panic!("expected invalid transition, got {other:?}"),
+    }
+}
+
+#[tokio::test]
 async fn completed_cart_rejects_mutations() {
     let service = setup().await;
     let tenant_id = support::TEST_TENANT_ID;
@@ -1106,6 +1140,216 @@ async fn checkout_lifecycle_uses_checking_out_before_completion() {
         .await
         .unwrap();
     assert_eq!(completed.status, "completed");
+}
+
+
+#[tokio::test]
+async fn release_checkout_does_not_set_completed_at_and_complete_cart_does() {
+    let service = setup().await;
+    let tenant_id = support::TEST_TENANT_ID;
+
+    let cart = service
+        .create_cart(tenant_id, create_cart_input())
+        .await
+        .unwrap();
+    assert!(cart.completed_at.is_none());
+
+    let checking_out = service.begin_checkout(tenant_id, cart.id).await.unwrap();
+    assert_eq!(checking_out.status, "checking_out");
+    assert!(checking_out.completed_at.is_none());
+
+    let reopened = service.release_checkout(tenant_id, cart.id).await.unwrap();
+    assert_eq!(reopened.status, "active");
+    assert!(reopened.completed_at.is_none());
+
+    let completed = service.complete_cart(tenant_id, cart.id).await.unwrap();
+    assert_eq!(completed.status, "completed");
+    assert!(completed.completed_at.is_some());
+}
+
+#[tokio::test]
+async fn completed_checkout_rejects_release_and_reentry() {
+    let service = setup().await;
+    let tenant_id = support::TEST_TENANT_ID;
+
+    let cart = service
+        .create_cart(tenant_id, create_cart_input())
+        .await
+        .unwrap();
+
+    let checking_out = service.begin_checkout(tenant_id, cart.id).await.unwrap();
+    assert_eq!(checking_out.status, "checking_out");
+
+    let completed = service.complete_cart(tenant_id, cart.id).await.unwrap();
+    assert_eq!(completed.status, "completed");
+
+    let err = service.release_checkout(tenant_id, cart.id).await.unwrap_err();
+    match err {
+        CartError::InvalidTransition { from, to } => {
+            assert_eq!(from, "completed");
+            assert_eq!(to, "active");
+        }
+        other => panic!("expected invalid transition, got {other:?}"),
+    }
+
+    let err = service.begin_checkout(tenant_id, cart.id).await.unwrap_err();
+    match err {
+        CartError::InvalidTransition { from, to } => {
+            assert_eq!(from, "completed");
+            assert_eq!(to, "checking_out");
+        }
+        other => panic!("expected invalid transition, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn checkout_transition_guards_reject_invalid_reentry_and_release() {
+    let service = setup().await;
+    let tenant_id = support::TEST_TENANT_ID;
+
+    let cart = service
+        .create_cart(tenant_id, create_cart_input())
+        .await
+        .unwrap();
+
+    let err = service
+        .release_checkout(tenant_id, cart.id)
+        .await
+        .unwrap_err();
+    match err {
+        CartError::InvalidTransition { from, to } => {
+            assert_eq!(from, "active");
+            assert_eq!(to, "active");
+        }
+        other => panic!("expected invalid transition, got {other:?}"),
+    }
+
+    let checking_out = service.begin_checkout(tenant_id, cart.id).await.unwrap();
+    assert_eq!(checking_out.status, "checking_out");
+
+    let err = service
+        .begin_checkout(tenant_id, cart.id)
+        .await
+        .unwrap_err();
+    match err {
+        CartError::InvalidTransition { from, to } => {
+            assert_eq!(from, "checking_out");
+            assert_eq!(to, "checking_out");
+        }
+        other => panic!("expected invalid transition, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn release_checkout_restores_mutation_paths() {
+    let service = setup().await;
+    let tenant_id = support::TEST_TENANT_ID;
+
+    let cart = service
+        .create_cart(tenant_id, create_cart_input())
+        .await
+        .unwrap();
+    let cart = service
+        .add_line_item(tenant_id, cart.id, line_item_input())
+        .await
+        .unwrap();
+
+    let checking_out = service.begin_checkout(tenant_id, cart.id).await.unwrap();
+    assert_eq!(checking_out.status, "checking_out");
+
+    let reopened = service.release_checkout(tenant_id, cart.id).await.unwrap();
+    assert_eq!(reopened.status, "active");
+
+    let updated = service
+        .apply_percentage_promotion(
+            tenant_id,
+            cart.id,
+            None,
+            "promo-after-release",
+            Decimal::from_str("10.00").unwrap(),
+            serde_json::json!({ "source": "release-checkout-test" }),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(updated.status, "active");
+    assert!(updated
+        .adjustments
+        .iter()
+        .any(|item| item.source_id.as_deref() == Some("promo-after-release")));
+}
+
+#[tokio::test]
+async fn checking_out_cart_rejects_typed_promotion_mutations() {
+    let service = setup().await;
+    let tenant_id = support::TEST_TENANT_ID;
+
+    let cart = service
+        .create_cart(tenant_id, create_cart_input())
+        .await
+        .unwrap();
+    let cart = service
+        .add_line_item(tenant_id, cart.id, line_item_input())
+        .await
+        .unwrap();
+
+    let checking_out = service.begin_checkout(tenant_id, cart.id).await.unwrap();
+    assert_eq!(checking_out.status, "checking_out");
+
+    let error = service
+        .apply_percentage_promotion(
+            tenant_id,
+            cart.id,
+            None,
+            "promo-typed-while-checkout",
+            Decimal::from_str("10.00").unwrap(),
+            serde_json::json!({ "source": "typed-checkout-guard" }),
+        )
+        .await
+        .unwrap_err();
+
+    match error {
+        CartError::InvalidTransition { from, .. } => assert_eq!(from, "checking_out"),
+        other => panic!("expected invalid transition, got {other:?}"),
+    }
+}
+
+#[tokio::test]
+async fn checking_out_cart_rejects_adjustment_mutations() {
+    let service = setup().await;
+    let tenant_id = support::TEST_TENANT_ID;
+
+    let cart = service
+        .create_cart(tenant_id, create_cart_input())
+        .await
+        .unwrap();
+    let cart = service
+        .add_line_item(tenant_id, cart.id, line_item_input())
+        .await
+        .unwrap();
+
+    let checking_out = service.begin_checkout(tenant_id, cart.id).await.unwrap();
+    assert_eq!(checking_out.status, "checking_out");
+
+    let error = service
+        .set_adjustments(
+            tenant_id,
+            cart.id,
+            vec![SetCartAdjustmentInput {
+                line_item_id: None,
+                source_type: "Promotion".to_string(),
+                source_id: Some("promo-while-checkout".to_string()),
+                amount: Decimal::from_str("1.00").unwrap(),
+                metadata: serde_json::json!({ "rule_code": "forbidden" }),
+            }],
+        )
+        .await
+        .unwrap_err();
+
+    match error {
+        CartError::InvalidTransition { from, .. } => assert_eq!(from, "checking_out"),
+        other => panic!("expected invalid transition, got {other:?}"),
+    }
 }
 
 #[tokio::test]
