@@ -4938,6 +4938,53 @@ mod tests {
 
 
     #[tokio::test]
+    async fn store_payment_collection_transport_returns_not_found_for_unknown_cart() {
+        let db = setup_test_db().await;
+        support::ensure_commerce_schema(&db).await;
+        let tenant_id = Uuid::new_v4();
+        seed_store_tenant_context(&db, tenant_id).await;
+        let tenant = TenantContext {
+            id: tenant_id,
+            name: "Store Test Tenant".to_string(),
+            slug: format!("store-test-{tenant_id}"),
+            domain: None,
+            settings: json!({}),
+            default_locale: "en".to_string(),
+            is_active: true,
+        };
+        let app = commerce_transport_router(test_app_context(db), tenant);
+
+        let response = app
+            .clone()
+            .oneshot(
+                Request::builder()
+                    .method("POST")
+                    .uri("/store/payment-collections")
+                    .header("content-type", "application/json")
+                    .header("X-Tenant-ID", tenant_id.to_string())
+                    .body(Body::from(
+                        json!({
+                            "cart_id": Uuid::new_v4(),
+                            "metadata": { "source": "unknown-cart-payment-guard" }
+                        })
+                        .to_string(),
+                    ))
+                    .expect("request"),
+            )
+            .await
+            .expect("payment collection request should complete");
+
+        let status = response.status();
+        let body = to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("payment collection body should read");
+        assert_eq!(status, StatusCode::NOT_FOUND);
+        let payload: serde_json::Value =
+            serde_json::from_slice(&body).expect("payment collection error should be JSON");
+        assert_eq!(payload["error"], json!("not_found"));
+    }
+
+    #[tokio::test]
     async fn store_checkout_transport_rejects_payment_collection_for_completed_cart() {
         let db = setup_test_db().await;
         support::ensure_commerce_schema(&db).await;
