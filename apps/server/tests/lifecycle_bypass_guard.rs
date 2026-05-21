@@ -133,3 +133,33 @@ fn extract_function_block<'a>(content: &'a str, signature: &str) -> Option<&'a s
 
     end_rel.map(|end| &rest[..end])
 }
+
+#[test]
+fn extract_function_block_handles_nested_braces() {
+    let source = r#"
+pub async fn toggle_module() -> Result<(), ()> {
+    if true {
+        let _nested = || {
+            let _map = std::collections::BTreeMap::<String, String>::new();
+            _map
+        };
+        _nested();
+    }
+    Ok(())
+}
+
+pub async fn update_module_settings() {}
+"#;
+
+    let extracted = extract_function_block(source, "pub async fn toggle_module()")
+        .expect("toggle_module function should be extracted");
+    assert!(extracted.contains("BTreeMap::<String, String>::new()"));
+    assert!(extracted.trim_end().ends_with('}'));
+    assert!(!extracted.contains("pub async fn update_module_settings()"));
+}
+
+#[test]
+fn extract_function_block_returns_none_for_missing_signature() {
+    let source = "pub async fn update_module_settings() {}";
+    assert!(extract_function_block(source, "pub async fn toggle_module(").is_none());
+}
