@@ -762,6 +762,24 @@ mod tests {
             );
         }
     }
+
+    #[test]
+    fn state_badge_helper_matches_variant_badge_projection() {
+        let variants = vec![
+            variant(true, "deny", LOW_STOCK_THRESHOLD + 3),
+            variant(true, "deny", LOW_STOCK_THRESHOLD),
+            variant(false, "deny", 0),
+            variant(false, "continue", -2),
+        ];
+
+        for variant in variants {
+            let state = inventory_health_state(&variant);
+            assert_eq!(
+                inventory_health_badge_for_state(state),
+                inventory_health_badge(&variant)
+            );
+        }
+    }
 }
 
 fn inventory_translation_for_locale<'a>(
@@ -830,12 +848,7 @@ fn inventory_health_label(locale: Option<&str>, variant: &InventoryVariant) -> S
 }
 
 fn inventory_health_badge(variant: &InventoryVariant) -> &'static str {
-    match inventory_health_state(variant) {
-        InventoryHealthState::Backorder => "border-sky-200 bg-sky-50 text-sky-700",
-        InventoryHealthState::OutOfStock => "border-rose-200 bg-rose-50 text-rose-700",
-        InventoryHealthState::LowStock => "border-amber-200 bg-amber-50 text-amber-700",
-        InventoryHealthState::Healthy => "border-emerald-200 bg-emerald-50 text-emerald-700",
-    }
+    inventory_health_badge_for_state(inventory_health_state(variant))
 }
 
 fn inventory_health_label_for_state(locale: Option<&str>, state: InventoryHealthState) -> String {
@@ -844,6 +857,15 @@ fn inventory_health_label_for_state(locale: Option<&str>, state: InventoryHealth
         InventoryHealthState::OutOfStock => t(locale, "inventory.health.outOfStock", "Out of stock"),
         InventoryHealthState::LowStock => t(locale, "inventory.health.lowStock", "Low stock"),
         InventoryHealthState::Healthy => t(locale, "inventory.health.healthy", "Healthy"),
+    }
+}
+
+fn inventory_health_badge_for_state(state: InventoryHealthState) -> &'static str {
+    match state {
+        InventoryHealthState::Backorder => "border-sky-200 bg-sky-50 text-sky-700",
+        InventoryHealthState::OutOfStock => "border-rose-200 bg-rose-50 text-rose-700",
+        InventoryHealthState::LowStock => "border-amber-200 bg-amber-50 text-amber-700",
+        InventoryHealthState::Healthy => "border-emerald-200 bg-emerald-50 text-emerald-700",
     }
 }
 
