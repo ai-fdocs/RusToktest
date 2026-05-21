@@ -792,11 +792,7 @@ pub async fn create_payment_collection(
         .await
         .map_err(|err| Error::BadRequest(err.to_string()))?;
     ensure_store_cart_access(&cart, customer_id)?;
-    if cart.status == "completed" {
-        return Err(Error::BadRequest(
-            "Cannot create payment collection for completed cart".to_string(),
-        ));
-    }
+    ensure_cart_allows_payment_collection(&cart)?;
     let cart =
         reprice_storefront_cart_line_items(&ctx, tenant.id, &request_context, &cart_service, cart)
             .await?;
@@ -1078,6 +1074,16 @@ fn ensure_store_cart_access(cart: &CartResponse, customer_id: Option<Uuid>) -> R
                 "Cart belongs to another customer".to_string(),
             ));
         }
+    }
+
+    Ok(())
+}
+
+fn ensure_cart_allows_payment_collection(cart: &CartResponse) -> Result<()> {
+    if cart.status == "completed" {
+        return Err(Error::BadRequest(
+            "Cannot create payment collection for completed cart".to_string(),
+        ));
     }
 
     Ok(())
@@ -1959,6 +1965,25 @@ mod tests {
         let error = ensure_store_cart_access(&cart, Some(Uuid::new_v4()))
             .expect_err("foreign customer access must be rejected");
         assert_eq!(error.to_string(), "Cart belongs to another customer");
+    }
+
+    #[test]
+    fn payment_collection_allows_non_completed_cart() {
+        let mut cart = sample_cart(None);
+        cart.status = "open".to_string();
+        assert!(super::ensure_cart_allows_payment_collection(&cart).is_ok());
+    }
+
+    #[test]
+    fn payment_collection_rejects_completed_cart() {
+        let mut cart = sample_cart(None);
+        cart.status = "completed".to_string();
+        let error = super::ensure_cart_allows_payment_collection(&cart)
+            .expect_err("completed carts must reject payment collection creation");
+        assert_eq!(
+            error.to_string(),
+            "Cannot create payment collection for completed cart"
+        );
     }
 
     #[test]
