@@ -827,6 +827,29 @@ fn build_graphql_shipping_selections(
     seller_scope: Option<&str>,
     shipping_option_id: Option<Uuid>,
 ) -> Result<Vec<StorefrontShippingSelectionInput>, ApiError> {
+    let selections = build_graphql_shipping_selection_plan(
+        cart,
+        shipping_profile_slug,
+        seller_id,
+        seller_scope,
+        shipping_option_id,
+    )?;
+    Ok(selections
+        .into_iter()
+        .map(|(delivery_group_id, shipping_option_id)| StorefrontShippingSelectionInput {
+            delivery_group_id,
+            shipping_option_id,
+        })
+        .collect())
+}
+
+fn build_graphql_shipping_selection_plan(
+    cart: &StorefrontCheckoutCart,
+    shipping_profile_slug: &str,
+    seller_id: Option<&str>,
+    seller_scope: Option<&str>,
+    shipping_option_id: Option<Uuid>,
+) -> Result<Vec<(String, String)>, ApiError> {
     let mut matched_target = false;
     let mut selections = Vec::with_capacity(cart.delivery_groups.len());
 
@@ -886,6 +909,30 @@ fn build_native_shipping_selections(
     seller_scope: Option<&str>,
     shipping_option_id: Option<Uuid>,
 ) -> Result<Vec<rustok_commerce::CartShippingSelectionInput>, ServerFnError> {
+    let selections = build_native_shipping_selection_plan(
+        cart,
+        shipping_profile_slug,
+        seller_id,
+        seller_scope,
+        shipping_option_id,
+    )?;
+    Ok(selections
+        .into_iter()
+        .map(|(delivery_group_id, shipping_option_id)| rustok_commerce::CartShippingSelectionInput {
+            delivery_group_id,
+            shipping_option_id,
+        })
+        .collect())
+}
+
+#[cfg(feature = "ssr")]
+fn build_native_shipping_selection_plan(
+    cart: &rustok_commerce::CartResponse,
+    shipping_profile_slug: &str,
+    seller_id: Option<&str>,
+    seller_scope: Option<&str>,
+    shipping_option_id: Option<Uuid>,
+) -> Result<Vec<(String, String)>, ServerFnError> {
     let mut matched_target = false;
     let mut selections = Vec::with_capacity(cart.delivery_groups.len());
 
