@@ -26,15 +26,22 @@ export const metadata = {
 
 type PageProps = { params: Promise<{ productId: string }> };
 
+function normalizeSeedText(value: string | null | undefined): string {
+  return (value ?? '').trim();
+}
 
 function buildProductAttributesTaskInput(product: NonNullable<Awaited<ReturnType<typeof getProduct>>>, translation: { title: string; description: string | null; locale: string }) {
+  const sourceTitle = normalizeSeedText(translation.title);
+  const sourceDescription = normalizeSeedText(translation.description);
+  const sourceLocale = normalizeSeedText(translation.locale);
+  const categorySlug = normalizeSeedText(product.productType);
   return JSON.stringify(
     {
       product_id: product.id,
-      source_locale: translation.locale,
-      source_title: translation.title,
-      source_description: translation.description,
-      category_slug: product.productType,
+      source_locale: sourceLocale || null,
+      source_title: sourceTitle || null,
+      source_description: sourceDescription || null,
+      category_slug: categorySlug || null,
       image_urls: [],
       copy_instructions:
         'Сформируй только подтверждаемые атрибуты и пометь неподтверждаемые как not_specified.'
@@ -45,18 +52,24 @@ function buildProductAttributesTaskInput(product: NonNullable<Awaited<ReturnType
 }
 
 function buildProductAttributesHref(product: NonNullable<Awaited<ReturnType<typeof getProduct>>>, translation: { title: string; description: string | null; locale: string }) {
-  const sourceTitle = translation.title.trim();
-  const sourceDescription = translation.description?.trim() ?? '';
+  const sourceTitle = normalizeSeedText(translation.title);
+  const sourceDescription = normalizeSeedText(translation.description);
+  const sourceLocale = normalizeSeedText(translation.locale);
+  const categorySlug = normalizeSeedText(product.productType);
   const params = new URLSearchParams({
     task: 'product_attributes',
     title: `Product Attributes ${product.id}`,
     productId: product.id,
-    locale: translation.locale,
-    sourceLocale: translation.locale,
-    categorySlug: product.productType ?? '',
     copyInstructions:
       'Сформируй только подтверждаемые атрибуты и пометь неподтверждаемые как not_specified.'
   });
+  if (sourceLocale.length > 0) {
+    params.set('locale', sourceLocale);
+    params.set('sourceLocale', sourceLocale);
+  }
+  if (categorySlug.length > 0) {
+    params.set('categorySlug', categorySlug);
+  }
   if (sourceTitle.length > 0) {
     params.set('sourceTitle', sourceTitle);
   }
@@ -68,8 +81,10 @@ function buildProductAttributesHref(product: NonNullable<Awaited<ReturnType<type
 
 function hasProductAttributesSeedData(translation: { title: string; description: string | null; locale: string } | null): boolean {
   if (!translation) return false;
-  return translation.title.trim().length > 0 ||
-    (translation.description?.trim().length ?? 0) > 0;
+  return (
+    normalizeSeedText(translation.title).length > 0 ||
+    normalizeSeedText(translation.description).length > 0
+  );
 }
 
 function formatDate(value: string | null): string {
