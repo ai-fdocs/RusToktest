@@ -61,6 +61,38 @@ fn module_composition_helpers_do_not_use_native_graphql_fallback_combiner() {
 }
 
 #[test]
+fn module_composition_helpers_use_graphql_contract_payloads() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    assert_graphql_only_helper(
+        &content,
+        "pub async fn install_module(",
+        "INSTALL_MODULE_MUTATION",
+        "InstallModuleVariables {",
+        &["slug,", "version,"],
+        "Ok(response.install_module)",
+    );
+    assert_graphql_only_helper(
+        &content,
+        "pub async fn uninstall_module(",
+        "UNINSTALL_MODULE_MUTATION",
+        "UninstallModuleVariables {",
+        &["slug,"],
+        "Ok(response.uninstall_module)",
+    );
+    assert_graphql_only_helper(
+        &content,
+        "pub async fn upgrade_module(",
+        "UPGRADE_MODULE_MUTATION",
+        "UpgradeModuleVariables {",
+        &["slug,", "version,"],
+        "Ok(response.upgrade_module)",
+    );
+}
+
+#[test]
 fn toggle_module_helper_uses_graphql_only_contract() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let api_path = crate_root.join("src/features/modules/api.rs");
@@ -107,6 +139,45 @@ fn toggle_module_helper_uses_graphql_only_contract() {
     );
 }
 
+fn assert_graphql_only_helper(
+    content: &str,
+    signature: &str,
+    mutation_name: &str,
+    variables_literal: &str,
+    forwarded_fields: &[&str],
+    return_expr: &str,
+) {
+    let helper_body = extract_function_block(content, signature)
+        .unwrap_or_else(|| panic!("helper signature not found: {signature}"));
+
+    assert!(
+        helper_body.contains(mutation_name),
+        "expected helper {signature} to call canonical mutation {mutation_name}"
+    );
+    assert!(
+        helper_body.contains("request("),
+        "expected helper {signature} to call GraphQL request path"
+    );
+    assert!(
+        helper_body.contains(variables_literal),
+        "expected helper {signature} to construct typed GraphQL variables payload"
+    );
+    assert!(
+        helper_body.contains(return_expr),
+        "expected helper {signature} to return GraphQL payload directly"
+    );
+    for field in forwarded_fields {
+        assert!(
+            helper_body.contains(field),
+            "expected helper {signature} to forward field `{field}` into typed GraphQL payload"
+        );
+    }
+    assert!(
+        !helper_body.contains("combine_native_and_graphql_error"),
+        "helper {signature} must not compose native/graphql fallback errors"
+    );
+}
+
 #[test]
 fn toggle_module_helper_signature_is_unique() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
@@ -119,6 +190,80 @@ fn toggle_module_helper_signature_is_unique() {
         occurrences, 1,
         "Expected exactly one toggle_module helper signature, found {occurrences}"
     );
+}
+
+#[test]
+fn module_composition_helper_signatures_are_unique() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    for signature in [
+        "pub async fn install_module(",
+        "pub async fn uninstall_module(",
+        "pub async fn upgrade_module(",
+    ] {
+        let occurrences = content.matches(signature).count();
+        assert_eq!(
+            occurrences, 1,
+            "Expected exactly one `{signature}` helper signature, found {occurrences}"
+        );
+    }
+}
+
+#[test]
+fn module_composition_helpers_do_not_call_toggle_mutation_contract() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    for helper in [
+        "pub async fn install_module(",
+        "pub async fn uninstall_module(",
+        "pub async fn upgrade_module(",
+    ] {
+        let helper_body = extract_function_block(&content, helper)
+            .unwrap_or_else(|| panic!("helper signature not found: {helper}"));
+
+        assert!(
+            !helper_body.contains("TOGGLE_MODULE_MUTATION"),
+            "module composition helper must not accidentally call toggle mutation contract: {helper}"
+        );
+    }
+}
+
+#[test]
+fn module_composition_helpers_do_not_cross_wire_mutation_constants() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    let cases = [
+        (
+            "pub async fn install_module(",
+            ["UNINSTALL_MODULE_MUTATION", "UPGRADE_MODULE_MUTATION"],
+        ),
+        (
+            "pub async fn uninstall_module(",
+            ["INSTALL_MODULE_MUTATION", "UPGRADE_MODULE_MUTATION"],
+        ),
+        (
+            "pub async fn upgrade_module(",
+            ["INSTALL_MODULE_MUTATION", "UNINSTALL_MODULE_MUTATION"],
+        ),
+    ];
+
+    for (signature, forbidden_mutations) in cases {
+        let helper_body = extract_function_block(&content, signature)
+            .unwrap_or_else(|| panic!("helper signature not found: {signature}"));
+
+        for forbidden in forbidden_mutations {
+            assert!(
+                !helper_body.contains(forbidden),
+                "helper {signature} must not reference foreign mutation constant {forbidden}"
+            );
+        }
+    }
 }
 
 fn extract_function_block<'a>(content: &'a str, signature: &str) -> Option<&'a str> {
@@ -176,4 +321,21 @@ pub async fn other_helper() {}
 fn extract_function_block_returns_none_when_signature_missing() {
     let source = "pub async fn other_helper() {}";
     assert!(extract_function_block(source, "pub async fn toggle_module(").is_none());
+}
+
+#[test]
+fn extract_function_block_returns_none_when_braces_are_unbalanced() {
+    let source = r#"
+pub async fn toggle_module() {
+    if true {
+        let _x = 1;
+}
+"#;
+    assert!(extract_function_block(source, "pub async fn toggle_module()").is_none());
+}
+
+#[test]
+fn extract_function_block_returns_none_when_body_brace_missing() {
+    let source = "pub async fn toggle_module() -> Result<(), ()>";
+    assert!(extract_function_block(source, "pub async fn toggle_module()").is_none());
 }
