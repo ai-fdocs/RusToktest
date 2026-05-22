@@ -2093,7 +2093,6 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       );
                       return;
                     }
-                    setIsSubmittingDirectJob(true);
                     let normalizedProductId = '';
                     try {
                       normalizedProductId = productForm.productId.trim();
@@ -2108,6 +2107,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       );
                       return;
                     }
+                    setIsSubmittingDirectJob(true);
                     try {
                       const taskInputJson = JSON.stringify({
                         product_id: normalizedProductId,
