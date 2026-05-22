@@ -1026,6 +1026,18 @@ pub async fn fetch_storefront_commerce_graphql(
     Ok(data)
 }
 
+fn should_fallback_to_graphql(error: &ApiError) -> bool {
+    match error {
+        ApiError::ServerFnError(server_error) => {
+            let msg = server_error.to_string();
+            msg.contains("MissingServer")
+                || msg.contains("missing server")
+                || msg.contains("not available on this target")
+        }
+        _ => false,
+    }
+}
+
 pub async fn select_storefront_shipping_option(
     cart: StorefrontCheckoutCart,
     shipping_profile_slug: String,
@@ -1043,7 +1055,7 @@ pub async fn select_storefront_shipping_option(
     .await
     {
         Ok(()) => Ok(()),
-        Err(_) => {
+        Err(error) if should_fallback_to_graphql(&error) => {
             select_storefront_shipping_option_graphql(
                 cart,
                 shipping_profile_slug,
@@ -1053,6 +1065,7 @@ pub async fn select_storefront_shipping_option(
             )
             .await
         }
+        Err(error) => Err(error),
     }
 }
 
