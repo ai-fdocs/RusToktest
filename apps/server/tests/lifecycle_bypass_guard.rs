@@ -259,3 +259,139 @@ fn graphql_mutations_do_not_reintroduce_duplicate_platform_composition_mapping_t
         );
     }
 }
+
+#[test]
+fn graphql_mutations_toggle_error_mapping_tests_stay_matrix_based() {
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("workspace root");
+    let mutations_rs = repo_root.join("apps/server/src/graphql/mutations.rs");
+    let content = fs::read_to_string(&mutations_rs).expect("mutations.rs should be readable");
+
+    let expected_unique_tests = [
+        "fn toggle_error_maps_database_and_policy_to_internal_errors()",
+        "fn toggle_error_taxonomy_matrix_stays_stable()",
+        "fn toggle_error_mapping_sets_expected_error_codes()",
+    ];
+
+    for signature in expected_unique_tests {
+        let occurrences = content.matches(signature).count();
+        assert_eq!(
+            occurrences, 1,
+            "Expected exactly one `{signature}` test, found {occurrences}."
+        );
+    }
+
+    let forbidden_legacy_tests = [
+        "fn toggle_error_maps_unknown_module()",
+        "fn toggle_error_maps_core_module_disable()",
+        "fn toggle_error_maps_dependency_errors()",
+        "fn toggle_error_maps_hook_failure()",
+    ];
+
+    for signature in forbidden_legacy_tests {
+        assert!(
+            !content.contains(signature),
+            "Legacy/duplicate toggle mapping test signature reintroduced: {signature}"
+        );
+    }
+}
+
+#[test]
+fn lifecycle_hook_phases_adr_is_linked_from_indexes_and_backlog() {
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("workspace root");
+
+    let adr_path = "DECISIONS/2026-05-22-module-lifecycle-hook-phases-and-retry-contract.md";
+    let decisions_readme = fs::read_to_string(repo_root.join("DECISIONS/README.md"))
+        .expect("DECISIONS/README.md should be readable");
+    let docs_index =
+        fs::read_to_string(repo_root.join("docs/index.md")).expect("docs/index.md should be readable");
+    let remediation = fs::read_to_string(
+        repo_root.join("docs/research/control-plane-module-lifecycle-remediation-plan.md"),
+    )
+    .expect("remediation plan should be readable");
+
+    assert!(
+        decisions_readme.contains(adr_path),
+        "ADR index must link lifecycle hook phases ADR: {adr_path}"
+    );
+    assert!(
+        docs_index.contains(adr_path),
+        "docs/index.md must link lifecycle hook phases ADR: {adr_path}"
+    );
+    assert!(
+        remediation.contains("2026-05-22-module-lifecycle-hook-phases-and-retry-contract.md"),
+        "remediation backlog must reference lifecycle hook phases ADR explicitly"
+    );
+}
+
+#[test]
+fn toggle_graphql_error_mapper_uses_typed_error_categories() {
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("workspace root");
+    let mutations_rs = repo_root.join("apps/server/src/graphql/mutations.rs");
+    let content = fs::read_to_string(&mutations_rs).expect("mutations.rs should be readable");
+
+    let mapper_body = extract_function_block(
+        &content,
+        "fn map_toggle_module_error(error: ToggleModuleError) -> FieldError",
+    )
+    .expect("toggle mapper should exist");
+
+    assert!(
+        !mapper_body.contains("FieldError::new("),
+        "toggle mapper must use GraphQLError helpers (BAD_USER_INPUT/INTERNAL_ERROR), not raw FieldError::new"
+    );
+    assert!(
+        mapper_body.contains("<FieldError as GraphQLError>::bad_user_input("),
+        "toggle mapper must contain BAD_USER_INPUT mapping for user-facing cases"
+    );
+    assert!(
+        mapper_body.contains("<FieldError as GraphQLError>::internal_error("),
+        "toggle mapper must contain INTERNAL_ERROR mapping for internal failures"
+    );
+}
+
+#[test]
+fn toggle_graphql_error_mapper_preserves_expected_variant_contract() {
+    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
+        .parent()
+        .and_then(Path::parent)
+        .expect("workspace root");
+    let mutations_rs = repo_root.join("apps/server/src/graphql/mutations.rs");
+    let content = fs::read_to_string(&mutations_rs).expect("mutations.rs should be readable");
+
+    let mapper_body = extract_function_block(
+        &content,
+        "fn map_toggle_module_error(error: ToggleModuleError) -> FieldError",
+    )
+    .expect("toggle mapper should exist");
+
+    let expected_branches = [
+        "ToggleModuleError::UnknownModule",
+        "ToggleModuleError::CoreModuleCannotBeDisabled(",
+        "ToggleModuleError::MissingDependencies(",
+        "ToggleModuleError::HasDependents(",
+        "ToggleModuleError::HookFailed(",
+        "ToggleModuleError::Database(",
+        "ToggleModuleError::Policy(",
+    ];
+
+    for branch in expected_branches {
+        assert!(
+            mapper_body.contains(branch),
+            "toggle mapper branch missing: {branch}"
+        );
+    }
+
+    assert!(
+        mapper_body.contains("toggle_err_hook_failed"),
+        "hook-failure branch must use explicit helper message contract"
+    );
+}

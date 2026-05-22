@@ -69,6 +69,24 @@ use uuid::Uuid;
 #[derive(Default)]
 pub struct RootMutation;
 
+const TOGGLE_ERR_UNKNOWN_MODULE: &str = "Unknown module";
+
+fn toggle_err_core_module_cannot_be_disabled(module_slug: &str) -> String {
+    format!("Core module cannot be disabled: {module_slug}")
+}
+
+fn toggle_err_missing_dependencies(missing: &str) -> String {
+    format!("Missing module dependencies: {missing}")
+}
+
+fn toggle_err_has_dependents(dependents: &str) -> String {
+    format!("Module is required by: {dependents}")
+}
+
+fn toggle_err_hook_failed(reason: &str) -> String {
+    format!("Module lifecycle hook failed before state commit: {reason}")
+}
+
 fn map_custom_field_error(error: rustok_core::field_schema::FlexError) -> FieldError {
     match error {
         rustok_core::field_schema::FlexError::ValidationFailed(errors) => {
@@ -313,23 +331,26 @@ fn map_platform_composition_build_error(error: PlatformCompositionBuildError) ->
 
 fn map_toggle_module_error(error: ToggleModuleError) -> FieldError {
     match error {
-        ToggleModuleError::UnknownModule => FieldError::new("Unknown module"),
+        ToggleModuleError::UnknownModule => {
+            <FieldError as GraphQLError>::bad_user_input(TOGGLE_ERR_UNKNOWN_MODULE)
+        }
         ToggleModuleError::CoreModuleCannotBeDisabled(module_slug) => {
-            FieldError::new(format!("Core module cannot be disabled: {}", module_slug))
+            <FieldError as GraphQLError>::bad_user_input(toggle_err_core_module_cannot_be_disabled(
+                &module_slug,
+            ))
         }
         ToggleModuleError::MissingDependencies(missing) => {
-            FieldError::new(format!("Missing module dependencies: {}", missing))
+            <FieldError as GraphQLError>::bad_user_input(toggle_err_missing_dependencies(&missing))
         }
         ToggleModuleError::HasDependents(dependents) => {
-            FieldError::new(format!("Module is required by: {}", dependents))
+            <FieldError as GraphQLError>::bad_user_input(toggle_err_has_dependents(&dependents))
         }
         ToggleModuleError::Database(err) => {
             <FieldError as GraphQLError>::internal_error(&err.to_string())
         }
-        ToggleModuleError::HookFailed(err) => FieldError::new(format!(
-            "Module lifecycle hook failed before state commit: {}",
-            err
-        )),
+        ToggleModuleError::HookFailed(err) => <FieldError as GraphQLError>::bad_user_input(
+            toggle_err_hook_failed(&err),
+        ),
         ToggleModuleError::Policy(err) => <FieldError as GraphQLError>::internal_error(&err),
     }
 }
@@ -1096,6 +1117,7 @@ mod tests {
         validate_custom_fields, AuthLifecycleError, ManifestError, PlatformCompositionBuildError,
         PlatformCompositionError, ToggleModuleError,
     };
+    use async_graphql::ErrorExtensions;
     use crate::models::user_field_definitions::ActiveModel as UserFieldDefinitionActiveModel;
     use migration::Migrator;
     use rustok_test_utils::db::setup_test_db_with_migrations;
@@ -1159,53 +1181,6 @@ mod tests {
     }
 
     #[test]
-    fn toggle_error_maps_unknown_module() {
-        let err = map_toggle_module_error(ToggleModuleError::UnknownModule);
-        assert_eq!(err.message, "Unknown module");
-    }
-
-    #[test]
-    fn toggle_error_maps_core_module_disable() {
-        let err =
-            map_toggle_module_error(ToggleModuleError::CoreModuleCannotBeDisabled("core".into()));
-        assert_eq!(
-            err.message,
-            "Core module cannot be disabled: core",
-            "core-module mapping must keep deterministic user-facing taxonomy"
-        );
-    }
-
-    #[test]
-    fn toggle_error_maps_dependency_errors() {
-        let missing =
-            map_toggle_module_error(ToggleModuleError::MissingDependencies("pricing".into()));
-        assert_eq!(
-            missing.message,
-            "Missing module dependencies: pricing",
-            "missing-dependency mapping must keep deterministic user-facing taxonomy"
-        );
-
-        let dependents =
-            map_toggle_module_error(ToggleModuleError::HasDependents("checkout".into()));
-        assert_eq!(
-            dependents.message,
-            "Module is required by: checkout",
-            "dependents mapping must keep deterministic user-facing taxonomy"
-        );
-    }
-
-    #[test]
-    fn toggle_error_maps_hook_failure() {
-        let err = map_toggle_module_error(ToggleModuleError::HookFailed("boom".into()));
-        assert_eq!(
-            err.message,
-            "Module lifecycle hook failed before state commit: boom",
-            "hook-failure mapping must stay explicit and deterministic"
-        );
-        assert!(!err.message.contains("rolled back"));
-    }
-
-    #[test]
     fn toggle_error_maps_database_and_policy_to_internal_errors() {
         let db_err = map_toggle_module_error(ToggleModuleError::Database(sea_orm::DbErr::Custom(
             "db down".to_string(),
@@ -1214,6 +1189,184 @@ mod tests {
 
         let policy_err = map_toggle_module_error(ToggleModuleError::Policy("policy".to_string()));
         assert!(!policy_err.message.is_empty());
+    }
+
+    #[test]
+    fn toggle_error_taxonomy_matrix_stays_stable() {
+        let cases = vec![
+            (
+                ToggleModuleError::UnknownModule,
+                TOGGLE_ERR_UNKNOWN_MODULE,
+                "unknown-module",
+            ),
+            (
+                ToggleModuleError::CoreModuleCannotBeDisabled("core".into()),
+                toggle_err_core_module_cannot_be_disabled("core"),
+                "core-disable",
+            ),
+            (
+                ToggleModuleError::MissingDependencies("pricing".into()),
+                toggle_err_missing_dependencies("pricing"),
+                "missing-dependencies",
+            ),
+            (
+                ToggleModuleError::HasDependents("checkout".into()),
+                toggle_err_has_dependents("checkout"),
+                "has-dependents",
+            ),
+            (
+                ToggleModuleError::HookFailed("boom".into()),
+                toggle_err_hook_failed("boom"),
+                "hook-failed",
+            ),
+        ];
+
+        for (error, expected_message, case_name) in cases {
+            let field_error = map_toggle_module_error(error);
+            assert_eq!(
+                field_error.message, expected_message,
+                "toggle error taxonomy drifted for case: {case_name}"
+            );
+            assert!(
+                !field_error.message.contains("rolled back"),
+                "toggle error message unexpectedly references rollback for case: {case_name}"
+            );
+        }
+    }
+
+    fn error_code(error: &async_graphql::Error) -> Option<String> {
+        error
+            .extensions
+            .as_ref()
+            .and_then(|extensions| extensions.get("code"))
+            .cloned()
+            .and_then(|value| value.into_json().ok())
+            .and_then(|value| value.as_str().map(ToOwned::to_owned))
+    }
+
+    struct ToggleCase {
+        error: ToggleModuleError,
+        expected_message: String,
+        expected_code: Option<&'static str>,
+        case_name: &'static str,
+    }
+
+    fn toggle_error_contract_cases() -> Vec<ToggleCase> {
+        vec![
+            ToggleCase {
+                error: ToggleModuleError::UnknownModule,
+                expected_message: TOGGLE_ERR_UNKNOWN_MODULE.to_string(),
+                expected_code: Some("BAD_USER_INPUT"),
+                case_name: "unknown-module",
+            },
+            ToggleCase {
+                error: ToggleModuleError::CoreModuleCannotBeDisabled("core".into()),
+                expected_message: toggle_err_core_module_cannot_be_disabled("core"),
+                expected_code: Some("BAD_USER_INPUT"),
+                case_name: "core-disable",
+            },
+            ToggleCase {
+                error: ToggleModuleError::MissingDependencies("pricing".into()),
+                expected_message: toggle_err_missing_dependencies("pricing"),
+                expected_code: Some("BAD_USER_INPUT"),
+                case_name: "missing-dependencies",
+            },
+            ToggleCase {
+                error: ToggleModuleError::HasDependents("checkout".into()),
+                expected_message: toggle_err_has_dependents("checkout"),
+                expected_code: Some("BAD_USER_INPUT"),
+                case_name: "has-dependents",
+            },
+            ToggleCase {
+                error: ToggleModuleError::HookFailed("boom".into()),
+                expected_message: toggle_err_hook_failed("boom"),
+                expected_code: Some("BAD_USER_INPUT"),
+                case_name: "hook-failed",
+            },
+            ToggleCase {
+                error: ToggleModuleError::Database(sea_orm::DbErr::Custom("db down".to_string())),
+                expected_message: "Internal server error".to_string(),
+                expected_code: Some("INTERNAL_ERROR"),
+                case_name: "database",
+            },
+            ToggleCase {
+                error: ToggleModuleError::Policy("policy".to_string()),
+                expected_message: "Internal server error".to_string(),
+                expected_code: Some("INTERNAL_ERROR"),
+                case_name: "policy",
+            },
+        ]
+    }
+
+    #[test]
+    fn toggle_error_mapping_sets_expected_error_codes() {
+        for case in toggle_error_contract_cases() {
+            let gql = map_toggle_module_error(case.error).extend();
+            assert_eq!(
+                error_code(&gql).as_deref(),
+                case.expected_code,
+                "toggle error code drifted for case: {}",
+                case.case_name
+            );
+        }
+    }
+
+    #[test]
+    fn toggle_error_mapping_matrix_preserves_message_and_code_contract() {
+        for case in toggle_error_contract_cases() {
+            let mapped = map_toggle_module_error(case.error);
+            assert_eq!(
+                mapped.message, case.expected_message,
+                "toggle message drifted for case: {}",
+                case.case_name
+            );
+            let gql = mapped.extend();
+            assert_eq!(
+                error_code(&gql).as_deref(),
+                case.expected_code,
+                "toggle error code drifted for case: {}",
+                case.case_name
+            );
+        }
+    }
+
+    #[test]
+    fn toggle_error_taxonomy_matrix_stays_stable() {
+        let cases = vec![
+            (
+                ToggleModuleError::UnknownModule,
+                "Unknown module",
+                "unknown-module",
+            ),
+            (
+                ToggleModuleError::CoreModuleCannotBeDisabled("core".into()),
+                "Core module cannot be disabled: core",
+                "core-disable",
+            ),
+            (
+                ToggleModuleError::MissingDependencies("pricing".into()),
+                "Missing module dependencies: pricing",
+                "missing-dependencies",
+            ),
+            (
+                ToggleModuleError::HasDependents("checkout".into()),
+                "Module is required by: checkout",
+                "has-dependents",
+            ),
+            (
+                ToggleModuleError::HookFailed("boom".into()),
+                "Module lifecycle hook failed before state commit: boom",
+                "hook-failed",
+            ),
+        ];
+
+        for (error, expected_message, case_name) in cases {
+            let field_error = map_toggle_module_error(error);
+            assert_eq!(
+                field_error.message, expected_message,
+                "toggle error taxonomy drifted for case: {case_name}"
+            );
+        }
     }
 
     #[test]
