@@ -940,7 +940,10 @@ pub async fn fetch_storefront_commerce(
 ) -> Result<StorefrontCommerceData, ApiError> {
     match fetch_storefront_commerce_server(selected_cart_id.clone(), locale.clone()).await {
         Ok(data) => Ok(data),
-        Err(_) => fetch_storefront_commerce_graphql(selected_cart_id, locale).await,
+        Err(ApiError::ServerFn(ServerFnError::MissingServer)) => {
+            fetch_storefront_commerce_graphql(selected_cart_id, locale).await
+        }
+        Err(err) => Err(err),
     }
 }
 
