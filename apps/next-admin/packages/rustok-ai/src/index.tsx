@@ -2422,6 +2422,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   />
                   <Input
                     label='Image URLs (csv)'
+                    placeholder='https://.../1.jpg, https://.../2.jpg or one URL per line'
                     value={productAttributesForm.imageUrls}
                     onChange={(imageUrls) =>
                       setProductAttributesForm((current) => ({
@@ -2430,6 +2431,9 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       }))
                     }
                   />
+                  <p className='text-muted-foreground text-xs'>
+                    Parsed image URLs: {productAttributesParsedImageUrls.urls.length}
+                  </p>
                   <Input
                     label='Copy instructions'
                     value={productAttributesForm.copyInstructions}
