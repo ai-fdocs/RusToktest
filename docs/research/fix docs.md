@@ -314,6 +314,23 @@
 | B9 | DOC-11 | `.github/pull_request_template.md`, `docs/guides/*` (если нужно) | PR template содержит обязательный docs checklist и Verification Evidence |
 | B10 | DOC-12 (first pass) | hotspot H1–H3 документы из этого плана | Для каждой hotspot-зоны есть owner, scope и минимальный PR contract |
 
+### Матрица исполнения B6–B10 (owner + handoff)
+
+| Batch | Owner role | Reviewer role | Handoff artifact | Blockers to check before start |
+|---|---|---|---|---|
+| B6 | Architecture docs owner | Platform docs owner | PR + обновлённый `docs/index.md` diff-summary | Нет параллельного PR, меняющего карту `docs/index.md` |
+| B7 | Module platform owner | Platform foundation | Сверка `registry/_index/UI_PACKAGES_INDEX` ↔ `modules.toml` | Зафиксирован текущий `modules.toml` baseline в PR description |
+| B8 | DevEx/CI owner | Platform docs owner | CI job logs + intentional fail evidence | Есть отдельная тест-ветка/PR для негативной проверки |
+| B9 | DevEx/CI owner | Architecture docs owner | Обновлённый PR template + пример заполнения | Шаблон не конфликтует с обязательными разделами репозитория |
+| B10 | Module owners (H1–H3) | Platform docs owner | Hotspot blocks в PR (`Hotspot`, `Doc contracts updated`, `Residual drift risk`) | Для каждого hotspot назначен конкретный владелец |
+
+Перед стартом batch добавлять короткий preflight-чеклист в PR:
+
+- [ ] Подтверждён owner и reviewer для batch;
+- [ ] Проверено отсутствие конфликтующего PR по тому же scope;
+- [ ] Scope ограничен файлами batch либо явно расширен в `Risks`;
+- [ ] Проверки и Verification Evidence запланированы заранее.
+
 ### Протокол запуска следующего batch (DoR/DoD-lite)
 
 Перед стартом любого batch исполнитель обязан зафиксировать в PR:
