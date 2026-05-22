@@ -95,6 +95,12 @@ fn bypass_toggle_api_is_not_public() {
         content.contains(module_wrapper_signature),
         "Module-level bypass wrapper should stay crate-scoped and keep dead_code annotation."
     );
+    assert!(
+        content.contains(
+            "Entity::upsert_flag_without_lifecycle_for_migrations_only(db, tenant_id, module_slug, enabled)"
+        ),
+        "Module-level bypass wrapper should delegate to Entity helper, not duplicate lifecycle bypass logic."
+    );
 
     assert!(
         !content.contains(public_signature),
