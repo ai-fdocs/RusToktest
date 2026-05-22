@@ -230,6 +230,29 @@ class DependabotDirectoryCheckTests(unittest.TestCase):
                 result.stderr,
             )
 
+    def test_fails_on_quoted_directory_with_trailing_non_comment_content(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / "apps" / "server").mkdir(parents=True)
+            config = root / ".github" / "dependabot.yml"
+            config.parent.mkdir(parents=True)
+            config.write_text(
+                textwrap.dedent(
+                    """
+                    version: 2
+                    updates:
+                      - package-ecosystem: "cargo"
+                        directory: "/apps/server" trailing-garbage
+                    """
+                ).strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            result = self.run_script(root, config)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("Dependabot directories contain invalid paths:", result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

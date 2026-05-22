@@ -27,6 +27,9 @@ def parse_directory_value(raw_value: str) -> str:
     closing_index = value.find(quote, 1)
     if closing_index == -1:
         return ""
+    trailing = value[closing_index + 1 :].strip()
+    if trailing and not trailing.startswith("#"):
+        return ""
     return value[1:closing_index]
 
 
