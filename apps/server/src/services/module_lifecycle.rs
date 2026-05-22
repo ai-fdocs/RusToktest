@@ -14,6 +14,10 @@ use crate::services::effective_module_policy::EffectiveModulePolicyService;
 
 pub struct ModuleLifecycleService;
 
+const MODULE_OPERATION_STATUS_RUNNING: &str = "running";
+const MODULE_OPERATION_STATUS_COMMITTED: &str = "committed";
+const MODULE_OPERATION_STATUS_FAILED: &str = "failed";
+
 #[derive(Debug, Error)]
 pub enum ToggleModuleError {
     #[error("Unknown module")]
@@ -263,7 +267,7 @@ impl ModuleLifecycleService {
                     .await?
                 {
                     let mut active: module_operations::ActiveModel = model.into();
-                    active.status = sea_orm::ActiveValue::Set("done".to_string());
+                    active.status = sea_orm::ActiveValue::Set(MODULE_OPERATION_STATUS_COMMITTED.to_string());
                     active.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
                     active.update(txn).await?;
                 }
@@ -359,7 +363,7 @@ impl ModuleLifecycleService {
             module_slug: sea_orm::ActiveValue::Set(module_slug.to_string()),
             requested_enabled: sea_orm::ActiveValue::Set(requested_enabled),
             previous_effective_enabled: sea_orm::ActiveValue::Set(previous_effective_enabled),
-            status: sea_orm::ActiveValue::Set("running".to_string()),
+            status: sea_orm::ActiveValue::Set(MODULE_OPERATION_STATUS_RUNNING.to_string()),
             requested_by: sea_orm::ActiveValue::Set(requested_by),
             error_message: sea_orm::ActiveValue::Set(None),
             created_at: sea_orm::ActiveValue::Set(now),
@@ -370,7 +374,7 @@ impl ModuleLifecycleService {
     }
 
     #[allow(dead_code)]
-    async fn mark_operation_done(
+    async fn mark_operation_committed(
         db: &DatabaseConnection,
         operation_id: uuid::Uuid,
     ) -> Result<(), DbErr> {
@@ -379,7 +383,7 @@ impl ModuleLifecycleService {
             .await?
         {
             let mut active: module_operations::ActiveModel = model.into();
-            active.status = sea_orm::ActiveValue::Set("done".to_string());
+            active.status = sea_orm::ActiveValue::Set(MODULE_OPERATION_STATUS_COMMITTED.to_string());
             active.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
             active.update(db).await?;
         }
@@ -396,7 +400,7 @@ impl ModuleLifecycleService {
             .await?
         {
             let mut active: module_operations::ActiveModel = model.into();
-            active.status = sea_orm::ActiveValue::Set("failed".to_string());
+            active.status = sea_orm::ActiveValue::Set(MODULE_OPERATION_STATUS_FAILED.to_string());
             active.error_message = sea_orm::ActiveValue::Set(Some(error_message.to_string()));
             active.updated_at = sea_orm::ActiveValue::Set(chrono::Utc::now().into());
             active.update(db).await?;
