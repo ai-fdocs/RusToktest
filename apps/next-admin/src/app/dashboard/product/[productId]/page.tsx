@@ -26,6 +26,9 @@ export const metadata = {
 
 type PageProps = { params: Promise<{ productId: string }> };
 
+const PRODUCT_ATTRIBUTES_COPY_INSTRUCTIONS =
+  'Сформируй только подтверждаемые атрибуты и пометь неподтверждаемые как not_specified.';
+
 function normalizeSeedText(value: string | null | undefined): string {
   return (value ?? '').trim();
 }
@@ -43,8 +46,7 @@ function buildProductAttributesTaskInput(product: NonNullable<Awaited<ReturnType
       source_description: sourceDescription || null,
       category_slug: categorySlug || null,
       image_urls: [],
-      copy_instructions:
-        'Сформируй только подтверждаемые атрибуты и пометь неподтверждаемые как not_specified.'
+      copy_instructions: PRODUCT_ATTRIBUTES_COPY_INSTRUCTIONS
     },
     null,
     2
@@ -60,8 +62,7 @@ function buildProductAttributesHref(product: NonNullable<Awaited<ReturnType<type
     task: 'product_attributes',
     title: `Product Attributes ${product.id}`,
     productId: product.id,
-    copyInstructions:
-      'Сформируй только подтверждаемые атрибуты и пометь неподтверждаемые как not_specified.'
+    copyInstructions: PRODUCT_ATTRIBUTES_COPY_INSTRUCTIONS
   });
   if (sourceLocale.length > 0) {
     params.set('locale', sourceLocale);
