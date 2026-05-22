@@ -40,14 +40,26 @@ def main() -> int:
         return 1
 
     missing: list[str] = []
+    seen: set[str] = set()
+    duplicates: set[str] = set()
     for line in config.read_text(encoding="utf-8").splitlines():
         match = DIRECTORY_RE.match(line)
         if not match:
             continue
         directory = match.group(1)
+        if directory in seen:
+            duplicates.add(directory)
+        else:
+            seen.add(directory)
         path = root / directory.lstrip("/")
         if not path.is_dir():
             missing.append(directory)
+
+    if duplicates:
+        print("Dependabot directories contain duplicates:", file=sys.stderr)
+        for directory in sorted(duplicates):
+            print(f"  - {directory}", file=sys.stderr)
+        return 1
 
     if missing:
         print("Dependabot directories do not exist:", file=sys.stderr)
