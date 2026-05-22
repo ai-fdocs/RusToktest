@@ -1223,8 +1223,21 @@ pub fn AiAdmin() -> impl IntoView {
 
 
     let can_submit_product_attributes = move || {
-        !selected_task_profile.get().trim().is_empty()
-            && !product_attributes_product_id.get().trim().is_empty()
+        let task_profile_id = selected_task_profile.get();
+        let has_product_id = !product_attributes_product_id.get().trim().is_empty();
+        let matches_product_attributes = bootstrap
+            .get()
+            .and_then(Result::ok)
+            .map(|payload| {
+                payload.task_profiles.iter().any(|profile| {
+                    profile.id == task_profile_id
+                        && profile.slug == "product_attributes"
+                        && profile.is_active
+                })
+            })
+            .unwrap_or(false);
+
+        has_product_id && matches_product_attributes
     };
 
     let on_run_product_attributes_job = move |ev: SubmitEvent| {
