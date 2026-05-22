@@ -84,37 +84,6 @@ fn admin_native_toggle_endpoint_is_not_reintroduced() {
     );
 }
 
-#[test]
-fn admin_toggle_module_uses_graphql_without_native_fallback() {
-    let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .and_then(Path::parent)
-        .expect("workspace root");
-    let admin_modules_api = repo_root.join("apps/admin/src/features/modules/api.rs");
-    let content = fs::read_to_string(&admin_modules_api)
-        .expect("apps/admin modules api source should be readable");
-
-    let toggle_fn = extract_function_block(&content, "pub async fn toggle_module(")
-        .expect("toggle_module function block must exist");
-
-    assert!(
-        !toggle_fn.contains("combine_native_and_graphql_error"),
-        "toggle_module must not compose native+graphql fallback errors; canonical GraphQL path only."
-    );
-    assert!(
-        !toggle_fn.contains("toggle_module_native("),
-        "toggle_module must not call a native fallback helper."
-    );
-    assert!(
-        toggle_fn.contains("request("),
-        "toggle_module must call GraphQL request path."
-    );
-    assert!(
-        toggle_fn.contains("TOGGLE_MODULE_MUTATION"),
-        "toggle_module must use the canonical TOGGLE_MODULE_MUTATION contract."
-    );
-}
-
 fn extract_function_block<'a>(content: &'a str, signature: &str) -> Option<&'a str> {
     let start = content.find(signature)?;
     let rest = &content[start..];
