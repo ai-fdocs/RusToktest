@@ -25,6 +25,12 @@ Flutter workspace scaffold based on `docs/research/flutter.md`.
 python3 rustok_mobile/tooling/scripts/generate_mobile_manifest.py --repo-root /workspace/RusTok
 ```
 
+## Verify manifest freshness
+
+```bash
+python3 rustok_mobile/tooling/scripts/verify_mobile_manifest.py --repo-root /workspace/RusTok
+```
+
 ## Next steps
 
 1. Add real GraphQL client factory (HTTP + WebSocket split links).
