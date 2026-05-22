@@ -1191,49 +1191,6 @@ mod tests {
         assert!(!policy_err.message.is_empty());
     }
 
-    #[test]
-    fn toggle_error_taxonomy_matrix_stays_stable() {
-        let cases = vec![
-            (
-                ToggleModuleError::UnknownModule,
-                TOGGLE_ERR_UNKNOWN_MODULE,
-                "unknown-module",
-            ),
-            (
-                ToggleModuleError::CoreModuleCannotBeDisabled("core".into()),
-                toggle_err_core_module_cannot_be_disabled("core"),
-                "core-disable",
-            ),
-            (
-                ToggleModuleError::MissingDependencies("pricing".into()),
-                toggle_err_missing_dependencies("pricing"),
-                "missing-dependencies",
-            ),
-            (
-                ToggleModuleError::HasDependents("checkout".into()),
-                toggle_err_has_dependents("checkout"),
-                "has-dependents",
-            ),
-            (
-                ToggleModuleError::HookFailed("boom".into()),
-                toggle_err_hook_failed("boom"),
-                "hook-failed",
-            ),
-        ];
-
-        for (error, expected_message, case_name) in cases {
-            let field_error = map_toggle_module_error(error);
-            assert_eq!(
-                field_error.message, expected_message,
-                "toggle error taxonomy drifted for case: {case_name}"
-            );
-            assert!(
-                !field_error.message.contains("rolled back"),
-                "toggle error message unexpectedly references rollback for case: {case_name}"
-            );
-        }
-    }
-
     fn error_code(error: &async_graphql::Error) -> Option<String> {
         error
             .extensions
@@ -1298,6 +1255,49 @@ mod tests {
         ]
     }
 
+    fn toggle_user_input_error_cases() -> Vec<ToggleCase> {
+        toggle_error_contract_cases()
+            .into_iter()
+            .filter(|case| case.expected_code == Some("BAD_USER_INPUT"))
+            .collect()
+    }
+
+    fn toggle_internal_error_cases() -> Vec<ToggleCase> {
+        toggle_error_contract_cases()
+            .into_iter()
+            .filter(|case| case.expected_code == Some("INTERNAL_ERROR"))
+            .collect()
+    }
+
+    #[test]
+    fn toggle_error_taxonomy_partitions_are_disjoint_and_complete() {
+        let all = toggle_error_contract_cases();
+        let user = toggle_user_input_error_cases();
+        let internal = toggle_internal_error_cases();
+
+        assert_eq!(
+            all.len(),
+            user.len() + internal.len(),
+            "toggle taxonomy partition drifted: user + internal cases must cover all cases exactly"
+        );
+
+        for user_case in &user {
+            assert!(
+                internal.iter().all(|case| case.case_name != user_case.case_name),
+                "toggle taxonomy partition overlap detected for case: {}",
+                user_case.case_name
+            );
+        }
+
+        assert!(
+            all.iter().all(|case| {
+                case.expected_code == Some("BAD_USER_INPUT")
+                    || case.expected_code == Some("INTERNAL_ERROR")
+            }),
+            "toggle taxonomy contains unsupported error code category"
+        );
+    }
+
     #[test]
     fn toggle_error_mapping_sets_expected_error_codes() {
         for case in toggle_error_contract_cases() {
@@ -1306,6 +1306,44 @@ mod tests {
                 error_code(&gql).as_deref(),
                 case.expected_code,
                 "toggle error code drifted for case: {}",
+                case.case_name
+            );
+        }
+    }
+
+    #[test]
+    fn toggle_user_input_taxonomy_maps_only_to_bad_user_input_code() {
+        for case in toggle_user_input_error_cases() {
+            let gql = map_toggle_module_error(case.error).extend();
+            assert_eq!(
+                error_code(&gql).as_deref(),
+                Some("BAD_USER_INPUT"),
+                "toggle user-input taxonomy must map to BAD_USER_INPUT code for case: {}",
+                case.case_name
+            );
+        }
+    }
+
+    #[test]
+    fn toggle_internal_error_taxonomy_maps_only_to_internal_error_code() {
+        for case in toggle_internal_error_cases() {
+            let gql = map_toggle_module_error(case.error).extend();
+            assert_eq!(
+                error_code(&gql).as_deref(),
+                Some("INTERNAL_ERROR"),
+                "toggle internal taxonomy must map to INTERNAL_ERROR code for case: {}",
+                case.case_name
+            );
+        }
+    }
+
+    #[test]
+    fn toggle_internal_error_taxonomy_uses_generic_internal_message() {
+        for case in toggle_internal_error_cases() {
+            let mapped = map_toggle_module_error(case.error);
+            assert_eq!(
+                mapped.message, "Internal server error",
+                "toggle internal taxonomy must not leak implementation details for case: {}",
                 case.case_name
             );
         }
@@ -1327,44 +1365,27 @@ mod tests {
                 "toggle error code drifted for case: {}",
                 case.case_name
             );
+            assert!(
+                !mapped.message.contains("rolled back"),
+                "toggle error contract must not reference partial rollback semantics for case: {}",
+                case.case_name
+            );
         }
     }
 
     #[test]
     fn toggle_error_taxonomy_matrix_stays_stable() {
-        let cases = vec![
-            (
-                ToggleModuleError::UnknownModule,
-                "Unknown module",
-                "unknown-module",
-            ),
-            (
-                ToggleModuleError::CoreModuleCannotBeDisabled("core".into()),
-                "Core module cannot be disabled: core",
-                "core-disable",
-            ),
-            (
-                ToggleModuleError::MissingDependencies("pricing".into()),
-                "Missing module dependencies: pricing",
-                "missing-dependencies",
-            ),
-            (
-                ToggleModuleError::HasDependents("checkout".into()),
-                "Module is required by: checkout",
-                "has-dependents",
-            ),
-            (
-                ToggleModuleError::HookFailed("boom".into()),
-                "Module lifecycle hook failed before state commit: boom",
-                "hook-failed",
-            ),
-        ];
-
-        for (error, expected_message, case_name) in cases {
-            let field_error = map_toggle_module_error(error);
+        for case in toggle_user_input_error_cases() {
+            let field_error = map_toggle_module_error(case.error);
             assert_eq!(
-                field_error.message, expected_message,
-                "toggle error taxonomy drifted for case: {case_name}"
+                field_error.message, case.expected_message,
+                "toggle error taxonomy drifted for case: {}",
+                case.case_name
+            );
+            assert!(
+                !field_error.message.contains("rolled back"),
+                "toggle error taxonomy unexpectedly references partial rollback for case: {}",
+                case.case_name
             );
         }
     }
