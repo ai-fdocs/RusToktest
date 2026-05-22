@@ -278,7 +278,7 @@
 
 - [~] DOC-01 Root docs sanitation (PR: pending)
 - [~] DOC-02 Profiles truth table (PR: pending)
-- [ ] DOC-03 Workflow API doc drift cleanup
+- [~] DOC-03 Workflow API doc drift cleanup (PR: pending)
 - [~] DOC-04 Changelog normalization (PR: pending)
 - [ ] DOC-05 docs/index.md refactor
 - [ ] DOC-06 Registry ↔ manifest sync
