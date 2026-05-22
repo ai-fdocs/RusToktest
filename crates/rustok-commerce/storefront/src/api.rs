@@ -1623,6 +1623,23 @@ async fn storefront_complete_checkout(
 }
 
 
+fn summarize_storefront_refunds(items: &[GraphqlRefundItem], total: u64) -> StorefrontOrderRefundSummary {
+    let refunded_amount = items
+        .iter()
+        .filter_map(|item| rust_decimal::Decimal::from_str(item.amount.trim()).ok())
+        .fold(rust_decimal::Decimal::ZERO, |acc, value| acc + value);
+
+    StorefrontOrderRefundSummary {
+        total,
+        refunded_amount: if total == 0 {
+            None
+        } else {
+            Some(refunded_amount.normalize().to_string())
+        },
+        latest_status: items.first().map(|item| item.status.clone()),
+    }
+}
+
 pub async fn fetch_storefront_order_refunds_summary(
     order_id: String,
 ) -> Result<StorefrontOrderRefundSummary, ApiError> {
@@ -1638,24 +1655,49 @@ pub async fn fetch_storefront_order_refunds_summary(
     )
     .await?;
 
-    let refunded_amount = response
-        .storefront_refunds
-        .items
-        .iter()
-        .filter_map(|item| rust_decimal::Decimal::from_str(item.amount.trim()).ok())
-        .fold(rust_decimal::Decimal::ZERO, |acc, value| acc + value);
+    Ok(summarize_storefront_refunds(
+        &response.storefront_refunds.items,
+        response.storefront_refunds.total,
+    ))
+}
 
-    Ok(StorefrontOrderRefundSummary {
-        total: response.storefront_refunds.total,
-        refunded_amount: if response.storefront_refunds.total == 0 {
-            None
-        } else {
-            Some(refunded_amount.normalize().to_string())
-        },
-        latest_status: response
-            .storefront_refunds
-            .items
-            .first()
-            .map(|item| item.status.clone()),
-    })
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn summarize_storefront_refunds_uses_decimal_safe_total() {
+        let summary = summarize_storefront_refunds(
+            &[
+                GraphqlRefundItem {
+                    amount: "0.10".to_string(),
+                    status: "pending".to_string(),
+                },
+                GraphqlRefundItem {
+                    amount: "0.20".to_string(),
+                    status: "refunded".to_string(),
+                },
+            ],
+            2,
+        );
+
+        assert_eq!(summary.total, 2);
+        assert_eq!(summary.refunded_amount.as_deref(), Some("0.3"));
+        assert_eq!(summary.latest_status.as_deref(), Some("pending"));
+    }
+
+    #[test]
+    fn summarize_storefront_refunds_ignores_invalid_rows_and_handles_empty_total() {
+        let summary = summarize_storefront_refunds(
+            &[GraphqlRefundItem {
+                amount: "invalid".to_string(),
+                status: "pending".to_string(),
+            }],
+            0,
+        );
+
+        assert_eq!(summary.total, 0);
+        assert_eq!(summary.refunded_amount, None);
+        assert_eq!(summary.latest_status.as_deref(), Some("pending"));
+    }
 }
