@@ -1886,19 +1886,19 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       className='border-border rounded-lg border px-3 py-2'
                     >
                       <div className='text-foreground font-medium'>
-                        {run.sessionTitle} В· {run.status} В· {run.durationMs}{' '}
+                        {run.sessionTitle} · {run.status} · {run.durationMs}{' '}
                         ms
                       </div>
                       <div>
-                        {run.providerDisplayName} В·{' '}
-                        {run.executionTarget ?? run.executionPath} В·{' '}
+                        {run.providerDisplayName} ·{' '}
+                        {run.executionTarget ?? run.executionPath} ·{' '}
                         {run.requestedLocale ?? 'auto'} -&gt;{' '}
                         {run.resolvedLocale}
                       </div>
                       <div className='text-muted-foreground text-xs'>
                         {new Date(run.startedAt).toLocaleString()}
                         {run.taskProfileSlug
-                          ? ` В· task ${run.taskProfileSlug}`
+                          ? ` · task ${run.taskProfileSlug}`
                           : ''}
                       </div>
                       {run.errorMessage ? (
