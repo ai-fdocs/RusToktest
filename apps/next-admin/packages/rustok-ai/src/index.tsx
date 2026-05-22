@@ -566,14 +566,15 @@ export function AiAdminPage(props: AiAdminPageProps) {
   const isSubmittingDirectJob = activeDirectSubmit !== null;
   const directSubmitLockRef = React.useRef(false);
   const runDirectSubmit = React.useCallback(
-    async (kind: DirectSubmitKind, job: () => Promise<void>) => {
-      if (directSubmitLockRef.current) return;
+    async (kind: DirectSubmitKind, job: () => Promise<void>): Promise<boolean> => {
+      if (directSubmitLockRef.current) return false;
       directSubmitLockRef.current = true;
       setError(null);
       setFeedback(null);
       setActiveDirectSubmit(kind);
       try {
         await job();
+        return true;
       } finally {
         setActiveDirectSubmit(null);
         directSubmitLockRef.current = false;
@@ -1919,7 +1920,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       );
                       return;
                     }
-                    await runDirectSubmit('blog_draft', async () => {
+                    const accepted = await runDirectSubmit('blog_draft', async () => {
                       const taskInputJson = JSON.stringify({
                         post_id: blogForm.postId || null,
                         source_locale: blogForm.sourceLocale || null,
@@ -1969,6 +1970,9 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       await loadBootstrap();
                       await loadSession(id);
                     });
+                    if (!accepted) {
+                      setFeedback('Another direct job is already running. Please wait.');
+                    }
                   }}
                 >
                   <Input
@@ -2129,7 +2133,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       );
                       return;
                     }
-                    await runDirectSubmit('product_copy', async () => {
+                    const accepted = await runDirectSubmit('product_copy', async () => {
                       const taskInputJson = JSON.stringify({
                         product_id: normalizedProductId,
                         source_locale: productForm.sourceLocale || null,
@@ -2176,6 +2180,9 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       await loadBootstrap();
                       await loadSession(id);
                     });
+                    if (!accepted) {
+                      setFeedback('Another direct job is already running. Please wait.');
+                    }
                   }}
                 >
                   <Input
@@ -2639,7 +2646,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       );
                       return;
                     }
-                    await runDirectSubmit('image_asset', async () => {
+                    const accepted = await runDirectSubmit('image_asset', async () => {
                       const taskInputJson = JSON.stringify({
                         prompt: imageForm.prompt,
                         negative_prompt: imageForm.negativePrompt || null,
@@ -2684,6 +2691,9 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       await loadBootstrap();
                       await loadSession(id);
                     });
+                    if (!accepted) {
+                      setFeedback('Another direct job is already running. Please wait.');
+                    }
                   }}
                 >
                   <Input
@@ -2796,7 +2806,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       );
                       return;
                     }
-                    await runDirectSubmit('alloy_code', async () => {
+                    const accepted = await runDirectSubmit('alloy_code', async () => {
                       const taskInputJson = JSON.stringify({
                         operation: alloyForm.operation,
                         script_id: alloyForm.scriptId || null,
@@ -2840,6 +2850,9 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       await loadBootstrap();
                       await loadSession(id);
                     });
+                    if (!accepted) {
+                      setFeedback('Another direct job is already running. Please wait.');
+                    }
                   }}
                 >
                   <Input
@@ -2932,7 +2945,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   className='space-y-3'
                   onSubmit={async (event) => {
                     event.preventDefault();
-                    await runDirectSubmit('new_session', async () => {
+                    const accepted = await runDirectSubmit('new_session', async () => {
                       const started = await gql<
                         {
                           startAiChatSession: {
@@ -2967,6 +2980,9 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       await loadBootstrap();
                       await loadSession(id);
                     });
+                    if (!accepted) {
+                      setFeedback('Another direct job is already running. Please wait.');
+                    }
                   }}
                 >
                   <Input
