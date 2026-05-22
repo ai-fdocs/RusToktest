@@ -102,8 +102,16 @@ fn admin_toggle_module_uses_graphql_without_native_fallback() {
         "toggle_module must not compose native+graphql fallback errors; canonical GraphQL path only."
     );
     assert!(
+        !toggle_fn.contains("toggle_module_native("),
+        "toggle_module must not call a native fallback helper."
+    );
+    assert!(
         toggle_fn.contains("request("),
         "toggle_module must call GraphQL request path."
+    );
+    assert!(
+        toggle_fn.contains("TOGGLE_MODULE_MUTATION"),
+        "toggle_module must use the canonical TOGGLE_MODULE_MUTATION contract."
     );
 }
 
