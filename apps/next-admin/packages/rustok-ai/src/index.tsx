@@ -564,7 +564,10 @@ export function AiAdminPage(props: AiAdminPageProps) {
     [taskProfiles]
   );
   const canSubmitProductAttributes =
-    !!productAttributesTaskProfile && productAttributesForm.productId.trim().length > 0;
+    !!productAttributesTaskProfile &&
+    productAttributesForm.productId.trim().length > 0 &&
+    (productAttributesForm.sourceTitle.trim().length > 0 ||
+      productAttributesForm.sourceDescription.trim().length > 0);
 
   const loadBootstrap = React.useCallback(async () => {
     setLoading(true);
