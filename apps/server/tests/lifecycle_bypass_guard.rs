@@ -73,13 +73,27 @@ fn bypass_toggle_api_is_not_public() {
     let tenant_modules_rs = repo_root.join("apps/server/src/models/tenant_modules.rs");
     let content = fs::read_to_string(&tenant_modules_rs).expect("tenant_modules.rs should be readable");
 
-    let crate_scoped_signature = "pub(crate) async fn upsert_flag_without_lifecycle_for_migrations_only(";
+    let entity_impl_anchor = "impl Entity {";
+    let entity_method_signature =
+        "pub(crate) async fn upsert_flag_without_lifecycle_for_migrations_only(";
+    let module_wrapper_signature =
+        "\n#[allow(dead_code)]\npub(crate) async fn upsert_flag_without_lifecycle_for_migrations_only(";
     let public_signature = "pub async fn upsert_flag_without_lifecycle_for_migrations_only(";
 
-    let crate_scoped_occurrences = content.matches(crate_scoped_signature).count();
-    assert_eq!(
-        crate_scoped_occurrences, 2,
-        "Expected exactly two crate-scoped bypass helper declarations (Entity impl + module-level wrapper)."
+    let entity_impl_pos = content
+        .find(entity_impl_anchor)
+        .expect("Entity impl block should exist");
+    let entity_method_pos = content
+        .find(entity_method_signature)
+        .expect("Entity bypass helper should exist");
+    assert!(
+        entity_method_pos > entity_impl_pos,
+        "Entity bypass helper should be declared inside the Entity impl section."
+    );
+
+    assert!(
+        content.contains(module_wrapper_signature),
+        "Module-level bypass wrapper should stay crate-scoped and keep dead_code annotation."
     );
 
     assert!(
