@@ -567,6 +567,12 @@ export function AiAdminPage(props: AiAdminPageProps) {
     !!productAttributesTaskProfile &&
     productAttributesForm.productId.trim().length > 0 &&
     hasProductAttributesSeedContent(productAttributesForm);
+  const productAttributesParsedImageUrls = React.useMemo(
+    () => parseCsvUrls(productAttributesForm.imageUrls),
+    [productAttributesForm.imageUrls]
+  );
+  const hasProductAttributesInvalidImageUrls =
+    productAttributesParsedImageUrls.invalid.length > 0;
 
   const loadBootstrap = React.useCallback(async () => {
     setLoading(true);
@@ -621,6 +627,11 @@ export function AiAdminPage(props: AiAdminPageProps) {
       sourceDescription:
         queryValue('sourceDescription') ?? current.sourceDescription,
       categorySlug: queryValue('categorySlug') ?? current.categorySlug,
+      imageUrls: queryValue('imageUrls') ?? current.imageUrls,
+      copyInstructions:
+        queryValue('copyInstructions') ?? current.copyInstructions,
+      assistantPrompt:
+        queryValue('assistantPrompt') ?? current.assistantPrompt,
       title:
         queryProductId
           ? `Product Attributes ${queryProductId}`
@@ -642,6 +653,9 @@ export function AiAdminPage(props: AiAdminPageProps) {
     url.searchParams.delete('sourceTitle');
     url.searchParams.delete('sourceDescription');
     url.searchParams.delete('categorySlug');
+    url.searchParams.delete('imageUrls');
+    url.searchParams.delete('copyInstructions');
+    url.searchParams.delete('assistantPrompt');
     window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
 
     productAttributesPrefillAppliedRef.current = true;
@@ -2234,9 +2248,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                         productAttributesForm.copyInstructions.trim();
                       const normalizedAssistantPrompt =
                         productAttributesForm.assistantPrompt.trim();
-                      const parsedImageUrls = parseCsvUrls(
-                        productAttributesForm.imageUrls
-                      );
+                      const parsedImageUrls = productAttributesParsedImageUrls;
                       if (parsedImageUrls.invalid.length > 0) {
                         setError(
                           `Image URLs contain invalid entries: ${parsedImageUrls.invalid.join(', ')}`
@@ -2409,10 +2421,20 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       Active task profile `product_attributes`, product id, and source title or description are required.
                     </p>
                   ) : null}
+                  {hasProductAttributesInvalidImageUrls ? (
+                    <p className='text-xs text-amber-700'>
+                      Image URLs contain invalid entries:{' '}
+                      {productAttributesParsedImageUrls.invalid.join(', ')}
+                    </p>
+                  ) : null}
                   <button
                     className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
-                    disabled={!canSubmitProductAttributes || isSubmittingProductAttributes}
+                    disabled={
+                      !canSubmitProductAttributes ||
+                      isSubmittingProductAttributes ||
+                      hasProductAttributesInvalidImageUrls
+                    }
                   >
                     {isSubmittingProductAttributes ? 'Generating…' : 'Generate product attributes'}
                   </button>
