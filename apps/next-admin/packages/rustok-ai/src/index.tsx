@@ -2434,17 +2434,13 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       setError(err.message);
                       return null;
                     });
-                    if (!started) {
-                      setIsSubmittingProductAttributes(false);
-                      return;
-                    }
+                    if (!started) return;
                     const id = started.runAiTaskJob.session.session.id;
                     setFeedback(
                       `Image job \`${started.runAiTaskJob.session.session.title}\` completed.`
                     );
                     await loadBootstrap();
                     await loadSession(id);
-                    setIsSubmittingProductAttributes(false);
                   }}
                 >
                   <Input
