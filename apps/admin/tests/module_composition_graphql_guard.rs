@@ -55,3 +55,57 @@ fn module_composition_helpers_do_not_use_native_graphql_fallback_combiner() {
         );
     }
 }
+
+#[test]
+fn toggle_module_helper_uses_graphql_only_contract() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    let helper_body = extract_function_block(&content, "pub async fn toggle_module(")
+        .expect("toggle_module helper signature not found");
+
+    assert!(
+        !helper_body.contains("combine_native_and_graphql_error"),
+        "toggle_module must not compose native/graphql fallback errors"
+    );
+    assert!(
+        !helper_body.contains("toggle_module_native("),
+        "toggle_module must not call native helper"
+    );
+    assert!(
+        helper_body.contains("TOGGLE_MODULE_MUTATION"),
+        "toggle_module must use canonical TOGGLE_MODULE_MUTATION contract"
+    );
+    assert!(
+        helper_body.contains("request("),
+        "toggle_module must call GraphQL request path"
+    );
+}
+
+fn extract_function_block<'a>(content: &'a str, signature: &str) -> Option<&'a str> {
+    let start = content.find(signature)?;
+    let rest = &content[start..];
+    let open_rel = rest.find('{')?;
+    let mut depth = 0usize;
+    let mut end_rel = None;
+
+    for (idx, ch) in rest.char_indices().skip(open_rel) {
+        match ch {
+            '{' => depth += 1,
+            '}' => {
+                if depth == 0 {
+                    return None;
+                }
+                depth -= 1;
+                if depth == 0 {
+                    end_rel = Some(idx + ch.len_utf8());
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    end_rel.map(|end| &rest[..end])
+}
