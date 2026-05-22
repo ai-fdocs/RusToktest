@@ -1106,16 +1106,24 @@ jobs:
 | **Сложный routing state** | В RusTok route/query contract уже строгий | Единый sanitizer и typed route keys package |
 | **Auth/tenant bugs** | У RusTok контекст tenant/auth/locale обязателен | HTTP/WS заголовки и payload собирать централизованно и контрактно тестировать |
 
-### Рекомендуемая миграционная траектория
+### Фазный план реализации (без дубляжа)
 
-| Этап | Что делаем | Критерий завершения |
-|---|---|---|
-| **Foundation** | host app, app shell, theme, auth session, GraphQL client, route contracts | логин, `me`, `currentTenant`, базовый shell работают |
-| **Pilot module** | один модуль с реальной ценностью, например `modules` или `blog` | end-to-end сценарий одного модуля проходит |
-| **Registry-driven wiring** | generated mobile registry из manifest/export | новый модуль подключается без ручной правки host shell |
-| **Parity expansion** | перенос остальных high-value модулей | покрыты основные operator flows |
-| **Hardening** | E2E, performance, analytics, crash reporting, release pipeline | alpha/beta rollout готов |
-| **Offline/advanced sync** | только если подтверждено продуктом | explicit offline requirements закрыты |
+Ниже — единый implementation plan, который **ссылается на уже описанные разделы** документа вместо повторения одних и тех же решений.
+
+| Фаза | Объём работ | На что опираемся в этом документе | Definition of Done |
+|---|---|---|---|
+| **Phase 0 — Foundation** | Создать `host app`, app shell, тему, auth session store, GraphQL client factory, route contracts. | [Базовый каркас приложения](#базовый-каркас-приложения), [Маршрутизация](#маршрутизация), [Стандартное подключение GraphQL для RusTok](#стандартное-подключение-graphql-для-rustok), [Авторизация и refresh](#авторизация-и-refresh) | Работают login + `me` + `currentTenant`, есть базовый shell и deep-link вход в защищённый экран. |
+| **Phase 1 — Pilot module** | Внедрить один module-owned пакет (рекомендовано: `modules` или `blog`) с реальным E2E флоу. | [Файловая структура и размещение UI-компонентов](#файловая-структура-и-размещение-ui-компонентов), [DI и registry-driven подключение модулей](#di-и-registry-driven-подключение-модулей), [Шаблоны экранов и виджетов](#шаблоны-экранов-и-виджетов) | Один бизнес-сценарий модуля проходит end-to-end в мобильном host без feature-local transport-клиентов. |
+| **Phase 2 — Registry/codegen** | Подключить generated mobile registry из manifest/export и убрать ручное wiring в host. | [Предлагаемый registry-driven поток подключения модулей](#предлагаемый-registry-driven-поток-подключения-модулей), [Предлагаемые самописные библиотеки и модули](#предлагаемые-самописные-библиотеки-и-модули) | Новый модуль подключается через manifest/codegen без правок в навигационном каркасе host. |
+| **Phase 3 — Parity expansion** | Перенести остальные high-value модули, закрепить route/i18n/permission parity и единые error/loading/empty паттерны. | [Где размещать UI-компоненты и как дублировать UI модулей платформы](#где-размещать-ui-компоненты-и-как-дублировать-ui-модулей-платформы), [Кэширование, обработка ошибок и subscriptions](#кэширование-обработка-ошибок-и-subscriptions) | Покрыты основные operator flows; контракты query keys/locale/permissions не расходятся с web-host правилами. |
+| **Phase 4 — Hardening & release** | E2E, performance, observability, crash reporting, release pipeline (Android/iOS), rollout gates. | [Рекомендуемый pipeline для Flutter](#рекомендуемый-pipeline-для-flutter), [Шаблон GitHub Actions](#шаблон-github-actions), [Риски и митигации](#риски-и-митигации) | Готовы alpha/beta релизы, pipeline стабилен, критичные риски закрыты митигациями. |
+| **Phase 5 — Offline/advanced sync (optional)** | Добавить офлайн-сценарии только после продуктового подтверждения требований. | [Open questions и ограничения](#open-questions-и-ограничения), [Риски и митигации](#риски-и-митигации) | Есть утверждённые offline requirements и реализована целевая стратегия sync/outbox. |
+
+#### Чек-лист anti-duplication для PR
+
+- Не дублировать архитектурные решения в новых docs: ссылаться на разделы этого файла.
+- Новые детали добавлять только там, где им логически место (routing — в routing разделе, GraphQL — в transport разделе).
+- При изменении фаз обновлять только эту таблицу и связанные разделы, а не создавать параллельные «планы-повторы».
 
 ### Open questions и ограничения
 
