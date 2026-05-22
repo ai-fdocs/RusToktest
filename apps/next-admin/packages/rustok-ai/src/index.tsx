@@ -2731,15 +2731,10 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     <br />
                     Mode: direct
                   </div>
-                  {!canSubmitProductAttributes ? (
-                    <p className='text-muted-foreground text-xs'>
-                      Product id and active task profile `product_attributes` are required.
-                    </p>
-                  ) : null}
                   <button
                     className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
-                    disabled={!canSubmitProductAttributes || isSubmittingProductAttributes}
+                    disabled={isSubmittingProductAttributes}
                   >
                     Generate media image
                   </button>
@@ -2878,15 +2873,10 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     <br />
                     Mode: direct
                   </div>
-                  {!canSubmitProductAttributes ? (
-                    <p className='text-muted-foreground text-xs'>
-                      Product id and active task profile `product_attributes` are required.
-                    </p>
-                  ) : null}
                   <button
                     className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
-                    disabled={!canSubmitProductAttributes || isSubmittingProductAttributes}
+                    disabled={isSubmittingProductAttributes}
                   >
                     Run Alloy job
                   </button>
@@ -2971,15 +2961,10 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     <br />
                     Tool profile: {sessionForm.toolProfileId || 'optional'}
                   </div>
-                  {!canSubmitProductAttributes ? (
-                    <p className='text-muted-foreground text-xs'>
-                      Product id and active task profile `product_attributes` are required.
-                    </p>
-                  ) : null}
                   <button
                     className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
-                    disabled={!canSubmitProductAttributes || isSubmittingProductAttributes}
+                    disabled={isSubmittingProductAttributes}
                   >
                     Start session
                   </button>
