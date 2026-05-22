@@ -77,10 +77,12 @@ def main() -> int:
     seen: set[str] = set()
     duplicates: set[str] = set()
     invalid: set[str] = set()
+    found_directory_entries = 0
     for line in config.read_text(encoding="utf-8").splitlines():
         match = DIRECTORY_RE.match(line)
         if not match:
             continue
+        found_directory_entries += 1
         raw_directory = parse_directory_value(match.group(1))
         directory = normalize_directory(raw_directory)
         if not directory or not is_safe_repo_relative_path(directory):
@@ -98,6 +100,13 @@ def main() -> int:
         print("Dependabot directories contain invalid paths:", file=sys.stderr)
         for directory in sorted(invalid):
             print(f"  - {directory}", file=sys.stderr)
+        return 1
+
+    if found_directory_entries == 0:
+        print(
+            "Dependabot config does not contain any directory entries.",
+            file=sys.stderr,
+        )
         return 1
 
     if duplicates:

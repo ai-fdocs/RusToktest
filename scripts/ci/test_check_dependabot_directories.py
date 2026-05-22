@@ -204,6 +204,32 @@ class DependabotDirectoryCheckTests(unittest.TestCase):
             self.assertNotEqual(result.returncode, 0)
             self.assertIn("Dependabot directories contain invalid paths:", result.stderr)
 
+    def test_fails_when_no_directory_entries_exist(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            config = root / ".github" / "dependabot.yml"
+            config.parent.mkdir(parents=True)
+            config.write_text(
+                textwrap.dedent(
+                    """
+                    version: 2
+                    updates:
+                      - package-ecosystem: "cargo"
+                        schedule:
+                          interval: "daily"
+                    """
+                ).strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            result = self.run_script(root, config)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "Dependabot config does not contain any directory entries.",
+                result.stderr,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()
