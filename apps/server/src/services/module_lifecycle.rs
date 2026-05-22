@@ -51,6 +51,14 @@ impl std::fmt::Display for ModuleOperationStatus {
     }
 }
 
+impl std::str::FromStr for ModuleOperationStatus {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::parse(s).ok_or(())
+    }
+}
+
 
 #[derive(Debug, Error)]
 pub enum ToggleModuleError {
@@ -455,6 +463,10 @@ mod tests {
             assert_eq!(ModuleOperationStatus::parse(&encoded), Some(status));
         }
         assert_eq!(ModuleOperationStatus::parse("unknown"), None);
+        assert_eq!("running".parse::<ModuleOperationStatus>(), Ok(ModuleOperationStatus::Running));
+        assert_eq!("committed".parse::<ModuleOperationStatus>(), Ok(ModuleOperationStatus::Committed));
+        assert_eq!("failed".parse::<ModuleOperationStatus>(), Ok(ModuleOperationStatus::Failed));
+        assert_eq!("unknown".parse::<ModuleOperationStatus>(), Err(()));
         assert!(!ModuleOperationStatus::Running.is_terminal());
         assert!(ModuleOperationStatus::Committed.is_terminal());
         assert!(ModuleOperationStatus::Failed.is_terminal());
