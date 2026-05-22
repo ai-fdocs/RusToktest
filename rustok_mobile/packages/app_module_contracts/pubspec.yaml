@@ -6,5 +6,5 @@ environment:
   sdk: ^3.9.0
 
 dependencies:
-  flutter:
-    sdk: flutter
+  app_route_contracts:
+    path: ../app_route_contracts
