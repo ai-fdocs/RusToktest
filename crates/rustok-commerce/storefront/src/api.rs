@@ -3,6 +3,7 @@ use leptos_graphql::{execute as execute_graphql, GraphqlHttpError, GraphqlReques
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::fmt::{Display, Formatter};
+use std::str::FromStr;
 use uuid::Uuid;
 
 use crate::model::{
@@ -1641,15 +1642,15 @@ pub async fn fetch_storefront_order_refunds_summary(
         .storefront_refunds
         .items
         .iter()
-        .filter_map(|item| item.amount.parse::<f64>().ok())
-        .sum::<f64>();
+        .filter_map(|item| rust_decimal::Decimal::from_str(item.amount.trim()).ok())
+        .fold(rust_decimal::Decimal::ZERO, |acc, value| acc + value);
 
     Ok(StorefrontOrderRefundSummary {
         total: response.storefront_refunds.total,
         refunded_amount: if response.storefront_refunds.total == 0 {
             None
         } else {
-            Some(format!("{refunded_amount:.2}"))
+            Some(refunded_amount.normalize().to_string())
         },
         latest_status: response
             .storefront_refunds
