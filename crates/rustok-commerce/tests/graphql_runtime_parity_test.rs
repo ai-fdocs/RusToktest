@@ -2798,9 +2798,15 @@ async fn admin_graphql_order_payment_and_fulfillment_surface_matches_runtime_ser
         query_json["order"]["order"]["status"],
         Value::from("delivered")
     );
-    assert_eq!(query_json["order"]["order"]["totalAmount"], Value::from("30"));
+    assert_eq!(
+        query_json["order"]["order"]["totalAmount"],
+        Value::from("30")
+    );
     assert_eq!(query_json["order"]["order"]["taxTotal"], Value::from("5"));
-    assert_eq!(query_json["order"]["order"]["taxIncluded"], Value::from(false));
+    assert_eq!(
+        query_json["order"]["order"]["taxIncluded"],
+        Value::from(false)
+    );
     assert_eq!(
         query_json["order"]["order"]["taxLines"][0]["providerId"],
         Value::from("region_default")
@@ -2830,7 +2836,10 @@ async fn admin_graphql_order_payment_and_fulfillment_surface_matches_runtime_ser
         query_json["orders"]["items"][0]["totalAmount"],
         Value::from("30")
     );
-    assert_eq!(query_json["orders"]["items"][0]["taxTotal"], Value::from("5"));
+    assert_eq!(
+        query_json["orders"]["items"][0]["taxTotal"],
+        Value::from("5")
+    );
     assert_eq!(
         query_json["orders"]["items"][0]["taxIncluded"],
         Value::from(false)
@@ -3348,18 +3357,35 @@ async fn admin_graphql_order_query_exposes_tax_breakdown_with_provider_ids() {
                     metadata: serde_json::json!({ "source": "graphql-admin-tax-order" }),
                 }],
                 adjustments: Vec::new(),
-                tax_lines: vec![rustok_order::dto::CreateOrderTaxLineInput {
-                    line_item_index: Some(0),
-                    shipping_option_index: None,
-                    rate: Decimal::from_str("19.00").expect("valid decimal"),
-                    amount: Decimal::from_str("19.00").expect("valid decimal"),
-                    name: "VAT".to_string(),
-                    provider_id: "region_default".to_string(),
-                    metadata: serde_json::json!({
-                        "tax_included": false,
-                        "scope": "line_item"
-                    }),
-                }],
+                tax_lines: vec![
+                    rustok_order::dto::CreateOrderTaxLineInput {
+                        line_item_index: Some(0),
+                        shipping_option_index: None,
+                        rate: Decimal::from_str("19.00").expect("valid decimal"),
+                        amount: Decimal::from_str("19.00").expect("valid decimal"),
+                        name: "VAT line item".to_string(),
+                        provider_id: "region_default".to_string(),
+                        metadata: serde_json::json!({"tax_included": false, "scope": "line_item"}),
+                    },
+                    rustok_order::dto::CreateOrderTaxLineInput {
+                        line_item_index: None,
+                        shipping_option_index: Some(0),
+                        rate: Decimal::from_str("19.00").expect("valid decimal"),
+                        amount: Decimal::from_str("1.00").expect("valid decimal"),
+                        name: "VAT shipping".to_string(),
+                        provider_id: "region_default".to_string(),
+                        metadata: serde_json::json!({"tax_included": false, "scope": "shipping"}),
+                    },
+                    rustok_order::dto::CreateOrderTaxLineInput {
+                        line_item_index: None,
+                        shipping_option_index: None,
+                        rate: Decimal::from_str("19.00").expect("valid decimal"),
+                        amount: Decimal::from_str("0.50").expect("valid decimal"),
+                        name: "VAT order".to_string(),
+                        provider_id: "region_default".to_string(),
+                        metadata: serde_json::json!({"tax_included": false, "scope": "order"}),
+                    },
+                ],
                 metadata: serde_json::json!({ "source": "graphql-admin-tax-order" }),
             },
         )
@@ -3381,14 +3407,15 @@ async fn admin_graphql_order_query_exposes_tax_breakdown_with_provider_ids() {
                   id
                   taxTotal
                   taxIncluded
-                  taxLines {{
+                  taxLines {
                     providerId
                     name
                     amount
                     rate
                     lineItemId
+                    shippingOptionId
                     metadata
-                  }}
+                  }
                 }}
               }}
             }}
@@ -3405,15 +3432,15 @@ async fn admin_graphql_order_query_exposes_tax_breakdown_with_provider_ids() {
         .data
         .into_json()
         .expect("admin tax query response should serialize");
-    assert_eq!(json["order"]["order"]["taxTotal"], Value::from("19"));
+    assert_eq!(json["order"]["order"]["taxTotal"], Value::from("20.5"));
     assert_eq!(json["order"]["order"]["taxIncluded"], Value::from(false));
-    assert_eq!(
-        json["order"]["order"]["taxLines"][0]["providerId"],
-        Value::from("region_default")
-    );
-    assert_eq!(json["order"]["order"]["taxLines"][0]["name"], Value::from("VAT"));
-    assert_eq!(json["order"]["order"]["taxLines"][0]["amount"], Value::from("19"));
-    assert_eq!(json["order"]["order"]["taxLines"][0]["rate"], Value::from("19"));
+    let tax_lines = json["order"]["order"]["taxLines"].as_array().expect("tax lines array");
+    assert_eq!(tax_lines.len(), 3);
+    assert_eq!(tax_lines[0]["providerId"], Value::from("region_default"));
+    assert!(tax_lines[0]["lineItemId"].as_str().is_some());
+    assert!(tax_lines[1]["shippingOptionId"].as_str().is_some());
+    assert!(tax_lines[2]["lineItemId"].is_null());
+    assert!(tax_lines[2]["shippingOptionId"].is_null());
 }
 
 #[tokio::test]
@@ -4101,7 +4128,9 @@ async fn storefront_graphql_order_query_exposes_typed_adjustments_and_totals() {
     assert_eq!(json["storefrontOrder"]["taxTotal"], Value::from("0"));
     assert_eq!(json["storefrontOrder"]["taxIncluded"], Value::from(false));
     assert_eq!(
-        json["storefrontOrder"]["taxLines"].as_array().map(|items| items.len()),
+        json["storefrontOrder"]["taxLines"]
+            .as_array()
+            .map(|items| items.len()),
         Some(0)
     );
     assert_eq!(json["storefrontOrder"]["subtotalAmount"], Value::from("30"));

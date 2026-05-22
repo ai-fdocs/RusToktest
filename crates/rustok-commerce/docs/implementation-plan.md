@@ -3,11 +3,11 @@
 ## Execution checkpoint
 
 - Current phase: plan_sync
-- Last checkpoint: Admin GraphQL parity закреплена тестом tax breakdown (`tax_total`, `tax_included`, `tax_lines.provider_id`) для order read-side.
-- Next step: Добавить store/admin REST transport parity assertions для tax breakdown (`tax_total`, `tax_included`, `tax_lines.provider_id`) в checkout/order endpoints.
+- Last checkpoint: Admin/store REST и admin GraphQL parity расширены tax breakdown coverage для line-item/shipping/order aggregate tax lines и `provider_id` contract.
+- Next step: Добавить migration/contract smoke для backfill `provider_id` в legacy `order_tax_lines` snapshots.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
-- Last updated at (UTC): 2026-05-21T14:20:00Z
+- Last updated at (UTC): 2026-05-22T10:45:00Z
 
 ## Статус документа
 
@@ -505,7 +505,7 @@ Deliverables:
 
 - [x] добавить channel-aware provider mapping (`regions.tax_provider_id` + `channel_id`) без hidden fallback на `region_default`;
 - [x] расширить `rustok-tax` до typed rule input (`item class`, `shipping class`, `customer tax-exempt`) без возврата налоговой логики в `rustok-cart`;
-- [ ] закрепить admin/store read-side tax breakdown contract (line-item vs shipping vs order aggregate) в REST и GraphQL parity тестах;
+- [x] закрепить admin/store read-side tax breakdown contract (line-item vs shipping vs order aggregate) в REST и GraphQL parity тестах;
 - [ ] добавить migration/contract smoke для backfill `provider_id` в legacy `order_tax_lines` snapshots.
 
 ### Phase 10. Post-order flows: returns, refunds, exchanges, claims, order changes
