@@ -662,3 +662,47 @@ Reviewer перед approve проверяет:
 - статус (`pass`/`fail`/`blocked`);
 - строку `reason: ...` для каждого `fail`/`blocked`;
 - ссылку на изменённые файлы в scope батча.
+
+### Runbook запуска B11..B14 (без дополнительного планирования)
+
+Ниже — минимальный protocol, чтобы каждый следующий PR стартовал одинаково и
+без расхождений в отчётности.
+
+1. Выбрать ровно один batch (`B11`/`B12`/`B13`/`B14`) и зафиксировать его в PR
+   заголовке по шаблону `docs: DOC-XX ...`.
+2. До первого коммита вставить `Batch Card` в описание PR и проверить scope по
+   `git diff --name-only`.
+3. Выполнить проверки из раздела ниже и перенести статусы в
+   `Verification Evidence` без переформулировок.
+4. Обновить «Трекер статуса» только для соответствующего DOC-пункта.
+
+### Минимальные команды проверки по batch
+
+| Batch | Команды для Verification Evidence | Ожидаемый baseline |
+|---|---|---|
+| B11 | `cargo xtask --help`; `rg -n "rustdoc|openapi|graphql" xtask scripts docs/verification` | Команды генерации/экспорта найдены и задокументированы |
+| B12 | `rg -n "markdown|link|docs|artifact|upload" .github/workflows`; `sed -n '1,260p' docs/verification/README.md` | CI-конвейер и публикация артефактов явно описаны |
+| B13 | `sed -n '1,260p' .github/pull_request_template.md`; `rg -n "checklist|Verification Evidence|owner" docs/guides docs/standards` | PR template и governance-checklist синхронизированы |
+| B14 | `rg -n "Hotspot|Residual drift risk|Doc contracts updated" docs`; `rg -n "H1|H2|H3|H4|H5" docs/research/fix\ docs.md` | Для hotspot-зон есть обязательные блоки и owner-контекст |
+
+### Definition of Done для DOC-09..DOC-12 (строгая фиксация)
+
+- `DOC-09` закрывается только после merge двух батчей (`B11` и `B12`) и
+  наличия evidence по локальному запуску + CI публикации артефактов.
+- `DOC-10` и `DOC-11` закрываются одновременно одним батчем (`B13`), так как
+  governance-policy и PR-template проверяются как единый контракт.
+- `DOC-12` закрывается только после `B14` и подтверждения, что для H1..H5
+  добавлены `Hotspot`, `Doc contracts updated`, `Residual drift risk`.
+
+### Anti-overlap правило для параллельной работы
+
+Чтобы избежать конфликтов между авторами, при запуске batch применяется
+фиксированная ownership-матрица:
+
+- `B11`: владелец `xtask/` + `scripts/` + `docs/verification/*`;
+- `B12`: владелец `.github/workflows/*` + `docs/verification/*`;
+- `B13`: владелец `.github/pull_request_template.md` + governance docs;
+- `B14`: владельцы hotspot-зон H1..H5 по module registry.
+
+Если два batch пересекаются по одному файлу, более поздний batch стартует
+только после merge более раннего по зависимости (`Depends on`).
