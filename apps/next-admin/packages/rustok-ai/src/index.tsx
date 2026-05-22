@@ -567,6 +567,8 @@ export function AiAdminPage(props: AiAdminPageProps) {
     () => parseCsvUrls(productAttributesForm.imageUrls),
     [productAttributesForm.imageUrls]
   );
+  const normalizedProductAttributesImageUrls =
+    productAttributesParsedImageUrls.urls.join('\n');
   const hasProductAttributesInvalidImageUrls =
     productAttributesParsedImageUrls.invalid.length > 0;
   const hasProductAttributesReadyState =
@@ -2434,6 +2436,34 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   <p className='text-muted-foreground text-xs'>
                     Parsed image URLs: {productAttributesParsedImageUrls.urls.length}
                   </p>
+                  <div className='flex flex-wrap gap-2'>
+                    <button
+                      className='border-input text-foreground rounded-md border px-2 py-1 text-xs'
+                      type='button'
+                      disabled={normalizedProductAttributesImageUrls.length === 0}
+                      onClick={() =>
+                        setProductAttributesForm((current) => ({
+                          ...current,
+                          imageUrls: normalizedProductAttributesImageUrls
+                        }))
+                      }
+                    >
+                      Normalize image URLs
+                    </button>
+                    <button
+                      className='border-input text-foreground rounded-md border px-2 py-1 text-xs'
+                      type='button'
+                      disabled={productAttributesForm.imageUrls.trim().length === 0}
+                      onClick={() =>
+                        setProductAttributesForm((current) => ({
+                          ...current,
+                          imageUrls: ''
+                        }))
+                      }
+                    >
+                      Clear image URLs
+                    </button>
+                  </div>
                   <Input
                     label='Copy instructions'
                     value={productAttributesForm.copyInstructions}
