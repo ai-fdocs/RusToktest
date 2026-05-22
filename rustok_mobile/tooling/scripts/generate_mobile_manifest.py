@@ -5,7 +5,25 @@ from __future__ import annotations
 
 import argparse
 import pathlib
+import re
 import tomllib
+
+_ICON_RULES: tuple[tuple[str, str], ...] = (
+    ("auth", "shield"),
+    ("rbac", "shield"),
+    ("product", "inventory_2"),
+    ("inventory", "inventory"),
+    ("order", "receipt_long"),
+    ("customer", "people"),
+    ("tenant", "apartment"),
+    ("blog", "article"),
+    ("forum", "forum"),
+    ("comment", "chat"),
+    ("workflow", "account_tree"),
+    ("seo", "travel_explore"),
+    ("search", "search"),
+    ("media", "perm_media"),
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,9 +43,28 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _dart_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("'", "\\'")
+
+
+def _normalize_key(raw: str) -> str:
+    return re.sub(r"[^a-z0-9_]+", "_", raw.lower()).strip("_")
+
+
+def _pick_icon(slug: str) -> str:
+    normalized_slug = slug.lower()
+    for needle, icon in _ICON_RULES:
+        if needle in normalized_slug:
+            return icon
+    return "module"
+
+
 def scan_modules(repo_root: pathlib.Path) -> list[dict[str, str]]:
+    manifests = sorted(repo_root.glob("crates/*/rustok-module.toml"))
     modules: list[dict[str, str]] = []
-    for manifest in sorted(repo_root.glob("crates/*/rustok-module.toml")):
+    used_segments: set[str] = set()
+
+    for manifest in manifests:
         data = tomllib.loads(manifest.read_text(encoding="utf-8"))
         module = data.get("module", {})
         provides = data.get("provides", {})
@@ -40,18 +77,25 @@ def scan_modules(repo_root: pathlib.Path) -> list[dict[str, str]]:
             continue
 
         route_segment = str(admin_ui.get("route_segment", slug)).strip() or slug
-        nav_label = str(admin_ui.get("nav_label", slug.title())).strip() or slug.title()
-        module_key = f"rustok_{slug.replace('-', '_')}"
+        route_segment = _normalize_key(route_segment)
+        if not route_segment or route_segment in used_segments:
+            continue
+
+        nav_label = str(admin_ui.get("nav_label", module.get("name", slug.title()))).strip()
+        nav_label = nav_label or slug.title()
+        module_key = f"rustok_{_normalize_key(slug.replace('-', '_'))}"
 
         modules.append(
             {
-                "slug": slug,
                 "module_key": module_key,
                 "route_segment": route_segment,
                 "nav_label": nav_label,
+                "icon": _pick_icon(slug),
             }
         )
-    return modules
+        used_segments.add(route_segment)
+
+    return sorted(modules, key=lambda item: item["route_segment"])
 
 
 def render(modules: list[dict[str, str]]) -> str:
@@ -67,11 +111,11 @@ def render(modules: list[dict[str, str]]) -> str:
         lines.extend(
             [
                 "  MobileModuleEntry(",
-                f"    moduleKey: '{module['module_key']}',",
-                f"    routeSegment: '{module['route_segment']}',",
+                f"    moduleKey: '{_dart_escape(module['module_key'])}',",
+                f"    routeSegment: '{_dart_escape(module['route_segment'])}',",
                 (
                     "    nav: MobileNavMeta("
-                    f"title: '{module['nav_label']}', icon: 'module'),"
+                    f"title: '{_dart_escape(module['nav_label'])}', icon: '{_dart_escape(module['icon'])}'),"
                 ),
                 "  ),",
             ]

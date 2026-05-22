@@ -7,7 +7,7 @@ const generatedMobileManifest = <MobileModuleEntry>[
   MobileModuleEntry(
     moduleKey: 'rustok_blog',
     routeSegment: 'blog',
-    nav: MobileNavMeta(title: 'Blog', icon: 'module'),
+    nav: MobileNavMeta(title: 'Blog', icon: 'article'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_channel',
@@ -17,7 +17,7 @@ const generatedMobileManifest = <MobileModuleEntry>[
   MobileModuleEntry(
     moduleKey: 'rustok_comments',
     routeSegment: 'comments',
-    nav: MobileNavMeta(title: 'Comments', icon: 'module'),
+    nav: MobileNavMeta(title: 'Comments', icon: 'chat'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_commerce',
@@ -27,12 +27,12 @@ const generatedMobileManifest = <MobileModuleEntry>[
   MobileModuleEntry(
     moduleKey: 'rustok_customer',
     routeSegment: 'customers',
-    nav: MobileNavMeta(title: 'Customers', icon: 'module'),
+    nav: MobileNavMeta(title: 'Customers', icon: 'people'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_forum',
     routeSegment: 'forum',
-    nav: MobileNavMeta(title: 'Forum', icon: 'module'),
+    nav: MobileNavMeta(title: 'Forum', icon: 'forum'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_fulfillment',
@@ -47,17 +47,17 @@ const generatedMobileManifest = <MobileModuleEntry>[
   MobileModuleEntry(
     moduleKey: 'rustok_inventory',
     routeSegment: 'inventory',
-    nav: MobileNavMeta(title: 'Inventory', icon: 'module'),
+    nav: MobileNavMeta(title: 'Inventory', icon: 'inventory'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_media',
     routeSegment: 'media',
-    nav: MobileNavMeta(title: 'Media', icon: 'module'),
+    nav: MobileNavMeta(title: 'Media', icon: 'perm_media'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_order',
     routeSegment: 'orders',
-    nav: MobileNavMeta(title: 'Orders', icon: 'module'),
+    nav: MobileNavMeta(title: 'Orders', icon: 'receipt_long'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_outbox',
@@ -77,12 +77,12 @@ const generatedMobileManifest = <MobileModuleEntry>[
   MobileModuleEntry(
     moduleKey: 'rustok_product',
     routeSegment: 'product',
-    nav: MobileNavMeta(title: 'Products', icon: 'module'),
+    nav: MobileNavMeta(title: 'Products', icon: 'inventory_2'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_rbac',
     routeSegment: 'rbac',
-    nav: MobileNavMeta(title: 'RBAC', icon: 'module'),
+    nav: MobileNavMeta(title: 'RBAC', icon: 'shield'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_region',
@@ -92,21 +92,21 @@ const generatedMobileManifest = <MobileModuleEntry>[
   MobileModuleEntry(
     moduleKey: 'rustok_search',
     routeSegment: 'search',
-    nav: MobileNavMeta(title: 'Search', icon: 'module'),
+    nav: MobileNavMeta(title: 'Search', icon: 'search'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_seo',
     routeSegment: 'seo',
-    nav: MobileNavMeta(title: 'SEO', icon: 'module'),
+    nav: MobileNavMeta(title: 'SEO', icon: 'travel_explore'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_tenant',
     routeSegment: 'tenant',
-    nav: MobileNavMeta(title: 'Tenant', icon: 'module'),
+    nav: MobileNavMeta(title: 'Tenant', icon: 'apartment'),
   ),
   MobileModuleEntry(
     moduleKey: 'rustok_workflow',
     routeSegment: 'workflow',
-    nav: MobileNavMeta(title: 'Workflow', icon: 'module'),
+    nav: MobileNavMeta(title: 'Workflow', icon: 'account_tree'),
   ),
 ];
