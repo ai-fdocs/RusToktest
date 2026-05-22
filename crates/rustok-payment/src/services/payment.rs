@@ -365,7 +365,7 @@ fn normalize_refund_status_filter(status: &str) -> PaymentResult<String> {
     let normalized = status.trim().to_ascii_lowercase();
     if matches!(
         normalized.as_str(),
-        STATUS_REFUND_PENDING | STATUS_REFUNDED | STATUS_CANCELLED
+        STATUS_REFUND_PENDING | STATUS_REFUNDED | STATUS_REFUND_CANCELLED
     ) {
         return Ok(normalized);
     }
