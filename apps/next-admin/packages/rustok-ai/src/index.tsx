@@ -2334,16 +2334,17 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   onSubmit={async (event) => {
                     event.preventDefault();
                     if (isSubmittingProductAttributes) return;
-                    setIsSubmittingProductAttributes(true);
-                    setError(null);
-                    setFeedback(null);
-                    try {
-                      if (!productAttributesTaskProfile) {
-                        setError(
-                          'Task profile `product_attributes` is not configured. Create/activate it first.'
-                        );
-                        return;
-                      }
+                    await runDirectSubmit('product_attributes', async () => {
+                      setIsSubmittingProductAttributes(true);
+                      setError(null);
+                      setFeedback(null);
+                      try {
+                        if (!productAttributesTaskProfile) {
+                          setError(
+                            'Task profile `product_attributes` is not configured. Create/activate it first.'
+                          );
+                          return;
+                        }
                       const selectedTaskProfile = taskProfiles.find(
                         (profile) => profile.id === sessionForm.taskProfileId
                       );
