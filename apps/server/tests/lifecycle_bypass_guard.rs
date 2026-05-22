@@ -188,6 +188,24 @@ fn extract_function_block_returns_none_for_missing_signature() {
 }
 
 #[test]
+fn extract_function_block_returns_none_for_unbalanced_braces() {
+    let source = r#"
+pub(crate) async fn upsert_flag_without_lifecycle_for_migrations_only() {
+    if true {
+        let _x = 1;
+}
+"#;
+
+    assert!(
+        extract_function_block(
+            source,
+            "pub(crate) async fn upsert_flag_without_lifecycle_for_migrations_only()"
+        )
+        .is_none()
+    );
+}
+
+#[test]
 fn graphql_mutations_do_not_reintroduce_duplicate_platform_composition_mapping_tests() {
     let repo_root = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
