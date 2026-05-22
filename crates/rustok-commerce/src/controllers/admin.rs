@@ -3011,6 +3011,116 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn admin_refunds_transport_list_ignores_foreign_tenant_payment_collection_filter() {
+        let db = setup_test_db().await;
+        support::ensure_commerce_schema(&db).await;
+        let tenant_id = Uuid::new_v4();
+        let foreign_tenant_id = Uuid::new_v4();
+        let actor_id = Uuid::new_v4();
+        seed_tenant_context(&db, tenant_id).await;
+        seed_tenant_context(&db, foreign_tenant_id).await;
+
+        let order = OrderService::new(db.clone(), mock_transactional_event_bus())
+            .create_order(
+                tenant_id,
+                actor_id,
+                CreateOrderInput {
+                    customer_id: Some(Uuid::new_v4()),
+                    currency_code: "usd".to_string(),
+                    shipping_total: Decimal::ZERO,
+                    line_items: vec![CreateOrderLineItemInput {
+                        product_id: Some(Uuid::new_v4()),
+                        variant_id: Some(Uuid::new_v4()),
+                        shipping_profile_slug: "default".to_string(),
+                        seller_id: None,
+                        sku: Some("REFUND-LIST-FOREIGN-1".to_string()),
+                        title: "Refund list foreign".to_string(),
+                        quantity: 1,
+                        unit_price: Decimal::from_str("12.00").expect("valid decimal"),
+                        metadata: json!({ "source": "admin-refund-list-foreign" }),
+                    }],
+                    adjustments: Vec::new(),
+                    tax_lines: Vec::new(),
+                    metadata: json!({ "source": "admin-refund-list-foreign" }),
+                },
+            )
+            .await
+            .expect("order should be created");
+
+        let collection = PaymentService::new(db.clone())
+            .create_collection(
+                tenant_id,
+                CreatePaymentCollectionInput {
+                    cart_id: None,
+                    order_id: Some(order.id),
+                    customer_id: order.customer_id,
+                    currency_code: "USD".to_string(),
+                    amount: order.total_amount,
+                    metadata: json!({ "source": "admin-refund-list-foreign" }),
+                },
+            )
+            .await
+            .expect("collection should be created");
+
+        PaymentService::new(db.clone())
+            .create_refund(
+                tenant_id,
+                collection.id,
+                CreateRefundInput {
+                    amount: Decimal::from_str("3.00").expect("valid decimal"),
+                    reason: Some("test".to_string()),
+                    metadata: json!({ "source": "admin-refund-list-foreign" }),
+                },
+            )
+            .await
+            .expect("refund should be created");
+
+        let foreign_tenant = TenantContext {
+            id: foreign_tenant_id,
+            name: "Foreign Tenant".to_string(),
+            slug: format!("foreign-{foreign_tenant_id}"),
+            domain: None,
+            settings: json!({}),
+            default_locale: "en".to_string(),
+            is_active: true,
+        };
+        let foreign_auth = AuthContext {
+            user_id: actor_id,
+            session_id: Uuid::new_v4(),
+            tenant_id: foreign_tenant_id,
+            permissions: vec![Permission::PAYMENTS_READ],
+            client_id: None,
+            scopes: vec![],
+            grant_type: "direct".to_string(),
+        };
+
+        let app = admin_transport_router(test_app_context(db), foreign_tenant, foreign_auth);
+        let response = app
+            .oneshot(
+                Request::builder()
+                    .method("GET")
+                    .uri(format!(
+                        "/admin/refunds?payment_collection_id={}",
+                        collection.id
+                    ))
+                    .header("X-Tenant-ID", foreign_tenant_id.to_string())
+                    .body(Body::empty())
+                    .expect("request"),
+            )
+            .await
+            .expect("request should succeed");
+
+        assert_eq!(response.status(), StatusCode::OK);
+        let body = to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("response body should read");
+        let payload: serde_json::Value =
+            serde_json::from_slice(&body).expect("response should be JSON");
+        assert_eq!(payload["data"], json!([]));
+        assert_eq!(payload["total"], json!(0));
+    }
+
+    #[tokio::test]
     async fn admin_shipping_profiles_transport_supports_create_update_and_list() {
         let db = setup_test_db().await;
         support::ensure_commerce_schema(&db).await;
