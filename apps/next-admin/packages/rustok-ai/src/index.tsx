@@ -566,8 +566,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
   const canSubmitProductAttributes =
     !!productAttributesTaskProfile &&
     productAttributesForm.productId.trim().length > 0 &&
-    (productAttributesForm.sourceTitle.trim().length > 0 ||
-      productAttributesForm.sourceDescription.trim().length > 0);
+    hasProductAttributesSeedContent(productAttributesForm);
 
   const loadBootstrap = React.useCallback(async () => {
     setLoading(true);
@@ -2200,7 +2199,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       const sourceTitle = productAttributesForm.sourceTitle.trim();
                       const sourceDescription =
                         productAttributesForm.sourceDescription.trim();
-                      if (!sourceTitle && !sourceDescription) {
+                      if (!hasProductAttributesSeedContent(productAttributesForm)) {
                         setError(
                           'Either source title or source description is required for product_attributes.'
                         );
@@ -3128,4 +3127,13 @@ function parseCsvUrls(value: string): { urls: string[]; invalid: string[] } {
   }
 
   return { urls: Array.from(urls), invalid };
+}
+
+function hasProductAttributesSeedContent(form: {
+  sourceTitle: string;
+  sourceDescription: string;
+}): boolean {
+  return (
+    form.sourceTitle.trim().length > 0 || form.sourceDescription.trim().length > 0
+  );
 }
