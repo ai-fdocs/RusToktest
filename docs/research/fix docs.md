@@ -52,6 +52,21 @@
 Если в текущем PR нет CI-скрипта под один из пунктов, фиксируем это в разделе **Risks / Follow-ups** и создаём follow-up в DOC-07.
 
 
+
+## Следующие 5 PR (готовые батчи)
+
+Чтобы план был исполним «без додумывания», ниже зафиксированы первые батчи, которые можно брать в работу сразу.
+
+| Batch | Закрывает | Scope (точно) | DoD (проверка результата) | Verification (минимум) |
+|---|---|---|---|---|
+| B1 | DOC-01 (часть 1) | `README.md`, `README.ru.md` | Убраны битые ссылки/устаревшие имена сервисов, onboarding-consistency между EN/RU README | `pnpm markdownlint README.md README.ru.md`; `pnpm link-check README.md README.ru.md` |
+| B2 | DOC-01 (часть 2) + DOC-04 | `CONTRIBUTING.md`, `CHANGELOG.md` | `CHANGELOG.md` в release-шаблоне, нет stale refs; CONTRIBUTING соответствует текущему workflow | `pnpm markdownlint CONTRIBUTING.md CHANGELOG.md`; `pnpm link-check CONTRIBUTING.md CHANGELOG.md` |
+| B3 | DOC-02 | `docs/guides/quickstart.md` + ссылки из root docs | Добавлена canonical truth table профилей запуска с owner/source | `pnpm markdownlint docs/guides/quickstart.md`; `pnpm link-check docs/guides/quickstart.md` |
+| B4 | DOC-03 | `crates/rustok-workflow/CRATE_API.md` | Удалены ручные сигнатуры; оставлены инварианты + ссылки на generated reference | `pnpm markdownlint crates/rustok-workflow/CRATE_API.md`; owner sign-off |
+| B5 | DOC-07 (bootstrap) | `.github`/CI docs jobs + `docs/verification/*` (если нужно) | PR падает на broken links/anchors/markdown errors | Smoke PR с намеренно сломанной ссылкой (ожидаемый fail) |
+
+> Рекомендация: вести batches последовательно B1 → B5; параллелить только B4 (независим от B1/B2/B3).
+
 ## Очередь работ (P0 → P2)
 
 > Оценки — инженерные часы без очереди на ревью.
@@ -202,6 +217,12 @@
 - `[~]` — в работе (есть открытый PR);
 - `[x]` — завершено и вмержено в default branch;
 - у каждого пункта в PR обязательно указывать ссылку на закрывающий PR в комментарии к пункту.
+
+
+
+Формат отметки в трекере:
+- `- [~] DOC-01 ... (PR: #1234)`
+- `- [x] DOC-01 ... (PR: #1234, merged: YYYY-MM-DD)`
 
 ## Трекер статуса (обновлять в каждом docs PR)
 
