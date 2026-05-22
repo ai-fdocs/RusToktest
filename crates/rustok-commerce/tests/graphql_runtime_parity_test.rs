@@ -716,6 +716,27 @@ fn admin_refund_query(tenant_id: Uuid, refund_id: Uuid, payment_collection_id: U
     )
 }
 
+
+fn admin_refunds_list_query(tenant_id: Uuid, payment_collection_id: Uuid) -> String {
+    format!(
+        r#"
+        query {{
+          refunds(
+            tenantId: "{tenant_id}",
+            filter: {{ page: 1, perPage: 20, paymentCollectionId: "{payment_collection_id}" }}
+          ) {{
+            total
+            items {{
+              id
+              status
+              paymentCollectionId
+            }}
+          }}
+        }}
+        "#
+    )
+}
+
 fn admin_create_fulfillment_mutation(
     tenant_id: Uuid,
     order_id: Uuid,
@@ -3175,6 +3196,100 @@ async fn admin_graphql_refund_query_hides_foreign_tenant_refund() {
     assert_eq!(json["refund"], Value::Null);
     assert_eq!(json["refunds"]["total"], Value::from(0));
     assert_eq!(json["paymentCollection"], Value::Null);
+}
+
+
+#[tokio::test]
+async fn admin_graphql_refunds_list_ignores_foreign_tenant_payment_collection_filter() {
+    let db = setup_test_db().await;
+    support::ensure_commerce_schema(&db).await;
+    let tenant_id = Uuid::new_v4();
+    let foreign_tenant_id = Uuid::new_v4();
+    let actor_id = Uuid::new_v4();
+    let customer_id = Uuid::new_v4();
+    seed_tenant_context(&db, tenant_id).await;
+    seed_tenant_context(&db, foreign_tenant_id).await;
+
+    let order = OrderService::new(db.clone(), mock_transactional_event_bus())
+        .create_order(
+            tenant_id,
+            actor_id,
+            CreateOrderInput {
+                customer_id: Some(customer_id),
+                currency_code: "eur".to_string(),
+                shipping_total: Decimal::ZERO,
+                line_items: vec![CreateOrderLineItemInput {
+                    product_id: Some(Uuid::new_v4()),
+                    variant_id: Some(Uuid::new_v4()),
+                    shipping_profile_slug: "default".to_string(),
+                    seller_id: None,
+                    sku: Some("GRAPHQL-FOREIGN-REFUND-LIST-1".to_string()),
+                    title: "GraphQL Foreign Refund List".to_string(),
+                    quantity: 1,
+                    unit_price: Decimal::from_str("20.00").expect("valid decimal"),
+                    metadata: serde_json::json!({ "source": "graphql-refund-foreign-list" }),
+                }],
+                adjustments: Vec::new(),
+                tax_lines: Vec::new(),
+                metadata: serde_json::json!({ "source": "graphql-refund-foreign-list" }),
+            },
+        )
+        .await
+        .expect("order should be created");
+
+    let payment_collection = PaymentService::new(db.clone())
+        .create_collection(
+            tenant_id,
+            CreatePaymentCollectionInput {
+                cart_id: None,
+                order_id: Some(order.id),
+                customer_id: Some(customer_id),
+                currency_code: "eur".to_string(),
+                amount: order.total_amount,
+                metadata: serde_json::json!({ "source": "graphql-refund-foreign-list" }),
+            },
+        )
+        .await
+        .expect("payment collection should be created");
+
+    PaymentService::new(db.clone())
+        .create_refund(
+            tenant_id,
+            payment_collection.id,
+            CreateRefundInput {
+                amount: Decimal::from_str("5.00").expect("valid decimal"),
+                reason: Some("test".to_string()),
+                metadata: serde_json::json!({ "source": "graphql-refund-foreign-list" }),
+            },
+        )
+        .await
+        .expect("refund should be created");
+
+    let foreign_schema = build_schema(
+        &db,
+        tenant_context(foreign_tenant_id),
+        request_context(foreign_tenant_id, "en"),
+        Some(admin_order_auth_context(foreign_tenant_id)),
+    );
+
+    let response = foreign_schema
+        .execute(Request::new(admin_refunds_list_query(
+            foreign_tenant_id,
+            payment_collection.id,
+        )))
+        .await;
+    assert!(
+        response.errors.is_empty(),
+        "unexpected foreign-tenant refunds list errors: {:?}",
+        response.errors
+    );
+
+    let json = response
+        .data
+        .into_json()
+        .expect("foreign tenant refunds list response should serialize");
+    assert_eq!(json["refunds"]["total"], Value::from(0));
+    assert_eq!(json["refunds"]["items"], Value::from(Vec::<Value>::new()));
 }
 
 #[tokio::test]
