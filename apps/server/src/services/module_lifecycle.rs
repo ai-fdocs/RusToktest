@@ -21,6 +21,7 @@ pub(crate) enum ModuleOperationStatus {
     Failed,
 }
 
+
 impl ModuleOperationStatus {
     pub(crate) const fn as_str(self) -> &'static str {
         match self {
@@ -29,7 +30,23 @@ impl ModuleOperationStatus {
             Self::Failed => "failed",
         }
     }
+
+    pub(crate) fn parse(value: &str) -> Option<Self> {
+        match value {
+            "running" => Some(Self::Running),
+            "committed" => Some(Self::Committed),
+            "failed" => Some(Self::Failed),
+            _ => None,
+        }
+    }
 }
+
+impl std::fmt::Display for ModuleOperationStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 
 #[derive(Debug, Error)]
 pub enum ToggleModuleError {
@@ -407,6 +424,7 @@ impl ModuleLifecycleService {
 
 #[cfg(test)]
 mod tests {
+    use super::ModuleOperationStatus;
     use super::{ModuleLifecycleService, UpdateModuleSettingsError};
     use crate::models::_entities::tenant_modules;
     use crate::models::tenants;
@@ -421,6 +439,19 @@ mod tests {
     use serial_test::serial;
     use std::collections::HashMap;
     use tempfile::tempdir;
+
+    #[test]
+    fn module_operation_status_roundtrip() {
+        for status in [
+            ModuleOperationStatus::Running,
+            ModuleOperationStatus::Committed,
+            ModuleOperationStatus::Failed,
+        ] {
+            let encoded = status.to_string();
+            assert_eq!(ModuleOperationStatus::parse(&encoded), Some(status));
+        }
+        assert_eq!(ModuleOperationStatus::parse("unknown"), None);
+    }
 
     fn path_module(crate_name: &str, path: &str, required: bool) -> ManifestModuleSpec {
         ManifestModuleSpec {
