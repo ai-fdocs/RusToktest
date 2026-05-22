@@ -9,6 +9,7 @@ use crate::model::{
     StorefrontCheckoutAdjustment, StorefrontCheckoutCart, StorefrontCheckoutCompletion,
     StorefrontCheckoutDeliveryGroup, StorefrontCheckoutPaymentCollection,
     StorefrontCheckoutShippingOption, StorefrontCheckoutWorkspace, StorefrontCommerceData,
+    StorefrontOrderRefundSummary,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -46,6 +47,7 @@ const STOREFRONT_CHECKOUT_QUERY: &str = "query StorefrontCheckoutWorkspace($id: 
 const CREATE_STOREFRONT_PAYMENT_COLLECTION_MUTATION: &str = "mutation CreateStorefrontPaymentCollection($input: CreateStorefrontPaymentCollectionInput!) { createStorefrontPaymentCollection(input: $input) { id status currencyCode amount authorizedAmount capturedAmount orderId providerId createdAt updatedAt payments { id } } }";
 const COMPLETE_STOREFRONT_CHECKOUT_MUTATION: &str = "mutation CompleteStorefrontCheckout($input: CompleteStorefrontCheckoutInput!) { completeStorefrontCheckout(input: $input) { order { id status currencyCode shippingTotal adjustmentTotal totalAmount adjustments { id lineItemId sourceType sourceId amount currencyCode metadata } } paymentCollection { id status currencyCode } fulfillments { id } context { locale currencyCode } } }";
 const SELECT_STOREFRONT_SHIPPING_OPTION_MUTATION: &str = "mutation SelectStorefrontShippingOption($cartId: UUID!, $input: UpdateStorefrontCartContextInput!) { updateStorefrontCartContext(cartId: $cartId, input: $input) { cart { id } } }";
+const STOREFRONT_REFUNDS_QUERY: &str = "query StorefrontRefundsSummary($orderId: UUID!, $filter: StorefrontRefundsFilter) { storefrontRefunds(orderId: $orderId, filter: $filter) { total items { amount status } } }";
 
 #[derive(Debug, Deserialize)]
 struct StorefrontCheckoutResponse {
@@ -276,6 +278,39 @@ struct GraphqlCheckoutCompletionPaymentCollection {
 
 #[derive(Debug, Deserialize)]
 struct GraphqlFulfillmentSummary {}
+
+
+#[derive(Debug, Deserialize)]
+struct StorefrontRefundsSummaryResponse {
+    #[serde(rename = "storefrontRefunds")]
+    storefront_refunds: GraphqlRefundList,
+}
+
+#[derive(Debug, Deserialize)]
+struct GraphqlRefundList {
+    total: u64,
+    items: Vec<GraphqlRefundItem>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GraphqlRefundItem {
+    amount: String,
+    status: String,
+}
+
+#[derive(Debug, Serialize)]
+struct StorefrontRefundsSummaryVariables {
+    #[serde(rename = "orderId")]
+    order_id: Uuid,
+    filter: StorefrontRefundsSummaryFilter,
+}
+
+#[derive(Debug, Serialize)]
+struct StorefrontRefundsSummaryFilter {
+    page: u64,
+    #[serde(rename = "perPage")]
+    per_page: u64,
+}
 
 #[derive(Debug, Deserialize)]
 struct GraphqlStoreContext {
@@ -1584,4 +1619,42 @@ async fn storefront_complete_checkout(
             "commerce/complete-checkout requires the `ssr` feature",
         ))
     }
+}
+
+
+pub async fn fetch_storefront_order_refunds_summary(
+    order_id: String,
+) -> Result<StorefrontOrderRefundSummary, ApiError> {
+    let order_id = Uuid::parse_str(order_id.trim())
+        .map_err(|_| ApiError::Validation("order_id must be a valid UUID".to_string()))?;
+
+    let response: StorefrontRefundsSummaryResponse = request(
+        STOREFRONT_REFUNDS_QUERY,
+        StorefrontRefundsSummaryVariables {
+            order_id,
+            filter: StorefrontRefundsSummaryFilter { page: 1, per_page: 50 },
+        },
+    )
+    .await?;
+
+    let refunded_amount = response
+        .storefront_refunds
+        .items
+        .iter()
+        .filter_map(|item| item.amount.parse::<f64>().ok())
+        .sum::<f64>();
+
+    Ok(StorefrontOrderRefundSummary {
+        total: response.storefront_refunds.total,
+        refunded_amount: if response.storefront_refunds.total == 0 {
+            None
+        } else {
+            Some(format!("{refunded_amount:.2}"))
+        },
+        latest_status: response
+            .storefront_refunds
+            .items
+            .first()
+            .map(|item| item.status.clone()),
+    })
 }
