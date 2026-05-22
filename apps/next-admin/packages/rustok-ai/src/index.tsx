@@ -647,6 +647,16 @@ export function AiAdminPage(props: AiAdminPageProps) {
     productAttributesPrefillAppliedRef.current = true;
   }, [productAttributesTaskProfile]);
 
+  React.useEffect(() => {
+    if (!productAttributesPrefillAppliedRef.current) return;
+    if (!productAttributesTaskProfile) return;
+    setSessionForm((current) =>
+      current.taskProfileId
+        ? current
+        : { ...current, taskProfileId: productAttributesTaskProfile.id }
+    );
+  }, [productAttributesTaskProfile]);
+
   const resetProviderForm = React.useCallback(() => {
     setProviderForm({
       id: '',
