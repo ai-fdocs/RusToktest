@@ -409,6 +409,7 @@ Batch считается закрытым только если одноврем
 | 2026-05-22 | B8 | DOC-07 | `[x]` | `commit: 1bf7ead` | Зафиксирован baseline quality-gates в verification-планах |
 | 2026-05-22 | B11 | DOC-09 | `[~]` | `commit: 4bafe23` | Добавлены API reference-artifacts требования и B11 checklist в verification-план API surfaces |
 | 2026-05-22 | B13 | DOC-11 | `[~]` | `commit: 4f76fc2` | Добавлен docs PR verification contract в `docs/guides/testing.md` |
+| 2026-05-22 | B13 | DOC-11 | `[~]` | `commit: 4e3ead8` | В PR template добавлен hotspot-блок (`Hotspot`, `Doc contracts updated`, `Residual drift risk`) |
 
 Пример реальной записи после merge:
 
@@ -450,7 +451,7 @@ Batch считается закрытым только если одноврем
 - [x] DOC-08 Executable examples hub (commit: 0f35991, merged: 2026-05-22)
 - [~] DOC-09 Конвейер генерации reference-артефактов (Batch: B11, commit: 4bafe23)
 - [ ] DOC-10 Language/naming governance
-- [~] DOC-11 Reviewer checklist + PR template (Batch: B13, commit: 4f76fc2)
+- [~] DOC-11 Reviewer checklist + PR template (Batch: B13, commit: 4e3ead8)
 - [ ] DOC-12 Code hotspots documentation
 
 ### Процедура синхронизации трекера с уже влитыми PR
@@ -651,7 +652,7 @@ Reviewer перед approve проверяет:
 
 - [~] DOC-09 Конвейер генерации reference-артефактов (Batch: B11, commit: 4bafe23)
 - [ ] DOC-10 Language/naming governance (Batch: B13)
-- [~] DOC-11 Reviewer checklist + PR template (Batch: B13, commit: 4f76fc2)
+- [~] DOC-11 Reviewer checklist + PR template (Batch: B13, commit: 4e3ead8)
 - [ ] DOC-12 Code hotspots documentation (Batch: B14)
 
 
