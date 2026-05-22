@@ -9,7 +9,41 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 CONFIG = ROOT / ".github" / "dependabot.yml"
-DIRECTORY_RE = re.compile(r'^\s*directory:\s*["\']?([^"\'\s#]+)')
+DIRECTORY_RE = re.compile(r"^\s*directory:\s*(.+?)\s*$")
+
+
+def parse_directory_value(raw_value: str) -> str:
+    value = raw_value.strip()
+    if not value:
+        return ""
+    # Strip YAML inline comments for unquoted scalars.
+    if value[0] not in {'"', "'"}:
+        value = value.split("#", 1)[0].strip()
+        return value
+
+    quote = value[0]
+    if len(value) < 2:
+        return ""
+    closing_index = -1
+    escaped = False
+    for index in range(1, len(value)):
+        ch = value[index]
+        if quote == '"' and ch == "\\" and not escaped:
+            escaped = True
+            continue
+        if ch == quote and not escaped:
+            closing_index = index
+            break
+        escaped = False
+    if closing_index == -1:
+        return ""
+    trailing = value[closing_index + 1 :].strip()
+    if trailing and not trailing.startswith("#"):
+        return ""
+    parsed = value[1:closing_index]
+    if quote == '"':
+        parsed = parsed.replace(r"\\", "\\").replace(r"\"", '"')
+    return parsed
 
 
 def parse_args() -> argparse.Namespace:
@@ -31,6 +65,22 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def normalize_directory(directory: str) -> str:
+    trimmed = directory.strip()
+    if not trimmed:
+        return trimmed
+    if not trimmed.startswith("/"):
+        trimmed = f"/{trimmed}"
+    if trimmed != "/":
+        trimmed = trimmed.rstrip("/")
+    return trimmed
+
+
+def is_safe_repo_relative_path(directory: str) -> bool:
+    parts = pathlib.PurePosixPath(directory).parts
+    return ".." not in parts
+
+
 def main() -> int:
     args = parse_args()
     root = args.root.resolve()
@@ -40,14 +90,46 @@ def main() -> int:
         return 1
 
     missing: list[str] = []
+    seen: set[str] = set()
+    duplicates: set[str] = set()
+    invalid: set[str] = set()
+    found_directory_entries = 0
     for line in config.read_text(encoding="utf-8").splitlines():
         match = DIRECTORY_RE.match(line)
         if not match:
             continue
-        directory = match.group(1)
+        found_directory_entries += 1
+        raw_directory = parse_directory_value(match.group(1))
+        directory = normalize_directory(raw_directory)
+        if not directory or not is_safe_repo_relative_path(directory):
+            invalid.add(raw_directory)
+            continue
+        if directory in seen:
+            duplicates.add(directory)
+        else:
+            seen.add(directory)
         path = root / directory.lstrip("/")
         if not path.is_dir():
             missing.append(directory)
+
+    if invalid:
+        print("Dependabot directories contain invalid paths:", file=sys.stderr)
+        for directory in sorted(invalid):
+            print(f"  - {directory}", file=sys.stderr)
+        return 1
+
+    if found_directory_entries == 0:
+        print(
+            "Dependabot config does not contain any directory entries.",
+            file=sys.stderr,
+        )
+        return 1
+
+    if duplicates:
+        print("Dependabot directories contain duplicates:", file=sys.stderr)
+        for directory in sorted(duplicates):
+            print(f"  - {directory}", file=sys.stderr)
+        return 1
 
     if missing:
         print("Dependabot directories do not exist:", file=sys.stderr)

@@ -47,6 +47,18 @@ mod m20260501_000001_create_platform_composition_state;
 
 pub struct Migrator;
 
+fn collect_migration_descriptors() -> Vec<MigrationDescriptor> {
+    // Module-owned dependency metadata collection point.
+    // Keep each module's descriptors close to its migration exporter and aggregate here.
+    let mut dependencies: Vec<MigrationDescriptor> = Vec::new();
+    dependencies.extend(
+        rustok_product::migrations::migration_dependencies()
+            .into_iter()
+            .map(MigrationDescriptor::from),
+    );
+    dependencies
+}
+
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
@@ -121,12 +133,7 @@ impl MigratorTrait for Migrator {
         all.push(Box::new(
             m20260501_000001_create_platform_composition_state::Migration,
         ));
-        let mut dependencies: Vec<MigrationDescriptor> = Vec::new();
-        dependencies.extend(
-            rustok_product::migrations::migration_dependencies()
-                .into_iter()
-                .map(MigrationDescriptor::from),
-        );
+        let dependencies = collect_migration_descriptors();
 
         all.sort_by(|a, b| a.name().cmp(b.name()));
         sort_migrations_by_dependencies(&mut all, &dependencies)
@@ -188,11 +195,18 @@ fn sort_migrations_by_dependencies(
         }
     }
 
-    let after_by_name = descriptors
-        .iter()
-        .cloned()
-        .map(|descriptor| (descriptor.migration, descriptor.after))
-        .collect::<std::collections::BTreeMap<_, _>>();
+    let mut after_by_name = std::collections::BTreeMap::<String, Vec<String>>::new();
+    for descriptor in descriptors.iter().cloned() {
+        if after_by_name
+            .insert(descriptor.migration.clone(), descriptor.after)
+            .is_some()
+        {
+            return Err(format!(
+                "duplicate migration descriptor for {}",
+                descriptor.migration
+            ));
+        }
+    }
 
     let mut sorted: Vec<Box<dyn sea_orm_migration::MigrationTrait>> =
         Vec::with_capacity(migrations.len());
@@ -286,6 +300,28 @@ mod tests {
     }
 
     #[test]
+    fn dependency_sort_rejects_duplicate_descriptor_for_same_migration() {
+        let mut migrations: Vec<Box<dyn sea_orm_migration::MigrationTrait>> = vec![
+            Box::new(super::m20250101_000001_create_tenants::Migration),
+            Box::new(super::m20250101_000002_create_users::Migration),
+        ];
+        let descriptors = vec![
+            MigrationDescriptor::new(
+                "m20250101_000002_create_users",
+                ["m20250101_000001_create_tenants"],
+            ),
+            MigrationDescriptor::new("m20250101_000002_create_users", [] as [&str; 0]),
+        ];
+
+        let err = sort_migrations_by_dependencies(&mut migrations, &descriptors)
+            .expect_err("duplicate descriptor must fail");
+        assert!(
+            err.contains("duplicate migration descriptor"),
+            "unexpected error: {err}"
+        );
+    }
+
+    #[test]
     fn dependency_sort_keeps_lexical_order_without_descriptors() {
         let mut migrations: Vec<Box<dyn sea_orm_migration::MigrationTrait>> = vec![
             Box::new(super::m20250101_000002_create_users::Migration),
@@ -331,10 +367,10 @@ mod tests {
                 .iter()
                 .position(|candidate| candidate == name)
                 .expect("migration exists");
-            for dependency in rustok_product::migrations::migration_dependencies()
+            for dependency in super::collect_migration_descriptors()
                 .into_iter()
-                .filter(|descriptor| descriptor.migration == name)
-                .flat_map(|descriptor| descriptor.after)
+                .filter(|descriptor| descriptor.migration == *name)
+                .flat_map(|descriptor| descriptor.after.into_iter())
             {
                 let dependency_index = names
                     .iter()
@@ -368,6 +404,41 @@ mod tests {
             taxonomy < product_tags,
             "taxonomy_terms must exist before product_tags adds its FK"
         );
+    }
+
+    #[test]
+    fn collected_descriptors_reference_existing_migrations() {
+        let names = Migrator::migrations()
+            .into_iter()
+            .map(|migration| migration.name().to_string())
+            .collect::<std::collections::BTreeSet<_>>();
+
+        for descriptor in super::collect_migration_descriptors() {
+            assert!(
+                names.contains(&descriptor.migration),
+                "descriptor migration '{}' must exist in migrator list",
+                descriptor.migration
+            );
+            for dependency in descriptor.after {
+                assert!(
+                    names.contains(&dependency),
+                    "descriptor dependency '{}' must exist in migrator list",
+                    dependency
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn collected_descriptors_have_unique_migration_keys() {
+        let mut seen = std::collections::BTreeSet::new();
+        for descriptor in super::collect_migration_descriptors() {
+            assert!(
+                seen.insert(descriptor.migration.clone()),
+                "duplicate collected descriptor key '{}'",
+                descriptor.migration
+            );
+        }
     }
 
     #[test]

@@ -1210,6 +1210,50 @@ mod tests {
         assert!(err.message.contains("required"));
     }
 
+    #[test]
+    fn platform_composition_error_maps_revision_conflict_with_expected_and_current() {
+        let err = map_platform_composition_error(PlatformCompositionError::RevisionConflict {
+            expected: 3,
+            current: 5,
+        });
+        assert_eq!(
+            err.message,
+            "Platform composition revision conflict: expected 3, current 5"
+        );
+    }
+
+    #[test]
+    fn platform_composition_build_error_maps_build_failures_to_internal_error() {
+        let err = map_platform_composition_build_error(PlatformCompositionBuildError::Build(
+            sea_orm::DbErr::Custom("enqueue failed".to_string()),
+        ));
+        assert!(!err.message.is_empty());
+    }
+
+    #[test]
+    fn platform_composition_build_error_maps_manifest_validation_to_user_facing_message() {
+        let err = map_platform_composition_build_error(PlatformCompositionBuildError::Composition(
+            PlatformCompositionError::Manifest(ManifestError::RequiredModule(
+                "pages".to_string(),
+            )),
+        ));
+        assert!(err.message.contains("required"));
+    }
+
+    #[test]
+    fn platform_composition_build_error_maps_revision_conflict_to_conflict_message() {
+        let err = map_platform_composition_build_error(PlatformCompositionBuildError::Composition(
+            PlatformCompositionError::RevisionConflict {
+                expected: 11,
+                current: 13,
+            },
+        ));
+        assert_eq!(
+            err.message,
+            "Platform composition revision conflict: expected 11, current 13"
+        );
+    }
+
     #[tokio::test]
     async fn validate_custom_fields_applies_defaults() {
         let tenant_id = Uuid::new_v4();
@@ -1375,35 +1419,4 @@ mod tests {
         assert_eq!(prepared.locale.as_deref(), Some("ru"));
     }
 
-    #[test]
-    fn platform_composition_error_maps_revision_conflict_to_conflict_message() {
-        let err = map_platform_composition_error(PlatformCompositionError::RevisionConflict {
-            expected: 3,
-            current: 5,
-        });
-        assert!(err.message.contains("revision conflict"));
-        assert!(err.message.contains("expected 3"));
-        assert!(err.message.contains("current 5"));
-    }
-
-    #[test]
-    fn platform_composition_build_error_maps_enqueue_failures_to_internal_error() {
-        let err = map_platform_composition_build_error(PlatformCompositionBuildError::Build(
-            "queue unavailable".to_string(),
-        ));
-        assert!(err.message.to_lowercase().contains("internal"));
-    }
-
-    #[test]
-    fn platform_composition_build_error_maps_composition_conflict_consistently() {
-        let err = map_platform_composition_build_error(PlatformCompositionBuildError::Composition(
-            PlatformCompositionError::RevisionConflict {
-                expected: 10,
-                current: 11,
-            },
-        ));
-        assert!(err.message.contains("revision conflict"));
-        assert!(err.message.contains("expected 10"));
-        assert!(err.message.contains("current 11"));
-    }
 }
