@@ -1,0 +1,1 @@
+library app_module_contracts;
