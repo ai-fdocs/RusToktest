@@ -231,6 +231,21 @@ fn toggle_module_mutation_contract_shape_stays_stable() {
     );
 }
 
+#[test]
+fn toggle_module_mutation_constant_is_declared_once() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    let occurrences = content
+        .matches("pub const TOGGLE_MODULE_MUTATION: &str =")
+        .count();
+    assert_eq!(
+        occurrences, 1,
+        "Expected exactly one TOGGLE_MODULE_MUTATION declaration, found {occurrences}"
+    );
+}
+
 fn assert_graphql_only_helper(
     content: &str,
     signature: &str,
