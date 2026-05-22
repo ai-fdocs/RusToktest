@@ -563,16 +563,17 @@ export function AiAdminPage(props: AiAdminPageProps) {
       ) ?? null,
     [taskProfiles]
   );
-  const canSubmitProductAttributes =
-    !!productAttributesTaskProfile &&
-    productAttributesForm.productId.trim().length > 0 &&
-    hasProductAttributesSeedContent(productAttributesForm);
   const productAttributesParsedImageUrls = React.useMemo(
     () => parseCsvUrls(productAttributesForm.imageUrls),
     [productAttributesForm.imageUrls]
   );
   const hasProductAttributesInvalidImageUrls =
     productAttributesParsedImageUrls.invalid.length > 0;
+  const canSubmitProductAttributes =
+    !!productAttributesTaskProfile &&
+    productAttributesForm.productId.trim().length > 0 &&
+    hasProductAttributesSeedContent(productAttributesForm) &&
+    !hasProductAttributesInvalidImageUrls;
 
   const loadBootstrap = React.useCallback(async () => {
     setLoading(true);
@@ -2437,9 +2438,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
                     disabled={
-                      !canSubmitProductAttributes ||
-                      isSubmittingProductAttributes ||
-                      hasProductAttributesInvalidImageUrls
+                      !canSubmitProductAttributes || isSubmittingProductAttributes
                     }
                   >
                     {isSubmittingProductAttributes ? 'Generating…' : 'Generate product attributes'}
