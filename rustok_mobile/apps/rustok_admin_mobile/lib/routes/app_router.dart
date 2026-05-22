@@ -21,16 +21,21 @@ GoRouter buildRouter(List<MobileModuleEntry> entries) {
                   path: entry.routeSegment,
                   name: entry.moduleKey,
                   builder: (context, state) {
-                    final sanitizer = RouteSanitizer({
-                      QueryKeys.tab,
-                      QueryKeys.productId,
-                      QueryKeys.orderId,
-                      QueryKeys.mediaId,
-                    });
-                    final sanitizedQuery = sanitizer.sanitize(state.uri.queryParameters);
+                    const codec = RouteCodec(
+                      RouteSanitizer({
+                        QueryKeys.tab,
+                        QueryKeys.productId,
+                        QueryKeys.orderId,
+                        QueryKeys.mediaId,
+                      }),
+                    );
+                    final selection = codec.decode(
+                      state.uri.path,
+                      state.uri.queryParameters,
+                    );
                     return ModulePlaceholderPage(
                       entry: entry,
-                      query: sanitizedQuery,
+                      selection: selection,
                     );
                   },
                 ),
@@ -67,11 +72,11 @@ class ModulePlaceholderPage extends StatelessWidget {
   const ModulePlaceholderPage({
     super.key,
     required this.entry,
-    required this.query,
+    required this.selection,
   });
 
   final MobileModuleEntry entry;
-  final Map<String, String> query;
+  final RouteSelection selection;
 
   @override
   Widget build(BuildContext context) {
@@ -80,7 +85,7 @@ class ModulePlaceholderPage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text('Module: ${entry.moduleKey}'),
-          Text('Query: $query'),
+          Text('Location: ${selection.toLocation()}'),
         ],
       ),
     );
