@@ -430,6 +430,18 @@ mod tests {
     }
 
     #[test]
+    fn collected_descriptors_have_unique_migration_keys() {
+        let mut seen = std::collections::BTreeSet::new();
+        for descriptor in super::collect_migration_descriptors() {
+            assert!(
+                seen.insert(descriptor.migration.clone()),
+                "duplicate collected descriptor key '{}'",
+                descriptor.migration
+            );
+        }
+    }
+
+    #[test]
     fn migrator_includes_search_storage_migrations() {
         let names: Vec<String> = Migrator::migrations()
             .into_iter()
