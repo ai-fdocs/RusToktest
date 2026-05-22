@@ -421,8 +421,8 @@ fn parse_optional_uuid(value: Option<String>, field_name: &str) -> Result<Option
 }
 
 fn graphql_url() -> String {
-    if let Some(url) = option_env!("RUSTOK_GRAPHQL_URL") {
-        return url.to_string();
+    if let Ok(url) = std::env::var("RUSTOK_GRAPHQL_URL") {
+        return url;
     }
 
     #[cfg(target_arch = "wasm32")]
