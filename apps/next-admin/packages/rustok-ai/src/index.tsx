@@ -777,39 +777,43 @@ export function AiAdminPage(props: AiAdminPageProps) {
     });
   }, [productAttributesTaskProfile, taskProfiles]);
 
+  const DEFAULT_PROVIDER_FORM = {
+    id: '',
+    slug: '',
+    displayName: '',
+    providerKind: 'OPEN_AI_COMPATIBLE',
+    baseUrl: 'http://localhost:11434',
+    model: 'gpt-4.1-mini',
+    apiKeySecret: '',
+    temperature: '0.2',
+    maxTokens: '1024',
+    capabilities:
+      'TEXT_GENERATION,STRUCTURED_GENERATION,IMAGE_GENERATION,CODE_GENERATION',
+    allowedTaskProfiles: '',
+    deniedTaskProfiles: '',
+    restrictedRoleSlugs: '',
+    isActive: true
+  };
+
+  const DEFAULT_TOOL_FORM = {
+    id: '',
+    slug: '',
+    displayName: '',
+    description: '',
+    allowedTools:
+      'list_modules,query_modules,module_details,mcp_health,mcp_whoami',
+    deniedTools: '',
+    sensitiveTools:
+      'alloy_create_script,alloy_update_script,alloy_delete_script,alloy_apply_module_scaffold',
+    isActive: true
+  };
+
   const resetProviderForm = React.useCallback(() => {
-    setProviderForm({
-      id: '',
-      slug: '',
-      displayName: '',
-      providerKind: 'OPEN_AI_COMPATIBLE',
-      baseUrl: 'http://localhost:11434',
-      model: 'gpt-4.1-mini',
-      apiKeySecret: '',
-      temperature: '0.2',
-      maxTokens: '1024',
-      capabilities:
-        'TEXT_GENERATION,STRUCTURED_GENERATION,IMAGE_GENERATION,CODE_GENERATION',
-      allowedTaskProfiles: '',
-      deniedTaskProfiles: '',
-      restrictedRoleSlugs: '',
-      isActive: true
-    });
+    setProviderForm({ ...DEFAULT_PROVIDER_FORM });
   }, []);
 
   const resetToolForm = React.useCallback(() => {
-    setToolForm({
-      id: '',
-      slug: '',
-      displayName: '',
-      description: '',
-      allowedTools:
-        'list_modules,query_modules,module_details,mcp_health,mcp_whoami',
-      deniedTools: '',
-      sensitiveTools:
-        'alloy_create_script,alloy_update_script,alloy_delete_script,alloy_apply_module_scaffold',
-      isActive: true
-    });
+    setToolForm({ ...DEFAULT_TOOL_FORM });
   }, []);
 
   const resetTaskForm = React.useCallback(() => {
@@ -1886,19 +1890,19 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       className='border-border rounded-lg border px-3 py-2'
                     >
                       <div className='text-foreground font-medium'>
-                        {run.sessionTitle} В· {run.status} В· {run.durationMs}{' '}
+                        {run.sessionTitle} · {run.status} · {run.durationMs}{' '}
                         ms
                       </div>
                       <div>
-                        {run.providerDisplayName} В·{' '}
-                        {run.executionTarget ?? run.executionPath} В·{' '}
+                        {run.providerDisplayName} ·{' '}
+                        {run.executionTarget ?? run.executionPath} ·{' '}
                         {run.requestedLocale ?? 'auto'} -&gt;{' '}
                         {run.resolvedLocale}
                       </div>
                       <div className='text-muted-foreground text-xs'>
                         {new Date(run.startedAt).toLocaleString()}
                         {run.taskProfileSlug
-                          ? ` В· task ${run.taskProfileSlug}`
+                          ? ` · task ${run.taskProfileSlug}`
                           : ''}
                       </div>
                       {run.errorMessage ? (
@@ -2334,16 +2338,17 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   onSubmit={async (event) => {
                     event.preventDefault();
                     if (isSubmittingProductAttributes) return;
-                    setIsSubmittingProductAttributes(true);
-                    setError(null);
-                    setFeedback(null);
-                    try {
-                      if (!productAttributesTaskProfile) {
-                        setError(
-                          'Task profile `product_attributes` is not configured. Create/activate it first.'
-                        );
-                        return;
-                      }
+                    await runDirectSubmit('product_attributes', async () => {
+                      setIsSubmittingProductAttributes(true);
+                      setError(null);
+                      setFeedback(null);
+                      try {
+                        if (!productAttributesTaskProfile) {
+                          setError(
+                            'Task profile `product_attributes` is not configured. Create/activate it first.'
+                          );
+                          return;
+                        }
                       const selectedTaskProfile = taskProfiles.find(
                         (profile) => profile.id === sessionForm.taskProfileId
                       );
@@ -3228,16 +3233,16 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   </button>
                 </form>
 
-                {detail.approvals.filter(
-                  (approval) => approval.status === 'pending'
-                ).length > 0 ? (
-                  <div className='space-y-3'>
-                    <div className='text-sm font-semibold'>
-                      Pending approvals
-                    </div>
-                    {detail.approvals
-                      .filter((approval) => approval.status === 'pending')
-                      .map((approval) => (
+                {(() => {
+                  const pendingApprovals = detail.approvals.filter(
+                    (approval) => approval.status === 'pending'
+                  );
+                  return pendingApprovals.length > 0 ? (
+                    <div className='space-y-3'>
+                      <div className='text-sm font-semibold'>
+                        Pending approvals
+                      </div>
+                      {pendingApprovals.map((approval) => (
                         <div
                           key={approval.id}
                           className='rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900'
@@ -3291,8 +3296,9 @@ export function AiAdminPage(props: AiAdminPageProps) {
                           </div>
                         </div>
                       ))}
-                  </div>
-                ) : null}
+                    </div>
+                  ) : null;
+                })()}
 
                 <div className='space-y-3'>
                   <div className='text-sm font-semibold'>Runs</div>
