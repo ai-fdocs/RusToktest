@@ -554,6 +554,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
   const [reply, setReply] = React.useState('');
   const [isSubmittingProductAttributes, setIsSubmittingProductAttributes] =
     React.useState(false);
+  const [isSubmittingDirectJob, setIsSubmittingDirectJob] = React.useState(false);
   const productAttributesPrefillAppliedRef = React.useRef(false);
 
   const productAttributesTaskProfile = React.useMemo(
@@ -1880,12 +1881,14 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   className='space-y-3'
                   onSubmit={async (event) => {
                     event.preventDefault();
+                    if (isSubmittingDirectJob) return;
                     if (!sessionForm.taskProfileId) {
                       setError(
                         'Select the `blog_draft` task profile before generating blog draft content.'
                       );
                       return;
                     }
+                    setIsSubmittingDirectJob(true);
                     const taskInputJson = JSON.stringify({
                       post_id: blogForm.postId || null,
                       source_locale: blogForm.sourceLocale || null,
@@ -1928,7 +1931,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       return null;
                     });
                     if (!started) {
-                      setIsSubmittingProductAttributes(false);
+                      setIsSubmittingDirectJob(false);
                       return;
                     }
                     const id = started.runAiTaskJob.session.session.id;
@@ -1937,7 +1940,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     );
                     await loadBootstrap();
                     await loadSession(id);
-                    setIsSubmittingProductAttributes(false);
+                    setIsSubmittingDirectJob(false);
                   }}
                 >
                   <Input
@@ -2059,15 +2062,10 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     <br />
                     Mode: direct
                   </div>
-                  {!canSubmitProductAttributes ? (
-                    <p className='text-muted-foreground text-xs'>
-                      Product id and active task profile `product_attributes` are required.
-                    </p>
-                  ) : null}
                   <button
                     className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
-                    disabled={!canSubmitProductAttributes || isSubmittingProductAttributes}
+                    disabled={isSubmittingDirectJob}
                   >
                     Generate blog draft
                   </button>
@@ -2081,12 +2079,14 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   className='space-y-3'
                   onSubmit={async (event) => {
                     event.preventDefault();
+                    if (isSubmittingDirectJob) return;
                     if (!sessionForm.taskProfileId) {
                       setError(
                         'Select the `product_copy` task profile before generating localized product copy.'
                       );
                       return;
                     }
+                    setIsSubmittingDirectJob(true);
                     let normalizedProductId = '';
                     try {
                       normalizedProductId = productForm.productId.trim();
@@ -2139,7 +2139,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       return null;
                     });
                     if (!started) {
-                      setIsSubmittingProductAttributes(false);
+                      setIsSubmittingDirectJob(false);
                       return;
                     }
                     const id = started.runAiTaskJob.session.session.id;
@@ -2148,7 +2148,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     );
                     await loadBootstrap();
                     await loadSession(id);
-                    setIsSubmittingProductAttributes(false);
+                    setIsSubmittingDirectJob(false);
                   }}
                 >
                   <Input
@@ -2591,12 +2591,14 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   className='space-y-3'
                   onSubmit={async (event) => {
                     event.preventDefault();
+                    if (isSubmittingDirectJob) return;
                     if (!sessionForm.taskProfileId) {
                       setError(
                         'Select the `image_asset` task profile before generating a media image.'
                       );
                       return;
                     }
+                    setIsSubmittingDirectJob(true);
                     const taskInputJson = JSON.stringify({
                       prompt: imageForm.prompt,
                       negative_prompt: imageForm.negativePrompt || null,
@@ -2634,7 +2636,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       return null;
                     });
                     if (!started) {
-                      setIsSubmittingProductAttributes(false);
+                      setIsSubmittingDirectJob(false);
                       return;
                     }
                     const id = started.runAiTaskJob.session.session.id;
@@ -2643,7 +2645,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     );
                     await loadBootstrap();
                     await loadSession(id);
-                    setIsSubmittingProductAttributes(false);
+                    setIsSubmittingDirectJob(false);
                   }}
                 >
                   <Input
@@ -2734,7 +2736,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   <button
                     className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
-                    disabled={isSubmittingProductAttributes}
+                    disabled={isSubmittingDirectJob}
                   >
                     Generate media image
                   </button>
@@ -2748,12 +2750,14 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   className='space-y-3'
                   onSubmit={async (event) => {
                     event.preventDefault();
+                    if (isSubmittingDirectJob) return;
                     if (!sessionForm.taskProfileId) {
                       setError(
                         'Select the `alloy_code` task profile before running Alloy Assist.'
                       );
                       return;
                     }
+                    setIsSubmittingDirectJob(true);
                     const taskInputJson = JSON.stringify({
                       operation: alloyForm.operation,
                       script_id: alloyForm.scriptId || null,
@@ -2790,7 +2794,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       return null;
                     });
                     if (!started) {
-                      setIsSubmittingProductAttributes(false);
+                      setIsSubmittingDirectJob(false);
                       return;
                     }
                     const id = started.runAiTaskJob.session.session.id;
@@ -2799,7 +2803,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     );
                     await loadBootstrap();
                     await loadSession(id);
-                    setIsSubmittingProductAttributes(false);
+                    setIsSubmittingDirectJob(false);
                   }}
                 >
                   <Input
@@ -2876,7 +2880,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   <button
                     className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
-                    disabled={isSubmittingProductAttributes}
+                    disabled={isSubmittingDirectJob}
                   >
                     Run Alloy job
                   </button>
@@ -2890,6 +2894,8 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   className='space-y-3'
                   onSubmit={async (event) => {
                     event.preventDefault();
+                    if (isSubmittingDirectJob) return;
+                    setIsSubmittingDirectJob(true);
                     const started = await gql<
                       {
                         startAiChatSession: {
@@ -2917,7 +2923,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                       return null;
                     });
                     if (!started) {
-                      setIsSubmittingProductAttributes(false);
+                      setIsSubmittingDirectJob(false);
                       return;
                     }
                     const id = started.startAiChatSession.session.session.id;
@@ -2926,7 +2932,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     );
                     await loadBootstrap();
                     await loadSession(id);
-                    setIsSubmittingProductAttributes(false);
+                    setIsSubmittingDirectJob(false);
                   }}
                 >
                   <Input
@@ -2964,7 +2970,7 @@ export function AiAdminPage(props: AiAdminPageProps) {
                   <button
                     className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
-                    disabled={isSubmittingProductAttributes}
+                    disabled={isSubmittingDirectJob}
                   >
                     Start session
                   </button>
