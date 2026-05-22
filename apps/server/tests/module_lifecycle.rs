@@ -307,6 +307,12 @@ async fn hook_failure_rolls_back_state() {
         operation.correlation_id.is_some(),
         "failed lifecycle operation must keep correlation id for retry/audit tracing",
     );
+    let correlation_id = operation
+        .correlation_id
+        .as_deref()
+        .expect("failed operation must have correlation id");
+    let parsed = uuid::Uuid::parse_str(correlation_id).expect("correlation id must be uuid");
+    assert_eq!(parsed.get_version_num(), 4);
 }
 
 #[tokio::test]
@@ -369,6 +375,12 @@ async fn successful_toggle_writes_committed_module_operation() {
         operation.correlation_id.is_some(),
         "committed lifecycle operation must keep correlation id for tracing",
     );
+    let correlation_id = operation
+        .correlation_id
+        .as_deref()
+        .expect("committed operation must have correlation id");
+    let parsed = uuid::Uuid::parse_str(correlation_id).expect("correlation id must be uuid");
+    assert_eq!(parsed.get_version_num(), 4);
 }
 
 #[tokio::test]

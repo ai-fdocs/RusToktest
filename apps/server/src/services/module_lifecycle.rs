@@ -108,6 +108,10 @@ pub enum UpdateModuleSettingsError {
 }
 
 impl ModuleLifecycleService {
+    fn generate_correlation_id() -> String {
+        uuid::Uuid::new_v4().to_string()
+    }
+
     pub async fn toggle_module(
         db: &DatabaseConnection,
         registry: &ModuleRegistry,
@@ -417,7 +421,7 @@ impl ModuleLifecycleService {
             previous_effective_enabled: sea_orm::ActiveValue::Set(previous_effective_enabled),
             status: sea_orm::ActiveValue::Set(ModuleOperationStatus::Validated.into()),
             requested_by: sea_orm::ActiveValue::Set(requested_by),
-            correlation_id: sea_orm::ActiveValue::Set(Some(uuid::Uuid::new_v4().to_string())),
+            correlation_id: sea_orm::ActiveValue::Set(Some(Self::generate_correlation_id())),
             error_message: sea_orm::ActiveValue::Set(None),
             created_at: sea_orm::ActiveValue::Set(now),
             updated_at: sea_orm::ActiveValue::Set(now),
@@ -502,6 +506,14 @@ mod tests {
         assert!(!ModuleOperationStatus::Running.is_terminal());
         assert!(ModuleOperationStatus::Committed.is_terminal());
         assert!(ModuleOperationStatus::Failed.is_terminal());
+    }
+
+    #[test]
+    fn generated_correlation_id_is_uuid_v4_string() {
+        let value = ModuleLifecycleService::generate_correlation_id();
+        assert_eq!(value.len(), 36);
+        let parsed = uuid::Uuid::parse_str(&value).expect("correlation id must be valid UUID");
+        assert_eq!(parsed.get_version_num(), 4);
     }
 
     fn path_module(crate_name: &str, path: &str, required: bool) -> ManifestModuleSpec {
