@@ -47,6 +47,18 @@ mod m20260501_000001_create_platform_composition_state;
 
 pub struct Migrator;
 
+fn collect_migration_descriptors() -> Vec<MigrationDescriptor> {
+    // Module-owned dependency metadata collection point.
+    // Keep each module's descriptors close to its migration exporter and aggregate here.
+    let mut dependencies: Vec<MigrationDescriptor> = Vec::new();
+    dependencies.extend(
+        rustok_product::migrations::migration_dependencies()
+            .into_iter()
+            .map(MigrationDescriptor::from),
+    );
+    dependencies
+}
+
 #[async_trait::async_trait]
 impl MigratorTrait for Migrator {
     fn migrations() -> Vec<Box<dyn MigrationTrait>> {
@@ -121,12 +133,7 @@ impl MigratorTrait for Migrator {
         all.push(Box::new(
             m20260501_000001_create_platform_composition_state::Migration,
         ));
-        let mut dependencies: Vec<MigrationDescriptor> = Vec::new();
-        dependencies.extend(
-            rustok_product::migrations::migration_dependencies()
-                .into_iter()
-                .map(MigrationDescriptor::from),
-        );
+        let dependencies = collect_migration_descriptors();
 
         all.sort_by(|a, b| a.name().cmp(b.name()));
         sort_migrations_by_dependencies(&mut all, &dependencies)
@@ -331,10 +338,10 @@ mod tests {
                 .iter()
                 .position(|candidate| candidate == name)
                 .expect("migration exists");
-            for dependency in rustok_product::migrations::migration_dependencies()
+            for dependency in super::collect_migration_descriptors()
                 .into_iter()
-                .filter(|descriptor| descriptor.migration == name)
-                .flat_map(|descriptor| descriptor.after)
+                .filter(|descriptor| descriptor.migration == *name)
+                .flat_map(|descriptor| descriptor.after.into_iter())
             {
                 let dependency_index = names
                     .iter()
@@ -368,6 +375,29 @@ mod tests {
             taxonomy < product_tags,
             "taxonomy_terms must exist before product_tags adds its FK"
         );
+    }
+
+    #[test]
+    fn collected_descriptors_reference_existing_migrations() {
+        let names = Migrator::migrations()
+            .into_iter()
+            .map(|migration| migration.name().to_string())
+            .collect::<std::collections::BTreeSet<_>>();
+
+        for descriptor in super::collect_migration_descriptors() {
+            assert!(
+                names.contains(&descriptor.migration),
+                "descriptor migration '{}' must exist in migrator list",
+                descriptor.migration
+            );
+            for dependency in descriptor.after {
+                assert!(
+                    names.contains(&dependency),
+                    "descriptor dependency '{}' must exist in migrator list",
+                    dependency
+                );
+            }
+        }
     }
 
     #[test]
