@@ -2257,8 +2257,9 @@ export function AiAdminPage(props: AiAdminPageProps) {
                     Mode: direct
                   </div>
                   <button
-                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium'
+                    className='bg-primary text-primary-foreground rounded-lg px-4 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60'
                     type='submit'
+                    disabled={isSubmittingDirectJob}
                   >
                     Generate product copy
                   </button>
