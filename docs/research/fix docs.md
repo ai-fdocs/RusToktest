@@ -276,7 +276,7 @@
 
 ## Трекер статуса (обновлять в каждом docs PR)
 
-- [ ] DOC-01 Root docs sanitation
+- [~] DOC-01 Root docs sanitation (PR: pending)
 - [~] DOC-02 Profiles truth table (PR: pending)
 - [ ] DOC-03 Workflow API doc drift cleanup
 - [~] DOC-04 Changelog normalization (PR: pending)
