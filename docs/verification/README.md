@@ -129,6 +129,11 @@ Support/capability crates могут участвовать в общей док
 3. Для точечной работы по модулю сначала выполнять `cargo xtask module validate <slug>`, а не полный workspace-wide прогон.
 4. Нерешённые блокеры фиксировать в профильном плане или в локальных docs соответствующего компонента, а не превращать `docs/verification/README.md` в backlog.
 
+### Принцип для тестов operational scripts
+
+- Тесты в `scripts/tests/*` и `scripts/ci/test_*.py` должны использовать изолированные fixture-каталоги (`mktemp` / `tempfile`) и не зависеть от текущего состояния репозитория.
+- Репозиторий может временно содержать drift/legacy данные; это не должно делать script-tests флаки при локальном запуске и в CI.
+
 ## Регламент обновления
 
 При изменении архитектуры, API, UI-контрактов, module system, observability или quality gates:
