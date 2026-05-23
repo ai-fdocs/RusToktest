@@ -209,6 +209,32 @@ fn toggle_module_helper_does_not_cross_wire_other_mutation_contracts() {
     }
 }
 
+
+#[test]
+fn toggle_module_helper_does_not_branch_on_runtime_error_taxonomy() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    let helper_body = extract_function_block(&content, "pub async fn toggle_module(")
+        .expect("toggle_module helper signature not found");
+
+    for forbidden in [
+        "UNKNOWN_MODULE",
+        "CORE_MODULE",
+        "MISSING_DEPENDENCIES",
+        "HAS_DEPENDENTS",
+        "MODULE_HOOK_FAILED",
+        "extensions.code",
+        "reason_code",
+    ] {
+        assert!(
+            !helper_body.contains(forbidden),
+            "toggle_module helper must not branch on runtime taxonomy fragment `{forbidden}`"
+        );
+    }
+}
+
 #[test]
 fn toggle_module_mutation_contract_shape_stays_stable() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
