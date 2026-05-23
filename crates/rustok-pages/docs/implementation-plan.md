@@ -83,3 +83,10 @@
 - [x] Slice 6: admin list-load error rendering switched to core error composition (`error_with_context`).
 - [x] Slice 7: admin status badge css composition moved to core (`status_badge_css`).
 - [x] Slice 8: admin busy-key action matching moved to core (`busy_key_matches_action`).
+
+
+## Перепроверка после slices #2-#8
+
+- [x] Code/docs consistency check completed for `rustok-pages/admin` and `rustok-pages/storefront`.
+- [x] Tracker wording synced with actual `core` extraction state.
+- [x] No transport-contract changes introduced (`native #[server]` + GraphQL fallback preserved).

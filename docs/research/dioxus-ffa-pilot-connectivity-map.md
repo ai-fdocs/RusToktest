@@ -146,9 +146,24 @@
 - [x] `rustok-pages/admin` core slice #2 (`slugify`, `parse_channel_slugs`, `error_with_context`)
 - [x] `cargo xtask module validate pages`
 - [ ] `cargo xtask module test pages` (долгий прогон, выполнить до phase close)
-- [ ] docs double-check pass #1/#2 for pages
+- [x] docs double-check pass #1/#2 for pages
 - `rustok-pages` slice #3: status badge class mapping вынесен в `admin/src/core.rs` (`status_badge_class`).
 - `rustok-pages` slice #4: admin busy-key composition вынесен в core (`busy_key_with_id`, `busy_key_for_save`).
 - `rustok-pages` slice #6: admin page-list load error rendering переведён на core `error_with_context`.
 - `rustok-pages` slice #7: status badge css composition moved to core (`status_badge_css`).
 - `rustok-pages` slice #8: busy-key action matching moved to core (`busy_key_matches_action`).
+
+
+### Перепроверка после slices #2-#8 (rustok-pages/admin)
+
+- [x] Проход №1 (code/docs consistency):
+  - helper-логика формы, status badge и busy-key в `crates/rustok-pages/admin` вынесена в `admin/src/core.rs`;
+  - storefront и admin surfaces используют `core::*` без изменения transport contract.
+- [x] Проход №2 (cleanup stale wording):
+  - в central docs удалены/обновлены формулировки, где эти helper-обязанности описывались как inline-логика `lib.rs`;
+  - трекер pages синхронизирован с фактическим состоянием slice #2-#8.
+
+### Какие модули поправили в этой итерации
+
+- `rustok-pages/admin` — core helper extraction и выравнивание UI-call sites.
+- `rustok-pages/storefront` — ранее завершённый core slice подтверждён повторной сверкой.
