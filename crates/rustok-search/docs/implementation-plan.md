@@ -10,7 +10,7 @@
 - Next step: Phase B pilot slice #1 — выделить первый `core` use-case в storefront/admin surfaces без изменения dual-path transport contract.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
-- Last updated at (UTC): 2026-05-20T00:00:00Z
+- Last updated at (UTC): 2026-05-23T00:00:00Z
 
 ## Область работ
 
@@ -77,7 +77,7 @@
 - [x] Storefront surface updated.
 - [x] Admin surface checked/updated for the same use-case.
 - [x] GraphQL fallback parity confirmed (no contract regression): transport path not modified in this slice.
-- [ ] Double documentation verification completed.
+- [x] Double documentation verification completed.
 
 - [x] Slice 2: storefront/admin facet display normalization moved to core (`facet_display_name`).
 - [x] Slice 3: storefront/admin facet bucket label formatting moved to core (`facet_bucket_label`).

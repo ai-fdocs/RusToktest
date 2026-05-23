@@ -216,7 +216,7 @@ pub fn SearchAdmin() -> impl IntoView {
             let tenant_value = tenant.get_untracked();
             let query_value = query.get_untracked();
             let ranking_profile_value = ranking_profile.get_untracked();
-            let preset_key_value = core::optional_text(preset_key.get_untracked());
+            let preset_key_value = core::optional_text(&preset_key.get_untracked());
             let locale_value = initial_locale.clone();
             let preview_error_label = preview_error_label.clone();
             let preview_query_writer = preview_query_writer.clone();
@@ -232,7 +232,7 @@ pub fn SearchAdmin() -> impl IntoView {
                     tenant_value,
                     query_value,
                     locale_value,
-                    core::optional_text(ranking_profile_value),
+                    core::optional_text(&ranking_profile_value),
                     preset_key_value,
                     filters,
                 )
@@ -256,7 +256,7 @@ pub fn SearchAdmin() -> impl IntoView {
             let token_value = token.get_untracked();
             let tenant_value = tenant.get_untracked();
             let target_type = rebuild_target_type.get_untracked();
-            let target_id = core::optional_text(rebuild_target_id.get_untracked());
+            let target_id = core::optional_text(&rebuild_target_id.get_untracked());
             let rebuild_queued_template = rebuild_queued_template.clone();
             let queue_rebuild_error_label = queue_rebuild_error_label.clone();
             async move {
@@ -1358,7 +1358,7 @@ fn DictionariesView() -> impl IntoView {
             let token_value = token.get_untracked();
             let tenant_value = tenant.get_untracked();
             let term = synonym_term.get_untracked();
-            let synonyms = parse_csv(synonym_values.get_untracked());
+            let synonyms = core::parse_csv(&synonym_values.get_untracked());
             let synonym_updated_label = synonym_updated_label.clone();
             let synonym_save_error_label = synonym_save_error_label.clone();
             async move {
@@ -1406,7 +1406,7 @@ fn DictionariesView() -> impl IntoView {
 
     let submit_pin_rule = Callback::new(move |ev: SubmitEvent| {
         ev.prevent_default();
-        let pinned_position = match core::optional_text(pin_position.get_untracked()) {
+        let pinned_position = match core::optional_text(&pin_position.get_untracked()) {
             Some(value) => match value.parse::<i32>() {
                 Ok(parsed) => Some(parsed),
                 Err(_) => {

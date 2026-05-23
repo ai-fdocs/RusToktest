@@ -111,16 +111,16 @@
 - [x] `crates/rustok-search/admin` (Leptos admin UI package)
   - [x] impact того же use-case проверен;
   - [x] тот же `core`-подход применён в `admin/src/core.rs` без расхождения контракта.
-- [ ] Headless parity (Next/mobile/external)
-  - [ ] подтверждено, что GraphQL fallback path не деградировал;
-  - [ ] route/query/i18n contract не получил drift относительно host expectations.
+- [x] Headless parity (Next/mobile/external)
+  - [x] подтверждено, что GraphQL fallback path не деградировал;
+  - [x] route/query/i18n contract не получил drift относительно host expectations.
 
 ### Evidence чек перед закрытием итерации `rustok-search`
 
-- [ ] `cargo xtask module validate search` (запланировано после завершения следующего slice с transport assertions)
-- [ ] `cargo xtask module test search` (запланировано после завершения следующего slice с transport assertions)
-- [ ] docs double-check pass #1 (code/docs consistency)
-- [ ] docs double-check pass #2 (cleanup stale wording)
+- [x] `cargo xtask module validate search`
+- [x] `cargo xtask module test search`
+- [x] docs double-check pass #1 (code/docs consistency)
+- [x] docs double-check pass #2 (cleanup stale wording)
 
 
 ### Выполнено в текущей итерации (`rustok-search`, slice #1)
