@@ -75,3 +75,11 @@ mod tests {
         );
     }
 }
+
+pub fn entity_source_label(entity_type: &str, source_module: &str) -> String {
+    format!("{} | {}", entity_type, source_module)
+}
+
+pub fn source_entity_status_label(source_module: &str, entity_type: &str, status: &str) -> String {
+    format!("{}/{} ({})", source_module, entity_type, status)
+}

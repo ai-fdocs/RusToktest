@@ -466,9 +466,7 @@ fn SearchResults(
             view! {
                 <article class="rounded-2xl border border-border bg-background p-5">
                     <div class="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">
-                        <span>{item.entity_type.clone()}</span>
-                        <span>"|"</span>
-                        <span>{item.source_module.clone()}</span>
+                        <span>{core::entity_source_label(&item.entity_type, &item.source_module)}</span>
                         <span>"|"</span>
                         <span>{core::score_label(item.score)}</span>
                     </div>

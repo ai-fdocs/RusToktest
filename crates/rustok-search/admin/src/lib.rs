@@ -1031,7 +1031,7 @@ fn preview_panel(payload: SearchPreviewPayload, labels: SearchPreviewLabels) -> 
         <div class="mt-5 grid gap-4 lg:grid-cols-3">{payload.facets.iter().map(|facet| view! { <FacetCard facet=facet.clone() /> }).collect_view()}</div>
         <div class="mt-6 space-y-3">{payload.items.into_iter().enumerate().map(|(index, item)| view! {
             <article class="rounded-xl border border-border bg-background p-4">
-                <div class="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground"><span>{item.entity_type.clone()}</span><span>"|"</span><span>{item.source_module.clone()}</span><span>"|"</span><span>{labels.score_template.clone().replace("{score:.3}", core::score_label(item.score).trim_start_matches("score "))}</span></div>
+                <div class="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground"><span>{core::entity_source_label(&item.entity_type, &item.source_module)}</span><span>"|"</span><span>{labels.score_template.clone().replace("{score:.3}", core::score_label(item.score).trim_start_matches("score "))}</span></div>
                 <h3 class="mt-2 text-base font-semibold text-card-foreground">{item.title}</h3>
                 <p class="mt-2 text-sm text-muted-foreground">{core::snippet_or_fallback(item.snippet.clone(), &labels.no_snippet)}</p>
                 {preview_result_action(payload.query_log_id.clone(), item.id.clone(), item.url.clone(), index, labels.clone())}
@@ -1180,7 +1180,7 @@ fn lagging_table(
         <tbody class="divide-y divide-border">{rows.into_iter().map(|row| view! {
             <tr class="transition-colors hover:bg-muted/30">
                 <td class="px-4 py-3 align-top"><div class="font-medium text-card-foreground">{row.title}</div><div class="mt-1 text-xs text-muted-foreground">{row.document_key}</div></td>
-                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{format!("{}/{} ({})", row.source_module, row.entity_type, row.status)}</td>
+                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{core::source_entity_status_label(&row.source_module, &row.entity_type, &row.status)}</td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.locale}</td>
                 <td class="px-4 py-3 align-top"><span class="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">{format!("{}s", row.lag_seconds)}</span></td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.indexed_at}</td>
@@ -1224,7 +1224,7 @@ fn consistency_table(
                         <span class=format!("inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold {badge_class}")>{issue_label}</span>
                     </td>
                     <td class="px-4 py-3 align-top"><div class="font-medium text-card-foreground">{row.title}</div><div class="mt-1 text-xs text-muted-foreground">{row.document_key}</div></td>
-                    <td class="px-4 py-3 align-top text-xs text-muted-foreground">{format!("{}/{} ({})", row.source_module, row.entity_type, row.status)}</td>
+                    <td class="px-4 py-3 align-top text-xs text-muted-foreground">{core::source_entity_status_label(&row.source_module, &row.entity_type, &row.status)}</td>
                     <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.locale}</td>
                     <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.updated_at}</td>
                     <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.indexed_at.unwrap_or_else(|| t(locale, "search.common.notIndexed", "not indexed"))}</td>
