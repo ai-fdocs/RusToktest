@@ -399,10 +399,7 @@ pub fn PagesAdmin() -> impl IntoView {
                                     }.into_any(),
                                     Err(err) => view! {
                                         <div class="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                                            {format!(
-                                                "{}: {err}",
-                                                load_error_text.clone()
-                                            )}
+                                            {core::error_with_context(load_error_text.as_str(), &err.to_string())}
                                         </div>
                                     }.into_any(),
                                 }
