@@ -27,3 +27,7 @@ pub fn facet_bucket_label(value: &str, count: u64) -> String {
 pub fn snippet_or_fallback(snippet: Option<String>, fallback: &str) -> String {
     snippet.unwrap_or_else(|| fallback.to_string())
 }
+
+pub fn score_label(score: f64) -> String {
+    format!("score {:.3}", score)
+}

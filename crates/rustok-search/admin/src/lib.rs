@@ -1031,7 +1031,7 @@ fn preview_panel(payload: SearchPreviewPayload, labels: SearchPreviewLabels) -> 
         <div class="mt-5 grid gap-4 lg:grid-cols-3">{payload.facets.iter().map(|facet| view! { <FacetCard facet=facet.clone() /> }).collect_view()}</div>
         <div class="mt-6 space-y-3">{payload.items.into_iter().enumerate().map(|(index, item)| view! {
             <article class="rounded-xl border border-border bg-background p-4">
-                <div class="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground"><span>{item.entity_type.clone()}</span><span>"|"</span><span>{item.source_module.clone()}</span><span>"|"</span><span>{labels.score_template.clone().replace("{score:.3}", format!("{:.3}", item.score).as_str())}</span></div>
+                <div class="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground"><span>{item.entity_type.clone()}</span><span>"|"</span><span>{item.source_module.clone()}</span><span>"|"</span><span>{labels.score_template.clone().replace("{score:.3}", core::score_label(item.score).trim_start_matches("score "))}</span></div>
                 <h3 class="mt-2 text-base font-semibold text-card-foreground">{item.title}</h3>
                 <p class="mt-2 text-sm text-muted-foreground">{core::snippet_or_fallback(item.snippet.clone(), &labels.no_snippet)}</p>
                 {preview_result_action(payload.query_log_id.clone(), item.id.clone(), item.url.clone(), index, labels.clone())}

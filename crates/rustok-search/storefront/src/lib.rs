@@ -470,7 +470,7 @@ fn SearchResults(
                         <span>"|"</span>
                         <span>{item.source_module.clone()}</span>
                         <span>"|"</span>
-                        <span>{format!("score {:.3}", item.score)}</span>
+                        <span>{core::score_label(item.score)}</span>
                     </div>
                     <h3 class="mt-3 text-lg font-semibold text-foreground">{item.title}</h3>
                     <p class="mt-2 text-sm text-muted-foreground">
