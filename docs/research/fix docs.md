@@ -410,6 +410,12 @@ Batch считается закрытым только если одноврем
 | 2026-05-22 | B11 | DOC-09 | `[~]` | `commit: 4bafe23` | Добавлены API reference-artifacts требования и B11 checklist в verification-план API surfaces |
 | 2026-05-22 | B13 | DOC-11 | `[~]` | `commit: 4f76fc2` | Добавлен docs PR verification contract в `docs/guides/testing.md` |
 | 2026-05-22 | B13 | DOC-11 | `[~]` | `commit: 4e3ead8` | В PR template добавлен hotspot-блок (`Hotspot`, `Doc contracts updated`, `Residual drift risk`) |
+| 2026-05-23 | B13 | DOC-10 | `[~]` | `commit: 6c7a53f` | Добавлен governance baseline (language/naming/ownership-review) |
+| 2026-05-23 | B12 | DOC-09 | `[~]` | `commit: 416ee98` | Добавлен CI job `reference-artifacts` с upload и aggregate gate |
+| 2026-05-23 | B12 | DOC-09 | `[~]` | `commit: 792de31` | В `docs/verification/README.md` зафиксирован B12 CI-contract для reference artifacts |
+| 2026-05-23 | B14 | DOC-12 | `[~]` | `commit: 075e380` | Добавлены hotspot contracts first pass для H4/H5 |
+| 2026-05-23 | B14 | DOC-12 | `[~]` | `commit: 9bf4dd9` | Добавлены hotspot contracts first pass для H1/H2/H3 |
+| 2026-05-23 | B14 | DOC-12 | `[~]` | `commit: 5656aa2` | Убрана избыточная дубликация hotspot-блоков из central docs; фокус оставлен в плане и профильных разделах |
 
 Пример реальной записи после merge:
 
@@ -449,10 +455,10 @@ Batch считается закрытым только если одноврем
 - [x] DOC-06 Registry ↔ manifest sync (commit: c9a22f1, merged: 2026-05-22)
 - [x] DOC-07 Docs CI quality gates (commit: 1bf7ead, merged: 2026-05-22)
 - [x] DOC-08 Executable examples hub (commit: 0f35991, merged: 2026-05-22)
-- [~] DOC-09 Конвейер генерации reference-артефактов (Batch: B11, commit: 4bafe23)
-- [~] DOC-10 Language/naming governance (Batch: B12, commit: 6c7a53f)
+- [~] DOC-09 Конвейер генерации reference-артефактов (Batch: B11/B12, commit: 4bafe23, 416ee98, 792de31)
+- [~] DOC-10 Language/naming governance (Batch: B13, commit: 6c7a53f)
 - [~] DOC-11 Reviewer checklist + PR template (Batch: B13, commit: 4e3ead8)
-- [ ] DOC-12 Code hotspots documentation
+- [~] DOC-12 Code hotspots documentation (Batch: B14, commit: 075e380, 9bf4dd9, 5656aa2)
 
 ### Процедура синхронизации трекера с уже влитыми PR
 
@@ -650,23 +656,21 @@ Reviewer перед approve проверяет:
 
 ### Трекер статуса (рабочий порядок закрытия хвоста)
 
-- [~] DOC-09 Конвейер генерации reference-артефактов (Batch: B11, commit: 4bafe23)
+- [~] DOC-09 Конвейер генерации reference-артефактов (Batch: B11/B12, commit: 4bafe23, 416ee98, 792de31)
 - [~] DOC-10 Language/naming governance (Batch: B13, commit: 6c7a53f)
 - [~] DOC-11 Reviewer checklist + PR template (Batch: B13, commit: 4e3ead8)
-- [~] DOC-12 Code hotspots documentation (Batch: B14, commit: 075e380)
+- [~] DOC-12 Code hotspots documentation (Batch: B14, commit: 075e380, 9bf4dd9, 5656aa2)
 
 
-### B12 preflight blocker (зафиксировано)
+### B12 preflight blocker (статус: снят)
 
-Текущий `.github/workflows/ci.yml` не содержит отдельного job-а публикации
-reference-артефактов (`openapi/graphql-introspection/rustdoc`) и contract-diff
-для PR, поэтому `DOC-09` нельзя переводить в `[x]` до реализации B12 в CI.
+Блокер B12 снят: в `.github/workflows/ci.yml` добавлен job
+`reference-artifacts` с запуском `scripts/verify/export-reference-artifacts.sh`,
+публикацией `artifacts/reference/**` и включением результата в aggregate
+`ci-success`.
 
-Минимальный scope B12 для снятия блокера:
-
-- добавить CI job с запуском `scripts/verify/export-reference-artifacts.sh`;
-- публиковать `artifacts/reference/**` через `actions/upload-artifact`;
-- добавить обязательную проверку в aggregate (`ci-success`).
+Для перевода `DOC-09` в `[x]` остаётся подтвердить merge-trace B11/B12 и
+наличие CI evidence по выгрузке артефактов в default branch.
 
 ### Verification policy для B11..B14
 
@@ -734,15 +738,16 @@ reference-артефактов (`openapi/graphql-introspection/rustdoc`) и cont
 | Batch | Закрывает | Область изменений (точно) | Exit criteria | Минимальная проверка |
 |---|---|---|---|---|
 | B11 | DOC-09 | `xtask/`, `apps/server` (export hooks), `docs/verification/*`, `docs/architecture/api.md` (ссылки на artifacts) | В CI публикуются rustdoc/OpenAPI/GraphQL артефакты; есть diff-check контрактов в PR | `cargo xtask docs-export --check`; `cargo test -p rustok-workflow`; link-check изменённых docs |
-| B12 | DOC-10 | `docs/standards/coding.md`, `docs/guides/testing.md`, `docs/modules/registry.md` (ownership policy refs) | Формализованы language/naming/review policy и ownership-review path | markdownlint + link-check изменённых docs |
+| B12 | DOC-09 | `.github/workflows/*`, `docs/verification/*` | CI публикует reference-артефакты и показывает diff контрактов в PR | `rg -n "reference-artifacts|upload-artifact|ci-success" .github/workflows/ci.yml`; review evidence в `docs/research/fix docs.md` |
+| B13 | DOC-10 | `docs/standards/coding.md`, `docs/guides/testing.md`, `docs/modules/registry.md` (ownership policy refs) | Формализованы language/naming/review policy и ownership-review path | markdownlint + link-check изменённых docs |
 | B13 | DOC-11 | `.github/pull_request_template.md`, `docs/guides/quickstart.md` (ссылка на checklist), `docs/research/fix docs.md` (трекер/журнал) | PR template содержит обязательный docs checklist и Verification Evidence; чеклист применён минимум в одном реальном docs PR | markdownlint шаблона/доков + ручная валидация шаблона |
 | B14 | DOC-12 | `docs/modules/*`, `apps/*/docs/*`, `crates/*/docs/*` (только hotspot-зоны H4/H5 first pass) | Для каждой hotspot-зоны есть owner, scope, residual risk и минимум один merged update | markdownlint + link-check только по изменённым hotspot-файлам |
 
 ### Критический путь и зависимости
 
 1. **B11 (DOC-09)** — блокирует финализацию DOC-12 для API hotspot-ветки H4.
-2. **B12 (DOC-10)** — создаёт governance baseline, который обязателен для B13.
-3. **B13 (DOC-11)** — включает enforcement через PR template.
+2. **B12 (DOC-09 phase 2)** — добавляет CI export/publish quality gate.
+3. **B13 (DOC-10 + DOC-11)** — включает governance baseline и enforcement через PR template.
 4. **B14 (DOC-12)** — выполняется после появления quality gates и governance (B11–B13).
 
 ### Definition of Ready (DoR) для B11–B14

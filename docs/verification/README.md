@@ -69,6 +69,24 @@ scripts/verify/export-reference-artifacts.sh artifacts/reference
 rg -n "openapi|graphql-introspection|manifest.txt" artifacts/reference -S
 ```
 
+## Reference artifacts pipeline in CI (DOC-09 / B12)
+
+Phase 2 для DOC-09 выполняется через CI job `reference-artifacts` в
+`.github/workflows/ci.yml`.
+
+Job обязан:
+
+- поднять runtime (`rustok-server`) и дождаться `/api/openapi.json`;
+- выполнить `scripts/verify/export-reference-artifacts.sh artifacts/reference`;
+- опубликовать `artifacts/reference/**` через `actions/upload-artifact`;
+- быть включённым в aggregate gate `ci-success`.
+
+Минимальная проверка B12 в PR:
+
+```bash
+rg -n "reference-artifacts|export-reference-artifacts|upload-artifact|ci-success" .github/workflows/ci.yml
+```
+
 ## Windows hybrid path
 
 На текущем Windows-окружении обязательный локальный путь верификации не должен зависеть от Bash как hard prerequisite.
