@@ -1619,6 +1619,44 @@ mod tests {
         }
     }
 
+    #[test]
+    fn platform_composition_build_wrapper_preserves_composition_mapping_contract() {
+        let composition_errors = vec![
+            PlatformCompositionError::RevisionConflict {
+                expected: 5,
+                current: 8,
+            },
+            PlatformCompositionError::Manifest(ManifestError::RequiredModule(
+                "pages".to_string(),
+            )),
+            PlatformCompositionError::Serialize("serde exploded".to_string()),
+            PlatformCompositionError::Deserialize("bad snapshot".to_string()),
+            PlatformCompositionError::Database(sea_orm::DbErr::Custom(
+                "db is unavailable".to_string(),
+            )),
+        ];
+
+        for composition_error in composition_errors {
+            let direct = map_platform_composition_error(composition_error.clone());
+            let wrapped = map_platform_composition_build_error(
+                PlatformCompositionBuildError::Composition(composition_error),
+            );
+
+            assert_eq!(
+                wrapped.message, direct.message,
+                "build-wrapper mapping drifted from direct composition mapping"
+            );
+
+            let direct_gql = direct.extend();
+            let wrapped_gql = wrapped.extend();
+            assert_eq!(
+                error_code(&wrapped_gql),
+                error_code(&direct_gql),
+                "build-wrapper error code drifted from direct composition mapping"
+            );
+        }
+    }
+
     #[tokio::test]
     async fn validate_custom_fields_applies_defaults() {
         let tenant_id = Uuid::new_v4();
