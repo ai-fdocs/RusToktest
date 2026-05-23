@@ -478,3 +478,31 @@ rollback-стратегии и Definition of Done по итерациям.
 3. Переключить Leptos SSR path на тот же backend entrypoint.
 4. Удалить legacy/raw SQL/bypass path-ы только после зелёных regression tests.
 5. Зафинализировать docs/ADR и закрыть чекбоксы этапов 1–3.
+
+## Следующий цикл (batch execution, чтобы брать “пакетно”)
+
+Ниже фиксируется рекомендуемый **единый пакет работ** на один merge-цикл, чтобы закрывать хвосты не
+точечно, а группами с общей проверкой parity/failure-modes/docs.
+
+### Batch-1 (приоритет: P0 parity + hook failure modes)
+
+- [ ] Добавить contract-test matrix для GraphQL/Leptos SSR parity по lifecycle taxonomy:
+  `unknown/core/missing_dependency/has_dependents/hook_failed`.
+- [ ] Добавить cross-surface проверку journal metadata parity:
+  `status`, `requested_by`, `correlation_id`, отсутствие лишних записей на pre-validation/no-op.
+- [ ] Добавить failure-mode tests для pre/post hook:
+  - pre-hook failure: state unchanged + `failed` operation;
+  - post-hook failure: state committed + retryable issue semantics.
+- [ ] Добавить runbook-черновик по retry/compensation в `apps/server/docs/` и сослаться из `docs/`.
+
+### Batch-2 (следом после Batch-1)
+
+- [ ] Закрыть общий hash builder для GraphQL/Leptos SSR/BuildService и end-to-end test
+  “один manifest -> один hash/ref/snapshot” между surfaces.
+- [ ] Прогнать минимальный verification-набор плана на ветке и зафиксировать результат в чекбоксах.
+
+### Definition of Done для пакетного цикла
+
+- [ ] Все пункты Batch-1 отмечены `[x]`.
+- [ ] Обновлён release-gate checklist (разделы Код/Тесты/Документация/Операционные проверки).
+- [ ] В актуализации этого документа добавлен короткий отчёт по факту выполненного пакета.
