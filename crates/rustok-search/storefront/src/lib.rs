@@ -296,7 +296,7 @@ fn SearchSuggestionList(suggestions: Vec<SearchSuggestion>) -> impl IntoView {
                             <button
                                 class="flex w-full items-start justify-between gap-4 rounded-xl border border-border px-4 py-3 text-left hover:bg-muted/30"
                                 on:click=move |_| {
-                                    if suggestion_kind == "document" {
+                                    if core::is_document_suggestion(suggestion_kind.as_str()) {
                                         if let Some(href) = href.clone() {
                                             navigate_to_href(&href);
                                         } else {
@@ -320,7 +320,11 @@ fn SearchSuggestionList(suggestions: Vec<SearchSuggestion>) -> impl IntoView {
                                     </span>
                                 </span>
                                 <span class="shrink-0 text-xs text-muted-foreground">
-                                    {if suggestion_kind == "document" { open_label.clone() } else { search_label.clone() }}
+                                    {core::suggestion_action_label(
+                                        suggestion_kind.as_str(),
+                                        open_label.as_str(),
+                                        search_label.as_str(),
+                                    )}
                                 </span>
                             </button>
                         }
@@ -353,7 +357,10 @@ fn PresetChips(
                             "inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground"
                         }
                         on:click=move |_| {
-                            let next = if selected_preset.get() == key { String::new() } else { key.clone() };
+                            let next = core::next_preset_selection(
+                                selected_preset.get().as_str(),
+                                key.as_str(),
+                            );
                             set_selected_preset.set(next.clone());
                             navigate_to_search_query(&query_value, Some(next));
                         }

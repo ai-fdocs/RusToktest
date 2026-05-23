@@ -172,6 +172,17 @@ mod tests {
             render_preset_label("preset: {preset}", "featured"),
             "preset: featured".to_string()
         );
+        assert!(is_document_suggestion("document"));
+        assert_eq!(
+            suggestion_action_label("document", "Open", "Search"),
+            "Open".to_string()
+        );
+        assert_eq!(
+            suggestion_action_label("query", "Open", "Search"),
+            "Search".to_string()
+        );
+        assert_eq!(next_preset_selection("featured", "featured"), "");
+        assert_eq!(next_preset_selection("", "featured"), "featured");
     }
 }
 
@@ -251,4 +262,24 @@ pub fn render_locale_label(template: &str, locale: &str) -> String {
 
 pub fn render_preset_label(template: &str, preset: &str) -> String {
     template.replace("{preset}", preset)
+}
+
+pub fn is_document_suggestion(kind: &str) -> bool {
+    kind == "document"
+}
+
+pub fn suggestion_action_label(kind: &str, open_label: &str, search_label: &str) -> String {
+    if is_document_suggestion(kind) {
+        open_label.to_string()
+    } else {
+        search_label.to_string()
+    }
+}
+
+pub fn next_preset_selection(current: &str, selected_key: &str) -> String {
+    if current == selected_key {
+        String::new()
+    } else {
+        selected_key.to_string()
+    }
 }
