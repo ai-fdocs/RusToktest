@@ -92,6 +92,49 @@ fn module_composition_helpers_use_graphql_contract_payloads() {
     );
 }
 
+
+#[test]
+fn module_composition_helpers_forward_auth_context_without_local_overrides() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    for signature in [
+        "pub async fn install_module(",
+        "pub async fn uninstall_module(",
+        "pub async fn upgrade_module(",
+    ] {
+        let helper_body = extract_function_block(&content, signature)
+            .unwrap_or_else(|| panic!("helper signature not found: {signature}"));
+
+        assert_eq!(
+            helper_body.matches("request(").count(),
+            1,
+            "{signature} must perform exactly one GraphQL request call"
+        );
+        assert!(
+            helper_body.contains("token,"),
+            "{signature} must forward token to canonical GraphQL request"
+        );
+        assert!(
+            helper_body.contains("tenant_slug,"),
+            "{signature} must forward tenant_slug to canonical GraphQL request"
+        );
+        assert!(
+            !helper_body.contains(".map_err("),
+            "{signature} must not remap canonical GraphQL ApiError taxonomy"
+        );
+        assert!(
+            !helper_body.contains("Some("),
+            "{signature} must not locally override auth context when forwarding request"
+        );
+        assert!(
+            !helper_body.contains("None"),
+            "{signature} must not locally null auth context when forwarding request"
+        );
+    }
+}
+
 #[test]
 fn toggle_module_helper_uses_graphql_only_contract() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
