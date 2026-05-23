@@ -82,25 +82,15 @@ pub fn SearchView() -> impl IntoView {
         "search.error.loadResults",
         "Failed to load storefront search results",
     );
-    let entity_types = core::parse_csv(
-        read_route_query_value(&route_context, "entity_types")
-            .as_deref()
-            .unwrap_or(""),
-    );
-    let source_modules = core::parse_csv(
-        read_route_query_value(&route_context, "source_modules")
-            .as_deref()
-            .unwrap_or(""),
-    );
-    let statuses = core::parse_csv(
-        read_route_query_value(&route_context, "statuses")
-            .as_deref()
-            .unwrap_or(""),
+    let route_filters = core::parse_search_route_filters(
+        read_route_query_value(&route_context, "entity_types").as_deref(),
+        read_route_query_value(&route_context, "source_modules").as_deref(),
+        read_route_query_value(&route_context, "statuses").as_deref(),
     );
     let filters = SearchPreviewFilters {
-        entity_types,
-        source_modules,
-        statuses,
+        entity_types: route_filters.entity_types,
+        source_modules: route_filters.source_modules,
+        statuses: route_filters.statuses,
     };
     let query_for_resource = query.clone();
     let locale_for_resource = locale.clone();

@@ -16,6 +16,25 @@ pub fn optional_text(value: &str) -> Option<String> {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SearchRouteFilters {
+    pub entity_types: Vec<String>,
+    pub source_modules: Vec<String>,
+    pub statuses: Vec<String>,
+}
+
+pub fn parse_search_route_filters(
+    entity_types: Option<&str>,
+    source_modules: Option<&str>,
+    statuses: Option<&str>,
+) -> SearchRouteFilters {
+    SearchRouteFilters {
+        entity_types: parse_csv(entity_types.unwrap_or_default()),
+        source_modules: parse_csv(source_modules.unwrap_or_default()),
+        statuses: parse_csv(statuses.unwrap_or_default()),
+    }
+}
+
 pub fn facet_display_name(raw_name: &str) -> String {
     raw_name.replace('_', " ")
 }
@@ -81,6 +100,24 @@ mod tests {
         assert_eq!(
             error_with_context("load failed", "timeout"),
             "load failed: timeout"
+        );
+    }
+
+    #[test]
+    fn parse_search_route_filters_handles_missing_and_csv_values() {
+        let parsed = parse_search_route_filters(
+            Some(" product , pages "),
+            None,
+            Some(" published, draft ,"),
+        );
+
+        assert_eq!(
+            parsed,
+            SearchRouteFilters {
+                entity_types: vec!["product".to_string(), "pages".to_string()],
+                source_modules: Vec::new(),
+                statuses: vec!["published".to_string(), "draft".to_string()],
+            }
         );
     }
 }
