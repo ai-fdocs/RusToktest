@@ -4,6 +4,8 @@
 - `Tiptap`/`rt_json_v1` для rich-text сценариев blog/forum;
 - `GrapesJS`/`grapesjs_v1` для визуального Page Builder в pages.
 
+Важно: `pages` здесь рассматривается как **модульный контур Page Builder первого класса** (а не как побочный UI-трек). Основной source of truth по модулю и его rollout-деталям — `crates/rustok-pages/docs/implementation-plan.md` (раздел `Dedicated page-builder track`), а этот документ фиксирует кросс-модульные зависимости и release-gate на уровне платформы.
+
 ## 1. Цель и критерии готовности
 
 Цель: безопасно перевести rich-text admin UX blog/forum на `rt_json_v1` и довести `GrapesJS`-based `PageBuilder` для pages без деградации RBAC, publish-пайплайна, индексации и storefront-rendering.
@@ -51,6 +53,7 @@
 - [x] Подключить `RtJsonEditor` в production CRUD-flow blog.
 - [x] Подключить `ForumReplyEditor` в production CRUD-flow forum.
 - [x] Подключить `PageBuilder` в production CRUD-flow pages.
+- [x] Явно зафиксировать, что `PageBuilder` ведётся как отдельный модульный трек `rustok-pages` с собственным DoD/ownership и не «растворяется» в общем rich-text rollout.
 - [x] Собрать минимальные каркасы page-builder surfaces для `apps/admin` (Leptos) и Flutter-host (preview/tree/properties/publish) поверх единого backend-контракта и FFA-parity discipline (same capability contract, разная host-реализация).
 - [x] Зафиксировать parity-план для двух стеков: `apps/next-admin` и `apps/admin`.
 - [x] Выровнять UX-обработку validation/sanitize ошибок в формах.
@@ -138,3 +141,9 @@ Parity-план между `apps/next-admin` и `apps/admin` закреплён 
 - `apps/admin/docs/implementation-plan.md` — интеграция admin runtime (Leptos).
 - `apps/storefront/docs/implementation-plan.md` и `apps/next-frontend/docs/implementation-plan.md` — rendering parity и rollout storefront.
 - `docs/architecture/api.md` и `docs/standards/rt-json-v1.md` — контракт rich-text/page-builder payload.
+
+## 5. Модульный фокус: почему Page Builder — центральный контур
+
+- `blog/forum` в этом плане — rich-text consumers (`rt_json_v1`), а не владельцы визуального builder-домена.
+- Визуальный builder-домен принадлежит `pages` и должен сопровождаться как модуль `rustok-pages` (данные, publish lifecycle, compatibility c `blocks/body`, storefront-rendering, observability).
+- Любой следующий phase-gate по builder (`feature flags`, `pilot`, `default-on`) считается незавершённым без явного статуса по `rustok-pages` module track.
