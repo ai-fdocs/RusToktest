@@ -101,3 +101,23 @@
 - [ ] Стартуем `rustok-search` как следующий pilot slice Phase B.
 - [ ] Цель итерации: выделить первый `core` use-case в `crates/rustok-search/storefront`
       без изменения продуктового transport-контракта.
+
+
+### Scope matrix для `rustok-search` (чтобы ничего не пропустить)
+
+- [ ] `crates/rustok-search/storefront` (Leptos storefront UI package)
+  - [ ] выделен первый `core` use-case;
+  - [ ] UI-слой не вызывает transport напрямую для выбранного use-case.
+- [ ] `crates/rustok-search/admin` (Leptos admin UI package)
+  - [ ] проверен impact того же use-case;
+  - [ ] если use-case общий, применён тот же `core`-подход без расхождения контракта.
+- [ ] Headless parity (Next/mobile/external)
+  - [ ] подтверждено, что GraphQL fallback path не деградировал;
+  - [ ] route/query/i18n contract не получил drift относительно host expectations.
+
+### Evidence чек перед закрытием итерации `rustok-search`
+
+- [ ] `cargo xtask module validate search`
+- [ ] `cargo xtask module test search`
+- [ ] docs double-check pass #1 (code/docs consistency)
+- [ ] docs double-check pass #2 (cleanup stale wording)

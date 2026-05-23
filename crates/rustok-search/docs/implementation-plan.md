@@ -7,7 +7,7 @@
 
 - Current phase: plan_sync
 - Last checkpoint: Initial bootstrap by registry workflow.
-- Next step: Синхронизировать план с текущим кодом и выбрать первый незавершённый пункт.
+- Next step: Phase B pilot slice #1 — выделить первый `core` use-case в storefront/admin surfaces без изменения dual-path transport contract.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
 - Last updated at (UTC): 2026-05-20T00:00:00Z
@@ -69,3 +69,12 @@
 - [ ] Актуализировать покрытие тестами по ключевым сценариям модуля.
 - [ ] Проверить полноту и актуальность `README.md` и локальных docs.
 - [ ] Зафиксировать/обновить verification gates для текущего состояния модуля.
+
+
+## FFA pilot migration tracker (rustok-search)
+
+- [ ] Slice 1 scope locked (single use-case).
+- [ ] Storefront surface updated.
+- [ ] Admin surface checked/updated for the same use-case.
+- [ ] GraphQL fallback parity confirmed (no contract regression).
+- [ ] Double documentation verification completed.
