@@ -73,3 +73,16 @@
 - `docs/research/dioxus-ffa-ui-migration-plan.md`
 - `docs/verification/ffa-ui-parity-checklist.md`
 - `docs/UI/graphql-architecture.md`
+
+
+## Статус выполнения по модулям (Phase B tracking)
+
+- [x] `rustok-pages` — выполнен первый slice декомпозиции: в `storefront` выделен `core` слой
+  для selected-page presentation logic; Leptos UI делегирует эту логику в `core`.
+- [ ] `rustok-search` — в очереди на первый code slice Phase B.
+
+### Что уже сделано в `rustok-pages`
+
+- добавлен `crates/rustok-pages/storefront/src/core.rs`;
+- `SelectedPageCard` в `crates/rustok-pages/storefront/src/lib.rs` переведён на `core::*` функции;
+- dual-path transport контракт (`native #[server]` + GraphQL fallback) не менялся.
