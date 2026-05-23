@@ -13,8 +13,10 @@ use crate::model::{BlogPostDetail, BlogPostListItem, StorefrontBlogData};
 #[component]
 pub fn BlogView() -> impl IntoView {
     let route_context = use_context::<UiRouteContext>().unwrap_or_default();
-    let selected_slug =
-        read_route_query_value(&route_context, "slug").unwrap_or_else(|| "latest".to_string());
+    let selected_slug = core::selected_slug_or_default(
+        read_route_query_value(&route_context, "slug"),
+        "latest",
+    );
     let selected_locale = route_context.locale.clone();
     let badge = t(selected_locale.as_deref(), "blog.badge", "blog");
     let title = t(
@@ -125,9 +127,8 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
     );
     let tags = post.tags;
     let body_format = post.body_format;
-    let body = post
-        .body
-        .map(|body| {
+    let body = core::body_or_fallback(
+        post.body.map(|body| {
             core::summarize_content(
                 body.as_str(),
                 body_format.as_str(),
@@ -137,8 +138,9 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
                     "Stored in `{format}` format. Raw body length: {count} characters.",
                 ),
             )
-        })
-        .unwrap_or_else(|| t(locale.as_deref(), "blog.selected.noBody", "No body content yet."));
+        }),
+        &t(locale.as_deref(), "blog.selected.noBody", "No body content yet."),
+    );
 
     view! {
         <article class="rounded-2xl border border-border bg-background p-6">
@@ -180,11 +182,8 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
 fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView {
     let route_context = use_context::<UiRouteContext>().unwrap_or_default();
     let locale = route_context.locale.clone();
-    let route_segment = route_context
-        .route_segment
-        .as_ref()
-        .cloned()
-        .unwrap_or_else(|| "blog".to_string());
+    let route_segment =
+        core::route_segment_or_default(route_context.route_segment.as_ref().cloned(), "blog");
     let module_route_base = route_context.module_route_base(route_segment.as_str());
 
     if items.is_empty() {

@@ -30,6 +30,18 @@ pub fn fallback_excerpt(value: Option<String>, fallback: &str) -> String {
     fallback_text(value, fallback)
 }
 
+pub fn selected_slug_or_default(value: Option<String>, default_slug: &str) -> String {
+    value.unwrap_or_else(|| default_slug.to_string())
+}
+
+pub fn route_segment_or_default(value: Option<String>, default_segment: &str) -> String {
+    value.unwrap_or_else(|| default_segment.to_string())
+}
+
+pub fn body_or_fallback(value: Option<String>, fallback: &str) -> String {
+    fallback_text(value, fallback)
+}
+
 pub fn summarize_content(content: &str, format: &str, fallback_template: &str) -> String {
     if format.eq_ignore_ascii_case("markdown") {
         return content.trim().to_string();
@@ -79,6 +91,18 @@ mod tests {
         assert_eq!(
             fallback_excerpt(None, "No excerpt yet."),
             "No excerpt yet.".to_string()
+        );
+        assert_eq!(
+            selected_slug_or_default(None, "latest"),
+            "latest".to_string()
+        );
+        assert_eq!(
+            route_segment_or_default(None, "blog"),
+            "blog".to_string()
+        );
+        assert_eq!(
+            body_or_fallback(None, "No body content yet."),
+            "No body content yet.".to_string()
         );
     }
 }
