@@ -181,5 +181,11 @@ else
     echo ""
     echo -e "  ${RED}${BOLD}$TOTAL_FAILED suite(s) have errors. Review output above.${NC}"
     echo -e "  Run with ${BOLD}-v${NC} for full output: ${BOLD}./scripts/verify/verify-all.sh -v${NC}"
+    # POSIX process exit codes are limited to 0..255.
+    # Preserve "N errors" semantics while avoiding wraparound ambiguity.
+    if [[ $TOTAL_ERRORS -gt 255 ]]; then
+        echo -e "  ${YELLOW}Warning:${NC} aggregated error count $TOTAL_ERRORS exceeds exit-code limit; returning 255."
+        exit 255
+    fi
     exit "$TOTAL_ERRORS"
 fi

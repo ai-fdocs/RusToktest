@@ -343,8 +343,11 @@ Guardrail против использования lifecycle bypass helper в pro
   PASS Security
   PASS Architecture
 
-  Total: 13 suites | 12 passed | 1 failed
+  Total: 15 suites | 14 passed | 1 failed
 ```
+
+> Примечание: количество suites в примере иллюстративно и должно соответствовать
+> текущему списку `SCRIPTS` в `verify-all.sh`.
 
 ## Интерпретация результатов
 
@@ -356,7 +359,8 @@ Guardrail против использования lifecycle bypass helper в pro
 
 **Exit codes:**
 - `0` — все проверки пройдены
-- `N` — количество ошибок (errors, не warnings)
+- `N` — агрегированное количество ошибок (errors, не warnings)
+- `255` — ошибок больше 255 (ограничение process exit code)
 
 ## Расширение скриптов
 
