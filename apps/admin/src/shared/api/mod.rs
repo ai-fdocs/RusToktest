@@ -249,6 +249,18 @@ mod map_server_fn_error_tests {
     }
 
     #[test]
+    fn graphql_prefixed_lifecycle_payload_is_not_misclassified_as_transport_error() {
+        let mapped = map_server_fn_error(ServerFnError::new(
+            "GraphQL error: Unauthorized due to MODULE_HOOK_FAILED",
+        ));
+        assert!(
+            matches!(mapped, GraphqlHttpError::Graphql(message)
+                if message == "Unauthorized due to MODULE_HOOK_FAILED"),
+            "GraphQL-prefixed lifecycle payload must remain Graphql variant and not become Unauthorized transport error"
+        );
+    }
+
+    #[test]
     fn maps_http_prefix_and_preserves_payload() {
         let mapped = normalize_server_fn_error_message("Http error: 409 conflict");
         assert!(matches!(mapped, GraphqlHttpError::Http(message) if message == "409 conflict"));
