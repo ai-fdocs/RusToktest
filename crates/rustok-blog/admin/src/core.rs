@@ -73,6 +73,29 @@ pub fn is_save_busy(busy_key: Option<&str>) -> bool {
     busy_key == Some("create") || busy_key.map(|key| key.starts_with("save:")).unwrap_or(false)
 }
 
+pub fn label_with_id(template: &str, id: &str) -> String {
+    template.replace("{id}", id)
+}
+
+pub fn count_label(template: &str, total: u64) -> String {
+    template.replace("{count}", &total.to_string())
+}
+
+pub fn is_published_status(status: &str) -> bool {
+    status.eq_ignore_ascii_case("published")
+}
+
+pub fn is_archived_status(status: &str) -> bool {
+    status.eq_ignore_ascii_case("archived")
+}
+
+pub fn status_badge_css(status: &str) -> String {
+    format!(
+        "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold {}",
+        status_badge_class(status)
+    )
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -132,6 +155,19 @@ mod tests {
         assert_eq!(
             error_with_context("Failed to save post", "timeout"),
             "Failed to save post: timeout".to_string()
+        );
+    }
+
+    #[test]
+    fn label_count_and_status_helpers_work() {
+        assert_eq!(label_with_id("Editing post {id}", "42"), "Editing post 42");
+        assert_eq!(count_label("{count} total", 7), "7 total");
+        assert!(is_published_status("published"));
+        assert!(is_archived_status("archived"));
+        assert!(!is_archived_status("draft"));
+        assert_eq!(
+            status_badge_css("published"),
+            "inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
         );
     }
 }

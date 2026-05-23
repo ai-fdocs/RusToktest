@@ -100,12 +100,12 @@ pub fn BlogAdmin() -> impl IntoView {
         editing_post_id
             .get()
             .map(|post_id| {
-                t(
+                let template = t(
                     editing_banner_locale.as_deref(),
                     "blog.form.editingBanner",
                     "Editing post {id}",
-                )
-                .replace("{id}", post_id.as_str())
+                );
+                core::label_with_id(template.as_str(), post_id.as_str())
             })
             .unwrap_or_default()
     });
@@ -554,7 +554,7 @@ pub fn BlogAdmin() -> impl IntoView {
                                     }.into_any(),
                                     Err(err) => view! {
                                         <div class="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                                            {format!("{}: {err}", load_posts_error_label.clone())}
+                                            {core::error_with_context(load_posts_error_label.as_str(), &err.to_string())}
                                         </div>
                                     }.into_any(),
                                 }
@@ -803,8 +803,7 @@ fn BlogPostsTable(
     view! {
         <div class="space-y-4">
             <div class="text-sm text-muted-foreground">
-                {t(locale.as_deref(), "blog.table.total", "{count} post(s)")
-                    .replace("{count}", &total.to_string())}
+                {core::count_label(&t(locale.as_deref(), "blog.table.total", "{count} post(s)"), total)}
             </div>
             <div class="overflow-hidden rounded-xl border border-border">
                 <table class="w-full text-sm">
@@ -839,8 +838,8 @@ fn BlogPostsTable(
                                     .as_deref()
                                     .map(|key| key.contains(post_id.as_str()))
                                     .unwrap_or(false);
-                                let is_published = post.status.eq_ignore_ascii_case("published");
-                                let is_archived = post.status.eq_ignore_ascii_case("archived");
+                                let is_published = core::is_published_status(post.status.as_str());
+                                let is_archived = core::is_archived_status(post.status.as_str());
 
                                 view! {
                                     <tr class="transition-colors hover:bg-muted/30">
@@ -930,10 +929,9 @@ fn BlogPostsTable(
 
 #[component]
 fn StatusBadge(status: String) -> impl IntoView {
-    let class_name = core::status_badge_class(status.as_str());
-
+    let badge_css = core::status_badge_css(status.as_str());
     view! {
-        <span class=format!("inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold {class_name}")>
+        <span class=badge_css>
             {status}
         </span>
     }
@@ -960,7 +958,7 @@ fn apply_post_to_form(
     set_body.set(post.body.clone().unwrap_or_default());
     set_body_format.set(post.body_format.clone());
     set_tags_input.set(post.tags.join(", "));
-    set_publish_now.set(post.status.eq_ignore_ascii_case("published"));
+    set_publish_now.set(core::is_published_status(post.status.as_str()));
 }
 
 #[allow(clippy::too_many_arguments)]
