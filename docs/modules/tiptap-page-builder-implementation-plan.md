@@ -15,11 +15,10 @@
 - интеграционные/e2e проверки и observability release-gate пройдены;
 - feature flag переведён в `default-on` после стабилизации.
 
-### Лицензионная/стоимостная политика Page Builder (обязательное ограничение)
+### Технологический baseline Page Builder (обязательное ограничение)
 
-- Базовый production-path для визуального builder в RusTok — **open-source GrapesJS** (self-hosted), без обязательной зависимости от коммерческих Studio/SDK-слоёв.
-- Любое использование платных дополнений допускается только как **опциональный** track с отдельным ADR/согласованием; core rollout не должен блокироваться отсутствием коммерческой лицензии.
-- Контракт `grapesjs_v1` остаётся vendor-neutral: backend/runtime не должен требовать Studio-specific payload или proprietary API.
+- Базовый production-path для визуального builder в RusTok — **open-source GrapesJS** (self-hosted).
+- Контракт `grapesjs_v1` остаётся vendor-neutral: backend/runtime не должен требовать vendor-specific payload или proprietary API.
 - Для Leptos/Flutter в baseline достаточно contract-safe surfaces (preview/tree/properties/publish) поверх общего backend-контракта; 1:1 визуальный клон Next.js builder не является обязательным критерием текущего rollout.
 
 ## 2. Статус фаз
@@ -52,6 +51,7 @@
 - [x] Подключить `RtJsonEditor` в production CRUD-flow blog.
 - [x] Подключить `ForumReplyEditor` в production CRUD-flow forum.
 - [x] Подключить `PageBuilder` в production CRUD-flow pages.
+- [ ] Собрать минимальные каркасы page-builder surfaces для `apps/admin` (Leptos) и Flutter-host (preview/tree/properties/publish) поверх единого backend-контракта.
 - [ ] Зафиксировать parity-план для двух стеков: `apps/next-admin` и `apps/admin`.
 - [ ] Выровнять UX-обработку validation/sanitize ошибок в формах.
 - [ ] Синхронизировать milestone-dependency с Flutter registry/codegen планом (`docs/research/flutter.md`, секция anti-drift guardrail), чтобы mobile host не расходился с backend/page-builder rollout.
@@ -78,7 +78,7 @@
 - [ ] Определить стратегию включения: internal → pilot → broad rollout.
 - [ ] Подготовить матрицу включения/исключения по tenant и модулю.
 - [ ] Согласовать операционный runbook переключений.
-- [ ] Зафиксировать procurement-free baseline: OSS GrapesJS как mandatory path, коммерческие SDK — только optional расширение без влияния на core DoD.
+- [ ] Зафиксировать baseline-only rollout: OSS GrapesJS + vendor-neutral `grapesjs_v1` contract без расширения platform-контракта под вендор-специфику.
 
 **DoD фазы:** controlled rollout возможен без redeploy.
 
@@ -133,4 +133,3 @@
 - `apps/admin/docs/implementation-plan.md` — интеграция admin runtime (Leptos).
 - `apps/storefront/docs/implementation-plan.md` и `apps/next-frontend/docs/implementation-plan.md` — rendering parity и rollout storefront.
 - `docs/architecture/api.md` и `docs/standards/rt-json-v1.md` — контракт rich-text/page-builder payload.
-- `DECISIONS/*` (новый ADR при появлении коммерческой зависимости в builder-цепочке).
