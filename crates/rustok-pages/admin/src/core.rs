@@ -1,3 +1,5 @@
+use crate::model::PageDetail;
+
 pub fn slugify(value: &str) -> String {
     value
         .chars()
@@ -40,6 +42,59 @@ pub fn status_badge_class(status: &str) -> &'static str {
     }
 }
 
+pub fn busy_key_with_id(action: &str, page_id: &str) -> String {
+    format!("{}:{}", action, page_id)
+}
+
+pub fn busy_key_for_save(page_id: Option<&str>) -> String {
+    page_id
+        .map(|id| busy_key_with_id("save", id))
+        .unwrap_or_else(|| "create".to_string())
+}
+
+#[derive(Debug, Clone)]
+pub struct EditFormSeed {
+    pub locale: String,
+    pub title: String,
+    pub slug: String,
+    pub body: String,
+    pub channel_slugs_text: String,
+    pub publish_now: bool,
+}
+
+pub fn edit_form_seed_from_page(page: &PageDetail, default_locale: &str) -> EditFormSeed {
+    let locale = page
+        .translation
+        .as_ref()
+        .map(|translation| translation.locale.clone())
+        .or_else(|| page.body.as_ref().map(|page_body| page_body.locale.clone()))
+        .unwrap_or_else(|| default_locale.to_string());
+    let title = page
+        .translation
+        .as_ref()
+        .and_then(|translation| translation.title.clone())
+        .unwrap_or_default();
+    let slug = page
+        .translation
+        .as_ref()
+        .and_then(|translation| translation.slug.clone())
+        .unwrap_or_default();
+    let body = page
+        .body
+        .as_ref()
+        .map(|page_body| page_body.content.clone())
+        .unwrap_or_default();
+
+    EditFormSeed {
+        locale,
+        title,
+        slug,
+        body,
+        channel_slugs_text: page.channel_slugs.join(", "),
+        publish_now: page.status.eq_ignore_ascii_case("published"),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -58,7 +113,7 @@ mod tests {
     }
 
     #[test]
-    fn error_with_context_formats_consistently() {
+    fn helper_formatting_stays_consistent() {
         assert_eq!(
             error_with_context("Failed to save page", "timeout"),
             "Failed to save page: timeout"
@@ -72,14 +127,32 @@ mod tests {
         assert_eq!(busy_key_for_save(Some("p_2")), "save:p_2");
         assert_eq!(busy_key_for_save(None), "create");
     }
-}
 
-pub fn busy_key_with_id(action: &str, page_id: &str) -> String {
-    format!("{}:{}", action, page_id)
-}
+    #[test]
+    fn edit_form_seed_extracts_values() {
+        let page = PageDetail {
+            id: "p_1".to_string(),
+            status: "published".to_string(),
+            template: "default".to_string(),
+            channel_slugs: vec!["web".to_string(), "mobile".to_string()],
+            translation: Some(crate::model::PageTranslation {
+                locale: "ru".to_string(),
+                title: Some("Заголовок".to_string()),
+                slug: Some("slug".to_string()),
+            }),
+            body: Some(crate::model::PageBody {
+                locale: "ru".to_string(),
+                content: "Body".to_string(),
+                format: "markdown".to_string(),
+            }),
+        };
 
-pub fn busy_key_for_save(page_id: Option<&str>) -> String {
-    page_id
-        .map(|id| busy_key_with_id("save", id))
-        .unwrap_or_else(|| "create".to_string())
+        let seed = edit_form_seed_from_page(&page, "en");
+        assert_eq!(seed.locale, "ru");
+        assert_eq!(seed.title, "Заголовок");
+        assert_eq!(seed.slug, "slug");
+        assert_eq!(seed.body, "Body");
+        assert_eq!(seed.channel_slugs_text, "web, mobile");
+        assert!(seed.publish_now);
+    }
 }

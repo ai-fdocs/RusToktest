@@ -162,35 +162,15 @@ pub fn PagesAdmin() -> impl IntoView {
         spawn_local(async move {
             match api::fetch_page(token_value, tenant_value, page_id.clone()).await {
                 Ok(Some(page)) => {
-                    let page_locale = page
-                        .translation
-                        .as_ref()
-                        .map(|translation| translation.locale.clone())
-                        .or_else(|| page.body.as_ref().map(|page_body| page_body.locale.clone()))
-                        .unwrap_or_else(|| default_locale.clone());
-                    let page_title = page
-                        .translation
-                        .as_ref()
-                        .and_then(|translation| translation.title.clone())
-                        .unwrap_or_default();
-                    let page_slug = page
-                        .translation
-                        .as_ref()
-                        .and_then(|translation| translation.slug.clone())
-                        .unwrap_or_default();
-                    let page_body = page
-                        .body
-                        .map(|page_body| page_body.content)
-                        .unwrap_or_default();
-                    let page_channel_slugs = page.channel_slugs.join(", ");
+                    let seed = core::edit_form_seed_from_page(&page, default_locale.as_str());
 
                     set_editing_page_id.set(Some(page_id.clone()));
-                    set_locale.set(page_locale);
-                    set_title.set(page_title);
-                    set_slug.set(page_slug);
-                    set_body.set(page_body);
-                    set_channel_slugs_text.set(page_channel_slugs);
-                    set_publish_now.set(page.status.eq_ignore_ascii_case("published"));
+                    set_locale.set(seed.locale);
+                    set_title.set(seed.title);
+                    set_slug.set(seed.slug);
+                    set_body.set(seed.body);
+                    set_channel_slugs_text.set(seed.channel_slugs_text);
+                    set_publish_now.set(seed.publish_now);
                 }
                 Ok(None) => {
                     reset_page_form(
