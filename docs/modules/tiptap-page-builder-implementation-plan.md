@@ -55,6 +55,7 @@
 - [ ] Зафиксировать parity-план для двух стеков: `apps/next-admin` и `apps/admin`.
 - [ ] Выровнять UX-обработку validation/sanitize ошибок в формах.
 - [ ] Синхронизировать milestone-dependency с Flutter registry/codegen планом (`docs/research/flutter.md`, секция anti-drift guardrail), чтобы mobile host не расходился с backend/page-builder rollout.
+- [ ] Проверить, что FFA-baseline для Flutter закреплён уже в `Phase 0 — Foundation` (`docs/research/flutter.md`) и не откладывается до поздних фаз builder-интеграции.
 
 Текущее состояние `apps/next-admin`: production-формы blog и forum снова используют реальный Tiptap-based editor, а сериализация в write-path идёт в канонический payload `rt_json_v1` (`version` / `locale` / `doc`) без textarea-fallback в основном UX. `PageBuilder` переведён на реальный `GrapesJS` runtime, сохраняет `projectData` в body-формат `grapesjs_v1`, работает с реальным выбором страниц и оставляет legacy `blocks` как отдельную migration-compatible поверхность. Для `pages` compatibility rules теперь зафиксированы явно: `body` считается приоритетным payload для visual-builder consumer-ов, но legacy block-driven pages могут оставаться без `body`, а запись `body` не удаляет старые `blocks` автоматически.
 
