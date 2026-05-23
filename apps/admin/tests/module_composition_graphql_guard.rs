@@ -136,6 +136,92 @@ fn module_composition_helpers_forward_auth_context_without_local_overrides() {
 }
 
 #[test]
+fn module_composition_helpers_do_not_branch_on_runtime_error_taxonomy() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    for signature in [
+        "pub async fn install_module(",
+        "pub async fn uninstall_module(",
+        "pub async fn upgrade_module(",
+    ] {
+        let helper_body = extract_function_block(&content, signature)
+            .unwrap_or_else(|| panic!("helper signature not found: {signature}"));
+
+        for forbidden in [
+            "UNKNOWN_MODULE",
+            "CORE_MODULE",
+            "MISSING_DEPENDENCIES",
+            "HAS_DEPENDENTS",
+            "MODULE_HOOK_FAILED",
+            "extensions.code",
+            "reason_code",
+            "module_operations",
+            "correlation_id",
+            "requested_by",
+        ] {
+            assert!(
+                !helper_body.contains(forbidden),
+                "{signature} must not branch on runtime taxonomy fragment `{forbidden}`"
+            );
+        }
+    }
+}
+
+#[test]
+fn module_composition_helpers_do_not_cross_wire_foreign_mutation_contracts() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    let cases = [
+        (
+            "pub async fn install_module(",
+            "INSTALL_MODULE_MUTATION",
+            [
+                "UNINSTALL_MODULE_MUTATION",
+                "UPGRADE_MODULE_MUTATION",
+                "TOGGLE_MODULE_MUTATION",
+            ],
+        ),
+        (
+            "pub async fn uninstall_module(",
+            "UNINSTALL_MODULE_MUTATION",
+            [
+                "INSTALL_MODULE_MUTATION",
+                "UPGRADE_MODULE_MUTATION",
+                "TOGGLE_MODULE_MUTATION",
+            ],
+        ),
+        (
+            "pub async fn upgrade_module(",
+            "UPGRADE_MODULE_MUTATION",
+            [
+                "INSTALL_MODULE_MUTATION",
+                "UNINSTALL_MODULE_MUTATION",
+                "TOGGLE_MODULE_MUTATION",
+            ],
+        ),
+    ];
+
+    for (signature, required, forbidden_list) in cases {
+        let helper_body = extract_function_block(&content, signature)
+            .unwrap_or_else(|| panic!("helper signature not found: {signature}"));
+        assert!(
+            helper_body.contains(required),
+            "{signature} must reference canonical mutation constant `{required}`"
+        );
+        for forbidden in forbidden_list {
+            assert!(
+                !helper_body.contains(forbidden),
+                "{signature} must not cross-wire foreign mutation constant `{forbidden}`"
+            );
+        }
+    }
+}
+
+#[test]
 fn toggle_module_helper_uses_graphql_only_contract() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let api_path = crate_root.join("src/features/modules/api.rs");
