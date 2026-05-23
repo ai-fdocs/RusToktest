@@ -131,3 +131,4 @@
 
 - `rustok-search` slice #2: facet name normalization вынесена в core для storefront/admin (`facet_display_name`).
 - `rustok-search` slice #3: facet bucket label formatting вынесен в core (`facet_bucket_label`) для storefront/admin.
+- `rustok-search` slice #4: snippet fallback rendering вынесен в core (`snippet_or_fallback`) для storefront/admin.

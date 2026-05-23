@@ -474,7 +474,7 @@ fn SearchResults(
                     </div>
                     <h3 class="mt-3 text-lg font-semibold text-foreground">{item.title}</h3>
                     <p class="mt-2 text-sm text-muted-foreground">
-                        {item.snippet.unwrap_or_else(|| "No snippet returned.".to_string())}
+                        {core::snippet_or_fallback(item.snippet.clone(), "No snippet returned.")}
                     </p>
                     {render_result_action(query_log_id, item.id.clone(), href, index)}
                 </article>

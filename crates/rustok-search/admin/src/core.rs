@@ -23,3 +23,7 @@ pub fn facet_display_name(raw_name: &str) -> String {
 pub fn facet_bucket_label(value: &str, count: u64) -> String {
     format!("{} ({})", value, count)
 }
+
+pub fn snippet_or_fallback(snippet: Option<String>, fallback: &str) -> String {
+    snippet.unwrap_or_else(|| fallback.to_string())
+}

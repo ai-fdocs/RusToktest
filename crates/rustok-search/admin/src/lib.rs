@@ -1033,7 +1033,7 @@ fn preview_panel(payload: SearchPreviewPayload, labels: SearchPreviewLabels) -> 
             <article class="rounded-xl border border-border bg-background p-4">
                 <div class="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground"><span>{item.entity_type.clone()}</span><span>"|"</span><span>{item.source_module.clone()}</span><span>"|"</span><span>{labels.score_template.clone().replace("{score:.3}", format!("{:.3}", item.score).as_str())}</span></div>
                 <h3 class="mt-2 text-base font-semibold text-card-foreground">{item.title}</h3>
-                <p class="mt-2 text-sm text-muted-foreground">{item.snippet.unwrap_or_else(|| labels.no_snippet.clone())}</p>
+                <p class="mt-2 text-sm text-muted-foreground">{core::snippet_or_fallback(item.snippet.clone(), &labels.no_snippet)}</p>
                 {preview_result_action(payload.query_log_id.clone(), item.id.clone(), item.url.clone(), index, labels.clone())}
             </article>
         }).collect_view()}</div>
