@@ -30,6 +30,16 @@ pub fn error_with_context(context: &str, error: &str) -> String {
     format!("{}: {}", context, error)
 }
 
+pub fn status_badge_class(status: &str) -> &'static str {
+    match status.to_ascii_lowercase().as_str() {
+        "published" => {
+            "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+        }
+        "archived" => "bg-muted text-muted-foreground",
+        _ => "bg-primary/10 text-primary",
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -53,5 +63,10 @@ mod tests {
             error_with_context("Failed to save page", "timeout"),
             "Failed to save page: timeout"
         );
+        assert_eq!(
+            status_badge_class("published"),
+            "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+        );
+        assert_eq!(status_badge_class("draft"), "bg-primary/10 text-primary");
     }
 }

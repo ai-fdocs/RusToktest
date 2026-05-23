@@ -773,14 +773,7 @@ fn PagesTable(
 
 #[component]
 fn StatusBadge(status: String) -> impl IntoView {
-    let normalized = status.to_lowercase();
-    let class_name = match normalized.as_str() {
-        "published" => {
-            "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-        }
-        "archived" => "bg-muted text-muted-foreground",
-        _ => "bg-primary/10 text-primary",
-    };
+    let class_name = core::status_badge_class(&status);
 
     view! {
         <span class=format!("inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold {class_name}")>

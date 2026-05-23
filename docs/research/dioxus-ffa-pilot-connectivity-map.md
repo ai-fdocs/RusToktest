@@ -147,3 +147,4 @@
 - [x] `cargo xtask module validate pages`
 - [ ] `cargo xtask module test pages` (долгий прогон, выполнить до phase close)
 - [ ] docs double-check pass #1/#2 for pages
+- `rustok-pages` slice #3: status badge class mapping вынесен в `admin/src/core.rs` (`status_badge_class`).

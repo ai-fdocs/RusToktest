@@ -77,3 +77,4 @@
 - [x] `cargo xtask module validate pages` passed.
 - [ ] `cargo xtask module test pages` full run evidence attached.
 - [ ] Double documentation verification completed.
+- [x] Slice 3: admin status badge class mapping moved to core (`status_badge_class`).
