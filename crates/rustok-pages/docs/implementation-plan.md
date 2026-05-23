@@ -95,3 +95,4 @@
 
 - [x] Slice 10: pages tracker synchronized after double documentation verification completion.
 - [x] Slice 11: admin reset-form defaults delegated to core (`empty_edit_form_seed`).
+- [x] Slice 12: admin table count-label placeholder rendering moved to core (`count_label`).

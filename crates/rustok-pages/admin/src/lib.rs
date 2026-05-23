@@ -626,8 +626,10 @@ fn PagesTable(
     view! {
         <div class="space-y-4">
             <div class="text-sm text-muted-foreground">
-                {t(locale.as_deref(), "pages.table.total", "{count} page(s)")
-                    .replace("{count}", &total.to_string())}
+                {core::count_label(
+                    &t(locale.as_deref(), "pages.table.total", "{count} page(s)"),
+                    total,
+                )}
             </div>
             <div class="overflow-hidden rounded-xl border border-border">
                 <table class="w-full text-sm">

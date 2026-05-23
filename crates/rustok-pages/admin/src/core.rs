@@ -135,6 +135,12 @@ mod tests {
     }
 
     #[test]
+    fn count_label_replaces_placeholder() {
+        assert_eq!(count_label("{count} page(s)", 7), "7 page(s)");
+    }
+
+
+    #[test]
     fn empty_edit_form_seed_uses_default_locale() {
         let seed = empty_edit_form_seed("en");
         assert_eq!(seed.locale, "en");
@@ -199,4 +205,9 @@ pub fn empty_edit_form_seed(default_locale: &str) -> EditFormSeed {
         channel_slugs_text: String::new(),
         publish_now: false,
     }
+}
+
+
+pub fn count_label(template: &str, count: u64) -> String {
+    template.replace("{count}", &count.to_string())
 }
