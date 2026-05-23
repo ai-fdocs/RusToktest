@@ -653,7 +653,7 @@ Reviewer перед approve проверяет:
 - [~] DOC-09 Конвейер генерации reference-артефактов (Batch: B11, commit: 4bafe23)
 - [~] DOC-10 Language/naming governance (Batch: B13, commit: 6c7a53f)
 - [~] DOC-11 Reviewer checklist + PR template (Batch: B13, commit: 4e3ead8)
-- [ ] DOC-12 Code hotspots documentation (Batch: B14)
+- [~] DOC-12 Code hotspots documentation (Batch: B14, commit: 075e380)
 
 
 ### B12 preflight blocker (зафиксировано)
