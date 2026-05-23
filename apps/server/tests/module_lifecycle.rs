@@ -796,8 +796,9 @@ async fn post_enable_failure_keeps_committed_state_and_marks_failed_operation() 
     let tenant_id = uuid::Uuid::new_v4();
     seed_tenant(&db, tenant_id).await;
 
-    let registry =
-        ModuleRegistry::new().register(TestModule::new("search").with_post_enable_failure());
+    let failing_module = TestModule::new("search").with_post_enable_failure();
+    let post_enable_calls = failing_module.post_enable_calls.clone();
+    let registry = ModuleRegistry::new().register(failing_module);
     let err = ModuleLifecycleService::toggle_module_with_actor(
         &db,
         &registry,
@@ -879,6 +880,11 @@ async fn post_enable_failure_keeps_committed_state_and_marks_failed_operation() 
         operations_after_retry.len(),
         1,
         "idempotent retry after committed post-enable failure must not create extra journal rows",
+    );
+    assert_eq!(
+        post_enable_calls.load(Ordering::SeqCst),
+        1,
+        "idempotent retry after committed post-enable failure must not invoke post-enable hook again",
     );
 }
 
