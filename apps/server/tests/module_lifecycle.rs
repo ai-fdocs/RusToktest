@@ -819,6 +819,23 @@ async fn post_enable_failure_keeps_committed_state_and_marks_failed_operation() 
         1,
         "single post-enable failure attempt must produce exactly one journal row",
     );
+
+    let retry = ModuleLifecycleService::toggle_module(&db, &registry, tenant_id, "search", true)
+        .await
+        .expect("retry enable after committed post-hook failure should be a no-op");
+    assert!(retry.enabled);
+
+    let operations_after_retry = module_operations::Entity::find()
+        .filter(module_operations::Column::TenantId.eq(tenant_id))
+        .filter(module_operations::Column::ModuleSlug.eq("search"))
+        .all(&db)
+        .await
+        .expect("load search operations after retry");
+    assert_eq!(
+        operations_after_retry.len(),
+        1,
+        "idempotent retry after committed post-enable failure must not create extra journal rows",
+    );
 }
 
 #[tokio::test]
