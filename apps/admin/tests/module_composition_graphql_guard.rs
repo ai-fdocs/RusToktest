@@ -113,6 +113,11 @@ fn toggle_module_helper_uses_graphql_only_contract() {
         helper_body.contains("TOGGLE_MODULE_MUTATION"),
         "toggle_module must use canonical TOGGLE_MODULE_MUTATION contract"
     );
+    assert_eq!(
+        helper_body.matches("TOGGLE_MODULE_MUTATION").count(),
+        1,
+        "toggle_module must reference TOGGLE_MODULE_MUTATION exactly once"
+    );
     assert!(
         helper_body.contains("request("),
         "toggle_module must call GraphQL request path"
@@ -225,6 +230,17 @@ fn toggle_module_mutation_contract_shape_stays_stable() {
         );
     }
 
+    for forbidden_fragment in [
+        "$module_slug",
+        "module_slug:",
+        "toggleModule(moduleSlug: $module_slug",
+    ] {
+        assert!(
+            !mutation.contains(forbidden_fragment),
+            "toggle mutation contract must keep canonical camelCase variable naming, found forbidden fragment `{forbidden_fragment}`"
+        );
+    }
+
     assert!(
         !mutation.contains("__typename"),
         "toggle mutation contract must stay minimal and not introduce opaque response-only fields"
@@ -244,6 +260,62 @@ fn toggle_module_mutation_constant_is_declared_once() {
         occurrences, 1,
         "Expected exactly one TOGGLE_MODULE_MUTATION declaration, found {occurrences}"
     );
+}
+
+#[test]
+fn toggle_module_helper_uses_only_toggle_response_field() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    let helper_body = extract_function_block(&content, "pub async fn toggle_module(")
+        .expect("toggle_module helper signature not found");
+
+    assert!(
+        helper_body.contains("Ok(response.toggle_module)"),
+        "toggle_module helper must return toggle_module field from typed response"
+    );
+    for forbidden in [
+        "response.install_module",
+        "response.uninstall_module",
+        "response.upgrade_module",
+        "response.update_module_settings",
+    ] {
+        assert!(
+            !helper_body.contains(forbidden),
+            "toggle_module helper must not return foreign response field `{forbidden}`"
+        );
+    }
+
+    assert_eq!(
+        helper_body.matches("response.toggle_module").count(),
+        1,
+        "toggle_module helper must read toggle response field exactly once"
+    );
+}
+
+#[test]
+fn toggle_module_helper_uses_only_canonical_toggle_variable_names() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    let helper_body = extract_function_block(&content, "pub async fn toggle_module(")
+        .expect("toggle_module helper signature not found");
+
+    for required in ["module_slug,", "enabled,"] {
+        assert!(
+            helper_body.contains(required),
+            "toggle_module helper must forward canonical variable `{required}` in ToggleModuleVariables"
+        );
+    }
+
+    for forbidden in ["moduleSlug:", "enabled:", "module_slug:", "$moduleSlug", "$enabled"] {
+        assert!(
+            !helper_body.contains(forbidden),
+            "toggle_module helper must stay on Rust-side variable wiring and not contain forbidden fragment `{forbidden}`"
+        );
+    }
 }
 
 fn assert_graphql_only_helper(
