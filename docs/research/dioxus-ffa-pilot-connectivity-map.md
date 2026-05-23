@@ -86,3 +86,18 @@
 - добавлен `crates/rustok-pages/storefront/src/core.rs`;
 - `SelectedPageCard` в `crates/rustok-pages/storefront/src/lib.rs` переведён на `core::*` функции;
 - dual-path transport контракт (`native #[server]` + GraphQL fallback) не менялся.
+
+
+### Перепроверка после выполненного (double-check)
+
+- [x] Проход №1 (code/docs consistency):
+  - `rustok-pages/storefront` фактически использует выделенный `core` слой для selected-page logic;
+  - dual-path transport (`native #[server]` + GraphQL fallback) сохранён без удаления fallback surface.
+- [x] Проход №2 (устранение устаревших формулировок):
+  - в текущих central docs для этого шага не осталось формулировок, противоречащих `core`-срезу в `rustok-pages`.
+
+### Следующий модуль (новая итерация)
+
+- [ ] Стартуем `rustok-search` как следующий pilot slice Phase B.
+- [ ] Цель итерации: выделить первый `core` use-case в `crates/rustok-search/storefront`
+      без изменения продуктового transport-контракта.
