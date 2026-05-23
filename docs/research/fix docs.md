@@ -458,7 +458,7 @@ Batch считается закрытым только если одноврем
 - [~] DOC-09 Конвейер генерации reference-артефактов (Batch: B11/B12, commit: 4bafe23, 416ee98, 792de31)
 - [~] DOC-10 Language/naming governance (Batch: B13, commit: 6c7a53f)
 - [~] DOC-11 Reviewer checklist + PR template (Batch: B13, commit: 4e3ead8)
-- [~] DOC-12 Code hotspots documentation (Batch: B14, commit: 075e380, 9bf4dd9)
+- [~] DOC-12 Code hotspots documentation (Batch: B14, commit: 075e380, 9bf4dd9, 5656aa2)
 
 ### Процедура синхронизации трекера с уже влитыми PR
 
@@ -659,7 +659,7 @@ Reviewer перед approve проверяет:
 - [~] DOC-09 Конвейер генерации reference-артефактов (Batch: B11/B12, commit: 4bafe23, 416ee98, 792de31)
 - [~] DOC-10 Language/naming governance (Batch: B13, commit: 6c7a53f)
 - [~] DOC-11 Reviewer checklist + PR template (Batch: B13, commit: 4e3ead8)
-- [~] DOC-12 Code hotspots documentation (Batch: B14, commit: 075e380, 9bf4dd9)
+- [~] DOC-12 Code hotspots documentation (Batch: B14, commit: 075e380, 9bf4dd9, 5656aa2)
 
 
 ### B12 preflight blocker (статус: снят)
