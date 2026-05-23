@@ -54,3 +54,8 @@ pub fn raw_body_format_summary(format: &str, char_count: usize, template: &str) 
         .replace("{format}", format)
         .replace("{count}", &char_count.to_string())
 }
+
+
+pub fn count_label(template: &str, count: u64) -> String {
+    template.replace("{count}", &count.to_string())
+}

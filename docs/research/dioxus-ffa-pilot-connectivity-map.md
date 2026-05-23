@@ -156,6 +156,7 @@
 - `rustok-pages` slice #10: pages implementation tracker synchronized after double docs verification closure.
 - `rustok-pages` slice #11: admin reset-form defaults delegated to core seed helper (`empty_edit_form_seed`).
 - `rustok-pages` slice #12: admin table total-count label placeholder rendering moved to core (`count_label`).
+- `rustok-pages` slice #13: storefront published-pages total count placeholder rendering moved to core (`count_label`).
 
 
 ### Перепроверка после slices #2-#8 (rustok-pages/admin)

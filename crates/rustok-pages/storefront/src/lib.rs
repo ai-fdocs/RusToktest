@@ -192,8 +192,10 @@ fn PublishedPagesList(items: Vec<PageListItem>, total: u64) -> impl IntoView {
                     {t(locale.as_deref(), "pages.list.title", "Published pages")}
                 </h3>
                 <span class="text-sm text-muted-foreground">
-                    {t(locale.as_deref(), "pages.list.total", "{count} total")
-                        .replace("{count}", &total.to_string())}
+                    {core::count_label(
+                        &t(locale.as_deref(), "pages.list.total", "{count} total"),
+                        total,
+                    )}
                 </span>
             </div>
             <div class="grid gap-3 md:grid-cols-2">
@@ -255,6 +257,12 @@ fn summarize_content(locale: Option<&str>, content: &str, format: &str) -> Strin
 mod tests {
     use super::{core, PageBlock, PageDetail};
     use crate::model::PageBody;
+
+
+    #[test]
+    fn count_label_replaces_placeholder() {
+        assert_eq!(core::count_label("{count} total", 5), "5 total");
+    }
 
     #[test]
     fn page_body_takes_precedence_over_legacy_blocks() {
