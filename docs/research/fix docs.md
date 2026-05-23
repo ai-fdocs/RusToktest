@@ -450,7 +450,7 @@ Batch считается закрытым только если одноврем
 - [x] DOC-07 Docs CI quality gates (commit: 1bf7ead, merged: 2026-05-22)
 - [x] DOC-08 Executable examples hub (commit: 0f35991, merged: 2026-05-22)
 - [~] DOC-09 Конвейер генерации reference-артефактов (Batch: B11, commit: 4bafe23)
-- [ ] DOC-10 Language/naming governance
+- [~] DOC-10 Language/naming governance (Batch: B12, commit: 6c7a53f)
 - [~] DOC-11 Reviewer checklist + PR template (Batch: B13, commit: 4e3ead8)
 - [ ] DOC-12 Code hotspots documentation
 
