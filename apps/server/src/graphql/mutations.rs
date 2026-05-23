@@ -1424,6 +1424,69 @@ mod tests {
     }
 
     #[test]
+    fn platform_composition_error_matrix_preserves_taxonomy_for_internal_and_user_paths() {
+        struct Case {
+            name: &'static str,
+            error: PlatformCompositionError,
+            expected_code: &'static str,
+            message_fragment: &'static str,
+        }
+
+        let cases = vec![
+            Case {
+                name: "revision conflict",
+                error: PlatformCompositionError::RevisionConflict {
+                    expected: 7,
+                    current: 9,
+                },
+                expected_code: "BAD_USER_INPUT",
+                message_fragment: "revision conflict",
+            },
+            Case {
+                name: "serialize failure",
+                error: PlatformCompositionError::Serialize("serde exploded".to_string()),
+                expected_code: "INTERNAL_SERVER_ERROR",
+                message_fragment: "serde exploded",
+            },
+            Case {
+                name: "deserialize failure",
+                error: PlatformCompositionError::Deserialize("bad snapshot".to_string()),
+                expected_code: "INTERNAL_SERVER_ERROR",
+                message_fragment: "bad snapshot",
+            },
+            Case {
+                name: "database failure",
+                error: PlatformCompositionError::Database(sea_orm::DbErr::Custom(
+                    "db is unavailable".to_string(),
+                )),
+                expected_code: "INTERNAL_SERVER_ERROR",
+                message_fragment: "db is unavailable",
+            },
+        ];
+
+        for case in cases {
+            let mapped = map_platform_composition_error(case.error);
+            assert!(
+                mapped.message.to_lowercase().contains(case.message_fragment),
+                "message contract drifted for case `{}`",
+                case.name
+            );
+            let gql = mapped.extend();
+            assert_eq!(
+                error_code(&gql).as_deref(),
+                Some(case.expected_code),
+                "error code contract drifted for case `{}`",
+                case.name
+            );
+            assert!(
+                !mapped.message.to_lowercase().contains("rolled back"),
+                "error message must not reintroduce partial rollback wording for case `{}`",
+                case.name
+            );
+        }
+    }
+
+    #[test]
     fn platform_composition_build_error_matrix_preserves_message_and_code_contract() {
         struct Case {
             name: &'static str,
