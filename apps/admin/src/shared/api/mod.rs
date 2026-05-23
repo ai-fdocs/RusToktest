@@ -235,6 +235,20 @@ mod map_server_fn_error_tests {
     }
 
     #[test]
+    fn lifecycle_taxonomy_extensions_are_forwarded_without_local_normalization() {
+        let payload = "GraphQL error: MISSING_DEPENDENCIES {\"extensions\":{\"code\":\"MISSING_DEPENDENCIES\",\"reason_code\":\"dependency_missing\",\"requested_by\":\"admin:user-2\"}}";
+        let mapped = map_server_fn_error(ServerFnError::new(payload));
+
+        assert!(
+            matches!(mapped, GraphqlHttpError::Graphql(message)
+                if message.contains("\"code\":\"MISSING_DEPENDENCIES\"")
+                && message.contains("\"reason_code\":\"dependency_missing\"")
+                && message.contains("\"requested_by\":\"admin:user-2\"")),
+            "expected extensions payload to be forwarded unchanged without local normalization"
+        );
+    }
+
+    #[test]
     fn maps_http_prefix_and_preserves_payload() {
         let mapped = normalize_server_fn_error_message("Http error: 409 conflict");
         assert!(matches!(mapped, GraphqlHttpError::Http(message) if message == "409 conflict"));
