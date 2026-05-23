@@ -97,3 +97,4 @@
 - [x] Slice 11: admin reset-form defaults delegated to core (`empty_edit_form_seed`).
 - [x] Slice 12: admin table count-label placeholder rendering moved to core (`count_label`).
 - [x] Slice 13: storefront published-pages total count placeholder rendering moved to core (`count_label`).
+- [x] Slice 14: admin editing-banner `{id}` placeholder rendering moved to core (`label_with_id`).

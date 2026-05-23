@@ -135,6 +135,12 @@ mod tests {
     }
 
     #[test]
+    fn label_with_id_replaces_placeholder() {
+        assert_eq!(label_with_id("Editing page {id}", "page_1"), "Editing page page_1");
+    }
+
+
+    #[test]
     fn count_label_replaces_placeholder() {
         assert_eq!(count_label("{count} page(s)", 7), "7 page(s)");
     }
@@ -210,4 +216,9 @@ pub fn empty_edit_form_seed(default_locale: &str) -> EditFormSeed {
 
 pub fn count_label(template: &str, count: u64) -> String {
     template.replace("{count}", &count.to_string())
+}
+
+
+pub fn label_with_id(template: &str, id: &str) -> String {
+    template.replace("{id}", id)
 }

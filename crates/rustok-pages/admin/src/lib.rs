@@ -126,12 +126,14 @@ pub fn PagesAdmin() -> impl IntoView {
             editing_page_id
                 .get()
                 .map(|page_id| {
-                    t(
-                        locale.get().as_str().into(),
-                        "pages.form.editingBanner",
-                        "Editing page {id}",
+                    core::label_with_id(
+                        &t(
+                            locale.get().as_str().into(),
+                            "pages.form.editingBanner",
+                            "Editing page {id}",
+                        ),
+                        page_id.as_str(),
                     )
-                    .replace("{id}", page_id.as_str())
                 })
                 .unwrap_or_default()
         }
