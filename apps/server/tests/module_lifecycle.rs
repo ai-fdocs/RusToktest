@@ -689,6 +689,18 @@ async fn hook_failure_with_actor_records_failed_operation_with_actor() {
     .expect_err("disable hook failure expected");
     assert!(matches!(err, ToggleModuleError::HookFailed(_)));
 
+    let state = tenant_modules::Entity::find()
+        .filter(tenant_modules::Column::TenantId.eq(tenant_id))
+        .filter(tenant_modules::Column::ModuleSlug.eq("billing"))
+        .one(&db)
+        .await
+        .expect("load billing state")
+        .expect("billing state exists");
+    assert!(
+        state.enabled,
+        "pre-disable hook failure must keep previous committed state",
+    );
+
     let failed_operation = module_operations::Entity::find()
         .filter(module_operations::Column::TenantId.eq(tenant_id))
         .filter(module_operations::Column::ModuleSlug.eq("billing"))
