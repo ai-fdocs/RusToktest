@@ -1,0 +1,24 @@
+[package]
+name = "rustok-page-builder"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+description = "Standalone FBA-first visual page builder reference module"
+
+[features]
+default = ["server"]
+server = [
+  "dep:async-trait",
+  "dep:rustok-core",
+  "dep:sea-orm-migration",
+]
+
+[dependencies]
+async-trait = { workspace = true, optional = true }
+rustok-core = { workspace = true, optional = true }
+sea-orm-migration = { workspace = true, optional = true }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true

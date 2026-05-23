@@ -1,0 +1,11 @@
+[module]
+slug = "page_builder"
+name = "Page Builder"
+version = "0.1.0"
+description = "Standalone FBA-first visual page builder reference module"
+ownership = "first_party"
+trust_level = "verified"
+ui_classification = "none"
+
+[crate]
+entry_type = "PageBuilderModule"

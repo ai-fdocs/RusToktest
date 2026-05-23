@@ -2,11 +2,15 @@
 
 Этот документ фиксирует **отдельный план реализации** для двух связанных, но разных контуров:
 - `Tiptap`/`rt_json_v1` для rich-text сценариев blog/forum;
-- `GrapesJS`/`grapesjs_v1` для визуального Page Builder в pages.
+- `GrapesJS`/`grapesjs_v1` для визуального Page Builder как **отдельного FBA-модуля-референса** с последующей интеграцией в `pages`.
+
+Важно: в рамках перехода на FBA сначала создаётся **самостоятельный reference-модуль builder-а**, и только затем `pages` выступает как consumer этого модуля. Детали интеграции `pages` остаются в `crates/rustok-pages/docs/implementation-plan.md` (раздел `Dedicated page-builder track`), а этот документ фиксирует платформенный порядок внедрения и release-gate.
+
+В контексте перехода на FBA этот трек должен использоваться как **референсный “ideal FBA module”**: все новые шаги по `PageBuilder` проектируются в FBA-модели (capability contracts, composable lifecycle, tenant/module feature controls, observability-first), без возврата к legacy module-схеме, кроме явно помеченных compatibility-слоёв.
 
 ## 1. Цель и критерии готовности
 
-Цель: безопасно перевести rich-text admin UX blog/forum на `rt_json_v1` и довести `GrapesJS`-based `PageBuilder` для pages без деградации RBAC, publish-пайплайна, индексации и storefront-rendering.
+Цель: безопасно перевести rich-text admin UX blog/forum на `rt_json_v1`, отдельно собрать референсный FBA-модуль visual builder-а, и только после этого подключить его к `pages` без деградации RBAC, publish-пайплайна, индексации и storefront-rendering.
 
 Критерии завершения:
 - `rt_json_v1` используется как основной rich-text формат ввода в admin для blog/forum;
@@ -14,6 +18,7 @@
 - миграция legacy markdown проведена tenant-by-tenant с подтверждённым rollback-сценарием;
 - интеграционные/e2e проверки и observability release-gate пройдены;
 - feature flag переведён в `default-on` после стабилизации.
+- FBA reference-модуль builder-а прошёл pilot как независимый модульный контур до широкого включения в `pages`.
 
 ### Технологический baseline Page Builder (обязательное ограничение)
 
@@ -24,12 +29,13 @@
 ## 2. Статус фаз
 
 - [x] **Фаза 0 — Контракт и backend-baseline зафиксированы**
-- [~] **Фаза 1 — Интеграция rich-text editor'ов и Page Builder в admin runtime**
-- [ ] **Фаза 2 — Feature flags и стратегия rollout**
-- [ ] **Фаза 3 — Миграция legacy markdown → rt_json_v1**
-- [ ] **Фаза 4 — Release-gate: тесты, RBAC, observability**
-- [ ] **Фаза 5 — Pre-production smoke и pilot rollout**
-- [ ] **Фаза 6 — Default-on и пост-релизная стабилизация**
+- [ ] **Фаза 1 — Выделение FBA reference-модуля builder-а**
+- [ ] **Фаза 2 — Интеграция consumer-ов (в т.ч. `pages`) с reference-модулем**
+- [ ] **Фаза 3 — Feature flags и стратегия rollout**
+- [ ] **Фаза 4 — Миграция legacy markdown → rt_json_v1**
+- [ ] **Фаза 5 — Release-gate: тесты, RBAC, observability**
+- [ ] **Фаза 6 — Pre-production smoke и pilot rollout**
+- [ ] **Фаза 7 — Default-on и пост-релизная стабилизация**
 
 ## 3. Фазы реализации
 
@@ -44,28 +50,30 @@
 
 **Выход артефакта:** контракт готов к consumer-интеграции.
 
-### Фаза 1 — Интеграция rich-text editor'ов и Page Builder в admin runtime
+### Фаза 1 — Выделение FBA reference-модуля builder-а
+
+**Статус:** [ ] Todo
+
+- [ ] Создать самостоятельный FBA reference-модуль builder-а (без жёсткой привязки к `pages` как owner-контексту).
+- [ ] Зафиксировать capability-contracts (`preview/tree/properties/publish`) и lifecycle hooks reference-модуля.
+- [ ] Подготовить module health contract + observability baseline для reference-модуля.
+- [ ] Определить compatibility-периметр legacy payload-ов как временный слой и зафиксировать sunset criteria.
+- [ ] Выровнять contract parity для Next/Leptos/Flutter как consumer-ов reference-модуля.
+
+**DoD фазы:** reference-модуль способен жить и катиться независимо, а `pages` и другие контуры подключаются к нему как consumer-ы по стабильному FBA-контракту.
+
+### Фаза 2 — Интеграция consumer-ов (в т.ч. `pages`) с reference-модулем
 
 **Статус:** [~] In progress
 
 - [x] Подключить `RtJsonEditor` в production CRUD-flow blog.
 - [x] Подключить `ForumReplyEditor` в production CRUD-flow forum.
-- [x] Подключить `PageBuilder` в production CRUD-flow pages.
-- [x] Собрать минимальные каркасы page-builder surfaces для `apps/admin` (Leptos) и Flutter-host (preview/tree/properties/publish) поверх единого backend-контракта и FFA-parity discipline (same capability contract, разная host-реализация).
-- [x] Зафиксировать parity-план для двух стеков: `apps/next-admin` и `apps/admin`.
+- [x] Подключить `PageBuilder` surfaces в `pages`-flow как consumer-контур.
+- [x] Зафиксировать parity-план для `apps/next-admin` и `apps/admin` на уровне capability-contract.
 - [x] Выровнять UX-обработку validation/sanitize ошибок в формах.
-- [x] Синхронизировать milestone-dependency с Flutter registry/codegen планом (`docs/research/flutter.md`, секция anti-drift guardrail), чтобы mobile host не расходился с backend/page-builder rollout.
-- [x] Проверить, что FFA-baseline для Flutter закреплён уже в `Phase 0 — Foundation` (`docs/research/flutter.md`) и не откладывается до поздних фаз builder-интеграции.
+- [x] Синхронизировать dependency с Flutter registry/codegen планом (`docs/research/flutter.md`, anti-drift guardrail).
 
-Текущее состояние `apps/next-admin`: production-формы blog и forum снова используют реальный Tiptap-based editor, а сериализация в write-path идёт в канонический payload `rt_json_v1` (`version` / `locale` / `doc`) без textarea-fallback в основном UX. `PageBuilder` переведён на реальный `GrapesJS` runtime, сохраняет `projectData` в body-формат `grapesjs_v1`, работает с реальным выбором страниц и оставляет legacy `blocks` как отдельную migration-compatible поверхность. Для `pages` compatibility rules теперь зафиксированы явно: `body` считается приоритетным payload для visual-builder consumer-ов, но legacy block-driven pages могут оставаться без `body`, а запись `body` не удаляет старые `blocks` автоматически.
-
-Отдельный детальный план по `pages` как модулю ведётся в `crates/rustok-pages/docs/implementation-plan.md` в секции `Dedicated page-builder track`, чтобы rollout visual builder не смешивался ни с OAuth/app-registration, ни с rich-text задачами blog/forum.
-
-Апдейт фазы 1 (2026-05-23): `rustok-pages-admin` в `apps/admin` теперь держит минимальные capability surfaces `preview/tree/properties/publish` поверх существующего backend-контракта `grapesjs_v1`, без vendor-specific API. Для rich/page-builder write-path в Leptos зафиксирован единый UX-паттерн ошибок (`validation/sanitize/runtime`) с одинаковой семантикой алертов в blog/pages формах.
-
-Parity-план между `apps/next-admin` и `apps/admin` закреплён как capability-first: обязательный слой parity — contract-level (`grapesjs_v1`, publish flow, compatibility с legacy blocks/body), host-specific отличия допускаются только в presentation/layout и локальных UX-деталях без изменения backend payload contract.
-
-**DoD фазы:** все целевые формы работают через компонентные редакторы, без ручного markdown-only fallback в основном UX.
+**DoD фазы:** `pages` и соседние контуры не владеют builder-доменом напрямую, а используют reference-модуль через стабильный контракт.
 
 ### Cross-plan dependency note (обязательно для hand-off)
 
@@ -75,7 +83,7 @@ Parity-план между `apps/next-admin` и `apps/admin` закреплён 
   - текущим документом;
   - `crates/rustok-pages/docs/implementation-plan.md`.
 
-### Фаза 2 — Feature flags и стратегия rollout
+### Фаза 3 — Feature flags и стратегия rollout
 
 **Статус:** [ ] Todo
 
@@ -84,10 +92,11 @@ Parity-план между `apps/next-admin` и `apps/admin` закреплён 
 - [ ] Подготовить матрицу включения/исключения по tenant и модулю.
 - [ ] Согласовать операционный runbook переключений.
 - [ ] Зафиксировать baseline-only rollout: OSS GrapesJS + vendor-neutral `grapesjs_v1` contract без расширения platform-контракта под вендор-специфику.
+- [ ] Зафиксировать FBA governance-профиль для `rustok-pages` как reference-модуля: capability boundaries, control-plane hooks, module health contract, ownership SLA.
 
 **DoD фазы:** controlled rollout возможен без redeploy.
 
-### Фаза 3 — Миграция legacy markdown → rt_json_v1
+### Фаза 4 — Миграция legacy markdown → rt_json_v1
 
 **Статус:** [ ] Todo
 
@@ -98,7 +107,7 @@ Parity-план между `apps/next-admin` и `apps/admin` закреплён 
 
 **DoD фазы:** целевые tenant-группы мигрированы, rollback протестирован процедурно.
 
-### Фаза 4 — Release-gate: тесты, RBAC, observability
+### Фаза 5 — Release-gate: тесты, RBAC, observability
 
 **Статус:** [ ] Todo
 
@@ -109,7 +118,7 @@ Parity-план между `apps/next-admin` и `apps/admin` закреплён 
 
 **DoD фазы:** release-gate формализован и выполняется автоматически.
 
-### Фаза 5 — Pre-production smoke и pilot rollout
+### Фаза 6 — Pre-production smoke и pilot rollout
 
 **Статус:** [ ] Todo
 
@@ -120,7 +129,7 @@ Parity-план между `apps/next-admin` и `apps/admin` закреплён 
 
 **DoD фазы:** pilot подтверждает стабильность и прогнозируемое поведение.
 
-### Фаза 6 — Default-on и пост-релизная стабилизация
+### Фаза 7 — Default-on и пост-релизная стабилизация
 
 **Статус:** [ ] Todo
 
@@ -138,3 +147,19 @@ Parity-план между `apps/next-admin` и `apps/admin` закреплён 
 - `apps/admin/docs/implementation-plan.md` — интеграция admin runtime (Leptos).
 - `apps/storefront/docs/implementation-plan.md` и `apps/next-frontend/docs/implementation-plan.md` — rendering parity и rollout storefront.
 - `docs/architecture/api.md` и `docs/standards/rt-json-v1.md` — контракт rich-text/page-builder payload.
+
+## 5. Модульный фокус: почему Page Builder — центральный контур
+
+- `blog/forum` в этом плане — rich-text consumers (`rt_json_v1`), а не владельцы визуального builder-домена.
+- Визуальный builder-домен сначала живёт как отдельный FBA reference-модуль; `pages` подключается позже как consumer этого домена.
+- Любой следующий phase-gate по builder (`feature flags`, `pilot`, `default-on`) считается незавершённым без явного статуса сначала по reference-модулю, затем по интеграции `pages`.
+
+## 6. FBA reference-module policy для builder-модуля
+
+Чтобы не продолжать реализацию “по старой схеме”, отдельный builder-модуль фиксируется как эталонный модуль перехода на FBA:
+
+- **FBA-first delivery:** новые изменения в Page Builder сначала проектируются в терминах FBA contracts/capabilities и только затем отображаются в конкретные host/runtime реализации.
+- **Explicit compatibility perimeter:** legacy (`markdown`, block-driven pages) поддерживается только как временный compatibility layer с явным sunset-планом и метриками снятия зависимости.
+- **Control-plane alignment:** rollout, enable/disable, retry/compensation и health-check сценарии должны идти через стандартные lifecycle/mechanism-практики FBA, а не через ad-hoc module toggles.
+- **Parity by contract, not by framework:** parity между Next/Leptos/Flutter контролируется через единый capability contract (`grapesjs_v1` + publish semantics), а не требованием UI 1:1.
+- **Reference outcome:** после стабилизации этот модуль используется как шаблон для остальных FBA-миграций (content-подобные и layout-driven домены).

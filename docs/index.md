@@ -32,6 +32,7 @@
 - [Контракт `rustok-module.toml`](./modules/manifest.md)
 - [Реестр модулей и приложений](./modules/registry.md)
 - [Реестр crate-ов модульной платформы](./modules/crates-registry.md)
+- [Runtime-контракт `rustok-page-builder`](../crates/rustok-page-builder/docs/README.md)
 - [Индекс документации по модулям](./modules/_index.md)
 - [Реестр implementation plans](./modules/implementation-plans-registry.md)
 - [Шаблон документации модуля](./templates/module_contract.md)

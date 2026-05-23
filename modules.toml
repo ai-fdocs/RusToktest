@@ -59,6 +59,7 @@ blog = { crate = "rustok-blog", source = "path", path = "crates/rustok-blog", de
 forum = { crate = "rustok-forum", source = "path", path = "crates/rustok-forum", depends_on = ["content", "taxonomy"] }
 comments = { crate = "rustok-comments", source = "path", path = "crates/rustok-comments" }
 pages = { crate = "rustok-pages", source = "path", path = "crates/rustok-pages", depends_on = ["content"] }
+page_builder = { crate = "rustok-page-builder", source = "path", path = "crates/rustok-page-builder" }
 taxonomy = { crate = "rustok-taxonomy", source = "path", path = "crates/rustok-taxonomy", depends_on = ["content"] }
 media = { crate = "rustok-media", source = "path", path = "crates/rustok-media" }
 seo = { crate = "rustok-seo", source = "path", path = "crates/rustok-seo", depends_on = ["content"] }

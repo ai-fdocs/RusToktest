@@ -88,6 +88,7 @@ graph TD
         FORUM["rustok-forum"]
         COMMENTS["rustok-comments"]
         PAGES["rustok-pages"]
+        PAGE_BUILDER["rustok-page-builder"]
         SEO["rustok-seo"]
         TAXONOMY["rustok-taxonomy"]
         MEDIA["rustok-media"]
@@ -134,6 +135,7 @@ graph TD
     SERVER --> FORUM
     SERVER --> COMMENTS
     SERVER --> PAGES
+    SERVER --> PAGE_BUILDER
     SERVER --> SEO
     SERVER --> TAXONOMY
     SERVER --> MEDIA
@@ -207,6 +209,7 @@ graph TD
 | `forum` | `rustok-forum` | `content`, `taxonomy` | Forum domain, topics, replies, moderation, transport/UI |
 | `comments` | `rustok-comments` | — | Generic comments domain |
 | `pages` | `rustok-pages` | `content` | Pages, menus, page-builder surfaces |
+| `page_builder` | `rustok-page-builder` | — | Standalone FBA reference module for visual builder capabilities (`preview/tree/properties/publish`) |
 | `seo` | `rustok-seo` | `content` | Tenant-aware SEO runtime: explicit metadata overrides, template-generated SEO, bulk remediation modes, redirects, sitemap/robots generation, diagnostics/readiness scoring, shared SEO capability contracts, cross-cutting SEO infrastructure UI, storefront-facing SSR page context and headless REST read path `/api/seo/page-context`; entity SEO authoring belongs to owner modules |
 | `taxonomy` | `rustok-taxonomy` | `content` | Shared vocabulary/dictionary layer |
 | `media` | `rustok-media` | — | Media lifecycle, upload, storage-facing API |
