@@ -1145,6 +1145,11 @@ _Легенда статусов: `⬜ Planned` — не начато, `🟡 In 
 - Flutter-план для registry/codegen и module surfaces **зависит** от выполнения backend/page-builder этапов в:
   - `docs/modules/tiptap-page-builder-implementation-plan.md`;
   - `crates/rustok-pages/docs/implementation-plan.md` (Dedicated page-builder track).
+- Flutter host, базовый app shell и module-owned mobile UI пакеты нужно развивать в логике FFA (один product contract при разных runtime/topology), но **без** Flutter-специфичных API-контрактов поверх платформы.
+- Для практики это означает:
+  - Flutter держит минимальные contract-safe каркасы (`preview/tree/properties/publish`) и registry wiring;
+  - canonical правила builder/state/validation/RBAC остаются на backend и в общем page-builder плане;
+  - parity проверяется по capability и data-contract, а не по буквальному UI-клону Leptos/Next.
 - Если в мобильном host добавить routing/registry под page-builder раньше, чем зафиксированы backend contract + parity для admin-стеков, появится drift:
   - расхождение surface metadata;
   - нестабильные GraphQL payload/contracts;
@@ -1152,6 +1157,7 @@ _Легенда статусов: `⬜ Planned` — не начато, `🟡 In 
 - Поэтому при каждом PR по Flutter registry/module contracts агент должен явно отмечать:
   1) что уже закрыто в backend/page-builder плане;
   2) какой следующий шаг **заблокирован** до закрытия пунктов в `tiptap-page-builder-implementation-plan.md` и `rustok-pages` плане.
+
 
 Ниже — то, что в постановке **не указано**, поэтому в отчёте я дал только разумные варианты, а не жёсткие требования:
 

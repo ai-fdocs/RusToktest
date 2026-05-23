@@ -51,7 +51,7 @@
 - [x] Подключить `RtJsonEditor` в production CRUD-flow blog.
 - [x] Подключить `ForumReplyEditor` в production CRUD-flow forum.
 - [x] Подключить `PageBuilder` в production CRUD-flow pages.
-- [ ] Собрать минимальные каркасы page-builder surfaces для `apps/admin` (Leptos) и Flutter-host (preview/tree/properties/publish) поверх единого backend-контракта.
+- [ ] Собрать минимальные каркасы page-builder surfaces для `apps/admin` (Leptos) и Flutter-host (preview/tree/properties/publish) поверх единого backend-контракта и FFA-parity discipline (same capability contract, разная host-реализация).
 - [ ] Зафиксировать parity-план для двух стеков: `apps/next-admin` и `apps/admin`.
 - [ ] Выровнять UX-обработку validation/sanitize ошибок в формах.
 - [ ] Синхронизировать milestone-dependency с Flutter registry/codegen планом (`docs/research/flutter.md`, секция anti-drift guardrail), чтобы mobile host не расходился с backend/page-builder rollout.
