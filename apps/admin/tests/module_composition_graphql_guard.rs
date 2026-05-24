@@ -291,6 +291,38 @@ fn module_composition_helpers_do_not_parse_lifecycle_operation_status_taxonomy()
 }
 
 #[test]
+fn module_composition_helpers_do_not_parse_manifest_ref_or_revision_contract() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    let manifest_contract_fragments = [
+        "manifest_ref",
+        "platform_state:",
+        "manifest_revision",
+        "expected_revision",
+        "revision",
+    ];
+
+    for signature in [
+        "pub async fn install_module(",
+        "pub async fn uninstall_module(",
+        "pub async fn upgrade_module(",
+        "pub async fn toggle_module(",
+    ] {
+        let helper_body = extract_function_block(&content, signature)
+            .unwrap_or_else(|| panic!("helper signature not found: {signature}"));
+
+        for fragment in manifest_contract_fragments {
+            assert!(
+                !helper_body.contains(fragment),
+                "{signature} must not parse server-owned manifest contract fragment `{fragment}`"
+            );
+        }
+    }
+}
+
+#[test]
 fn module_composition_helpers_do_not_cross_wire_foreign_mutation_contracts() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let api_path = crate_root.join("src/features/modules/api.rs");
