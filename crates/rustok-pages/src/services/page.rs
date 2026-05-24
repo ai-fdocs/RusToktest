@@ -25,6 +25,7 @@ use crate::entities::{page, page_body, page_channel_visibility, page_translation
 use crate::error::{PagesError, PagesResult};
 use crate::services::rbac::{can_read_non_public_pages, enforce_owned_scope, enforce_scope};
 use crate::services::BlockService;
+use rustok_tenant::entities::tenant_module;
 
 const PAGE_KIND: &str = "page";
 const PLATFORM_FALLBACK_LOCALE: &str = "en";
@@ -77,6 +78,7 @@ impl PageService {
         enforce_scope(&security, Resource::Pages, Action::Create)?;
         if input.publish {
             enforce_scope(&security, Resource::Pages, Action::Publish)?;
+            self.ensure_builder_publish_enabled(tenant_id).await?;
         }
         validate_page_translations(&input.translations)?;
         let template = input
@@ -394,6 +396,12 @@ impl PageService {
         )?;
         if input.status.is_some() {
             enforce_scope(&security, Resource::Pages, Action::Publish)?;
+            if matches!(
+                input.status,
+                Some(rustok_content::entities::node::ContentStatus::Published)
+            ) {
+                self.ensure_builder_publish_enabled(tenant_id).await?;
+            }
         }
         if let Some(ref translations) = input.translations {
             validate_page_translations(translations)?;
@@ -491,6 +499,7 @@ impl PageService {
         security: SecurityContext,
         page_id: Uuid,
     ) -> PagesResult<PageResponse> {
+        self.ensure_builder_publish_enabled(tenant_id).await?;
         self.set_status(
             tenant_id,
             security,
@@ -612,6 +621,24 @@ impl PageService {
         }
         txn.commit().await?;
         self.get(tenant_id, security, page_id).await
+    }
+
+    async fn ensure_builder_publish_enabled(&self, tenant_id: Uuid) -> PagesResult<()> {
+        let module = tenant_module::Entity::find()
+            .filter(tenant_module::Column::TenantId.eq(tenant_id))
+            .filter(tenant_module::Column::ModuleSlug.eq("pages"))
+            .one(&self.db)
+            .await?;
+        let enabled = module
+            .as_ref()
+            .map(|m| is_builder_publish_enabled(&m.settings))
+            .unwrap_or(true);
+        if !enabled {
+            return Err(PagesError::validation(
+                "feature-disabled: builder.publish.enabled=false",
+            ));
+        }
+        Ok(())
     }
 
     async fn find_page(&self, tenant_id: Uuid, page_id: Uuid) -> PagesResult<page::Model> {
@@ -937,6 +964,15 @@ fn normalize_slug(value: &str) -> String {
     normalized.trim_matches('-').to_string()
 }
 
+fn is_builder_publish_enabled(settings: &serde_json::Value) -> bool {
+    settings
+        .get("builder")
+        .and_then(|builder| builder.get("publish"))
+        .and_then(|publish| publish.get("enabled"))
+        .and_then(serde_json::Value::as_bool)
+        .unwrap_or(true)
+}
+
 fn resolve_translation_record<'a>(
     translations: &'a [page_translation::Model],
     requested: &str,
@@ -1163,5 +1199,23 @@ mod tests {
         assert!(is_page_visible_for_channel(&channel_slugs, Some("web")));
         assert!(!is_page_visible_for_channel(&channel_slugs, Some("blog")));
         assert!(!is_page_visible_for_channel(&channel_slugs, None));
+    }
+
+    #[test]
+    fn builder_publish_enabled_defaults_to_true() {
+        assert!(is_builder_publish_enabled(&serde_json::json!({})));
+        assert!(is_builder_publish_enabled(&serde_json::json!({
+            "builder": {}
+        })));
+    }
+
+    #[test]
+    fn builder_publish_enabled_reads_nested_flag() {
+        assert!(!is_builder_publish_enabled(&serde_json::json!({
+            "builder": { "publish": { "enabled": false } }
+        })));
+        assert!(is_builder_publish_enabled(&serde_json::json!({
+            "builder": { "publish": { "enabled": true } }
+        })));
     }
 }
