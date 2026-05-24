@@ -50,10 +50,7 @@ impl SitemapSubmissionSummary {
 
 #[async_trait::async_trait]
 trait SitemapSubmissionAdapter: Send + Sync {
-    async fn submit_sitemap_index(
-        &self,
-        endpoint: SitemapSubmitEndpoint,
-    ) -> Result<(), String>;
+    async fn submit_sitemap_index(&self, endpoint: SitemapSubmitEndpoint) -> Result<(), String>;
 }
 
 struct HttpSitemapSubmissionAdapter {
@@ -62,10 +59,7 @@ struct HttpSitemapSubmissionAdapter {
 
 #[async_trait::async_trait]
 impl SitemapSubmissionAdapter for HttpSitemapSubmissionAdapter {
-    async fn submit_sitemap_index(
-        &self,
-        endpoint: SitemapSubmitEndpoint,
-    ) -> Result<(), String> {
+    async fn submit_sitemap_index(&self, endpoint: SitemapSubmitEndpoint) -> Result<(), String> {
         let response = self
             .client
             .get(endpoint.request_url)
@@ -369,7 +363,9 @@ impl SeoService {
             let Some(url) = build_sitemap_submission_url(endpoint.as_str(), sitemap_index_url)
             else {
                 summary.failure_count += 1;
-                summary.failures.push(format!("invalid endpoint: {endpoint}"));
+                summary
+                    .failures
+                    .push(format!("invalid endpoint: {endpoint}"));
                 continue;
             };
             let request = SitemapSubmitEndpoint {
@@ -468,8 +464,8 @@ fn build_sitemap_submission_url(endpoint: &str, sitemap_index_url: &str) -> Opti
         return None;
     }
     if normalized.contains("{sitemap_url}") {
-        let encoded: String = url::form_urlencoded::byte_serialize(sitemap_index_url.as_bytes())
-            .collect();
+        let encoded: String =
+            url::form_urlencoded::byte_serialize(sitemap_index_url.as_bytes()).collect();
         let replaced = normalized.replace("{sitemap_url}", encoded.as_str());
         let parsed = Url::parse(replaced.as_str()).ok()?;
         if !matches!(parsed.scheme(), "http" | "https") {
@@ -516,7 +512,10 @@ pub(super) fn normalize_sitemap_submission_endpoints(values: &[String]) -> Vec<S
 
 #[cfg(test)]
 mod tests {
-    use super::{normalize_sitemap_submission_endpoints, render_robots_body, SitemapSubmissionAdapter, SitemapSubmitEndpoint, SitemapSubmissionSummary};
+    use super::{
+        normalize_sitemap_submission_endpoints, render_robots_body, SitemapSubmissionAdapter,
+        SitemapSubmissionSummary, SitemapSubmitEndpoint,
+    };
     use crate::SeoService;
     use rustok_api::TenantContext;
     use rustok_tenant::entities::tenant_module;
@@ -748,8 +747,10 @@ mod tests {
             "https://example.com/ping?sitemap=https://preset.example.com/sitemap.xml"
         );
 
-        let invalid_scheme =
-            super::build_sitemap_submission_url("ftp://example.com/ping", "https://store.example.com/sitemap.xml");
+        let invalid_scheme = super::build_sitemap_submission_url(
+            "ftp://example.com/ping",
+            "https://store.example.com/sitemap.xml",
+        );
         assert!(invalid_scheme.is_none());
     }
 
@@ -808,6 +809,31 @@ mod tests {
     }
 
     #[tokio::test]
+    async fn submit_sitemap_endpoints_all_success_returns_ok() {
+        let db = test_db().await;
+        let service = SeoService::new_memory(db);
+        let adapter = TestSitemapSubmissionAdapter {
+            outcomes: Arc::new(Mutex::new(HashMap::from([
+                ("https://ok-1.example.com/ping".to_string(), Ok(())),
+                ("https://ok-2.example.com/ping".to_string(), Ok(())),
+            ]))),
+        };
+
+        let result = service
+            .submit_sitemap_endpoints_with_adapter(
+                &[
+                    "https://ok-1.example.com/ping".to_string(),
+                    "https://ok-2.example.com/ping".to_string(),
+                ],
+                "https://store.example.com/sitemap.xml",
+                &adapter,
+            )
+            .await;
+
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
     async fn submit_sitemap_endpoints_reports_success_failure_and_invalid() {
         let db = test_db().await;
         let service = SeoService::new_memory(db);
@@ -838,7 +864,9 @@ mod tests {
 
         let message = result.expect_err("must return aggregate error");
         assert!(message.contains("1 success(es) and 2 failure(s)"));
-        assert!(message.contains("endpoint `https://fail.example.com/ping` responded with status 500"));
+        assert!(
+            message.contains("endpoint `https://fail.example.com/ping` responded with status 500")
+        );
         assert!(message.contains("invalid endpoint: invalid endpoint"));
     }
 
