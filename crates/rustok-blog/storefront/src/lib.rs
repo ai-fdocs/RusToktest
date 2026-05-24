@@ -177,9 +177,7 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
             </div>
             <p class="mt-3 text-sm text-muted-foreground">{excerpt}</p>
             <p class="mt-4 whitespace-pre-line text-sm leading-7 text-muted-foreground">{body}</p>
-            {if !core::has_items(tags.as_slice()) {
-                ().into_any()
-            } else {
+            {if let Some(tags) = core::selected_post_tag_items(tags) {
                 view! {
                     <div class="mt-5 flex flex-wrap gap-2">
                         {tags
@@ -195,6 +193,8 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
                     </div>
                 }
                 .into_any()
+            } else {
+                ().into_any()
             }}
         </article>
     }

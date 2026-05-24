@@ -227,6 +227,14 @@ pub fn status_badge_view(status: String, unknown_label: &str) -> (String, &'stat
     status_presentation(status.as_str(), unknown_label)
 }
 
+pub fn selected_post_tag_items(tags: Vec<String>) -> Option<Vec<String>> {
+    if has_items(tags.as_slice()) {
+        Some(tags)
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -463,6 +471,15 @@ mod tests {
         assert_eq!(
             css,
             "inline-flex rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground"
+        );
+    }
+
+    #[test]
+    fn selected_post_tag_items_filters_empty_vectors() {
+        assert_eq!(selected_post_tag_items(vec![]), None);
+        assert_eq!(
+            selected_post_tag_items(vec!["news".to_string(), "release".to_string()]),
+            Some(vec!["news".to_string(), "release".to_string()])
         );
     }
 }
