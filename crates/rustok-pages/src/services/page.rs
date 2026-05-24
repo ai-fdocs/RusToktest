@@ -23,7 +23,8 @@ use rustok_outbox::TransactionalEventBus;
 use crate::dto::*;
 use crate::entities::{page, page_body, page_channel_visibility, page_translation};
 use crate::error::{
-    PagesError, PagesResult, FEATURE_BUILDER_ENABLED, FEATURE_BUILDER_PUBLISH_ENABLED,
+    PagesError, PagesResult, FEATURE_BUILDER_ENABLED, FEATURE_BUILDER_PREVIEW_ENABLED,
+    FEATURE_BUILDER_PROPERTIES_ENABLED, FEATURE_BUILDER_PUBLISH_ENABLED,
 };
 use crate::services::rbac::{can_read_non_public_pages, enforce_owned_scope, enforce_scope};
 use crate::services::BlockService;
@@ -552,6 +553,35 @@ impl PageService {
             }),
         )
         .await
+    }
+
+    #[instrument(skip(self))]
+    pub async fn ensure_builder_preview_enabled_for_tenant(&self, tenant_id: Uuid) -> PagesResult<()> {
+        let module = self.load_tenant_pages_module(tenant_id).await?;
+        let enabled = module
+            .as_ref()
+            .map(|m| is_builder_preview_enabled(&m.settings))
+            .unwrap_or(true);
+        if !enabled {
+            return Err(PagesError::feature_disabled(FEATURE_BUILDER_PREVIEW_ENABLED));
+        }
+        Ok(())
+    }
+
+    #[instrument(skip(self))]
+    pub async fn ensure_builder_properties_enabled_for_tenant(
+        &self,
+        tenant_id: Uuid,
+    ) -> PagesResult<()> {
+        let module = self.load_tenant_pages_module(tenant_id).await?;
+        let enabled = module
+            .as_ref()
+            .map(|m| is_builder_properties_enabled(&m.settings))
+            .unwrap_or(true);
+        if !enabled {
+            return Err(PagesError::feature_disabled(FEATURE_BUILDER_PROPERTIES_ENABLED));
+        }
+        Ok(())
     }
 
     pub async fn delete(

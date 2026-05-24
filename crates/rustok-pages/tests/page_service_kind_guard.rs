@@ -4,7 +4,8 @@ use rustok_pages::dto::{
     UpdatePageInput,
 };
 use rustok_pages::error::{
-    PagesError, FEATURE_BUILDER_ENABLED, FEATURE_BUILDER_PUBLISH_ENABLED,
+    PagesError, FEATURE_BUILDER_ENABLED, FEATURE_BUILDER_PREVIEW_ENABLED,
+    FEATURE_BUILDER_PROPERTIES_ENABLED, FEATURE_BUILDER_PUBLISH_ENABLED,
 };
 use rustok_pages::services::{BlockService, PageService};
 use rustok_pages::PagesModule;
@@ -710,4 +711,42 @@ async fn publish_forbidden_user_gets_forbidden_before_builder_toggle_errors() {
         .await;
 
     assert!(matches!(result, Err(PagesError::Forbidden(_))));
+}
+
+#[tokio::test]
+async fn preview_capability_returns_feature_disabled_when_preview_toggle_is_false() {
+    let (db, page_service, _block_service, tenant_id, _security) = setup().await;
+    seed_pages_module_settings(
+        &db,
+        tenant_id,
+        "{\"builder\":{\"enabled\":true,\"preview\":{\"enabled\":false}}}",
+    )
+    .await;
+
+    let result = page_service
+        .ensure_builder_preview_enabled_for_tenant(tenant_id)
+        .await;
+    assert!(matches!(
+        result,
+        Err(PagesError::FeatureDisabled { feature }) if feature == FEATURE_BUILDER_PREVIEW_ENABLED
+    ));
+}
+
+#[tokio::test]
+async fn properties_capability_returns_feature_disabled_when_properties_toggle_is_false() {
+    let (db, page_service, _block_service, tenant_id, _security) = setup().await;
+    seed_pages_module_settings(
+        &db,
+        tenant_id,
+        "{\"builder\":{\"enabled\":true,\"properties\":{\"enabled\":false}}}",
+    )
+    .await;
+
+    let result = page_service
+        .ensure_builder_properties_enabled_for_tenant(tenant_id)
+        .await;
+    assert!(matches!(
+        result,
+        Err(PagesError::FeatureDisabled { feature }) if feature == FEATURE_BUILDER_PROPERTIES_ENABLED
+    ));
 }
