@@ -1124,6 +1124,36 @@ mod tests {
     }
 
 
+
+    #[test]
+    fn submission_summary_truncation_handles_unicode_without_panics() {
+        let mut summary = SitemapSubmissionSummary {
+            success_count: 0,
+            failure_count: 1,
+            failures: Vec::new(),
+            omitted_failure_count: 0,
+            endpoint_statuses: Vec::new(),
+            omitted_endpoint_status_count: 0,
+        };
+
+        push_submission_failure(
+            &mut summary,
+            format!("ошибка endpoint: {}", "Ж".repeat(300)),
+        );
+        super::push_endpoint_status(
+            &mut summary,
+            format!("ok endpoint `{}`", "путь/".repeat(200)),
+        );
+
+        assert_eq!(summary.failures.len(), 1);
+        assert!(summary.failures[0].ends_with("..."));
+        assert!(std::str::from_utf8(summary.failures[0].as_bytes()).is_ok());
+
+        assert_eq!(summary.endpoint_statuses.len(), 1);
+        assert!(summary.endpoint_statuses[0].ends_with("..."));
+        assert!(std::str::from_utf8(summary.endpoint_statuses[0].as_bytes()).is_ok());
+    }
+
     #[test]
     fn submission_summary_truncates_endpoint_status_entries_deterministically() {
         let mut summary = SitemapSubmissionSummary {

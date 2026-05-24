@@ -55,20 +55,30 @@ pub(super) fn push_endpoint_status(summary: &mut SitemapSubmissionSummary, statu
     }
 }
 
-fn truncate_detail(mut value: String) -> String {
-    if value.len() <= SITEMAP_SUBMIT_MAX_FAILURE_DETAIL_LEN {
-        return value;
-    }
-    value.truncate(SITEMAP_SUBMIT_MAX_FAILURE_DETAIL_LEN);
-    value.push_str("...");
-    value
+fn truncate_detail(value: String) -> String {
+    truncate_with_ellipsis(value, SITEMAP_SUBMIT_MAX_FAILURE_DETAIL_LEN)
 }
 
-fn truncate_endpoint_status(mut value: String) -> String {
-    if value.len() <= SITEMAP_SUBMIT_MAX_ENDPOINT_STATUS_LEN {
+fn truncate_endpoint_status(value: String) -> String {
+    truncate_with_ellipsis(value, SITEMAP_SUBMIT_MAX_ENDPOINT_STATUS_LEN)
+}
+
+fn truncate_with_ellipsis(mut value: String, max_bytes: usize) -> String {
+    if value.len() <= max_bytes {
         return value;
     }
-    value.truncate(SITEMAP_SUBMIT_MAX_ENDPOINT_STATUS_LEN);
+    let mut cut = 0usize;
+    for (idx, _) in value.char_indices() {
+        if idx > max_bytes {
+            break;
+        }
+        cut = idx;
+    }
+    if cut == 0 {
+        value.clear();
+    } else {
+        value.truncate(cut);
+    }
     value.push_str("...");
     value
 }
