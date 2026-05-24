@@ -220,6 +220,10 @@ pub fn issue_kind_label(kind: WritePathIssueKind) -> &'static str {
     }
 }
 
+pub fn issue_label_for(issue: &WritePathIssue) -> &'static str {
+    issue_kind_label(issue.kind)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -371,6 +375,10 @@ mod tests {
         );
         assert_eq!(issue_banner_class_or_hidden(None), "hidden");
         assert_eq!(issue_kind_label(WritePathIssueKind::Runtime), "Runtime");
+        assert_eq!(
+            issue_label_for(&WritePathIssue::with_runtime("runtime issue")),
+            "Runtime"
+        );
     }
 }
 use rustok_api::{WritePathIssue, WritePathIssueKind};

@@ -721,7 +721,7 @@ pub fn BlogAdmin() -> impl IntoView {
                             }>
                                 {move || {
                                     submit_error.get().map(|issue| {
-                                        let label = core::issue_kind_label(issue.kind);
+                                        let label = core::issue_label_for(&issue);
 
                                         view! {
                                             <span>
