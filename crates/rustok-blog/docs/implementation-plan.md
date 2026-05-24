@@ -8,14 +8,14 @@ packages и module metadata синхронизированы.
 ## Execution checkpoint
 
 - Current phase: phase_b_in_progress
-- Last checkpoint: FFA storefront slice #1 completed (core formatting/fallback helpers extracted, dual-path transport unchanged).
+- Last checkpoint: FFA slice #2 completed (admin submit-error banner class fallback moved to `core`, dual-path transport unchanged).
 - Next step: Зафиксировать evidence по parity checklist и выбрать следующий один use-case для admin/storefront core extraction без изменения transport-контракта.
 - Open blockers: None.
 - Hand-off notes for next agent:
   1. Продолжать one-task-per-iteration: один helper/use-case -> storefront/admin -> docs double-check.
   2. Не менять dual-path контракт (`native #[server]` + GraphQL fallback) при FFA-декомпозиции.
   3. После каждого slice обновлять parity evidence (`docs/verification/ffa-ui-parity-checklist.md`).
-- Last updated at (UTC): 2026-05-24T00:00:00Z
+- Last updated at (UTC): 2026-05-24T10:30:00Z
 
 ## Область работ
 
@@ -113,6 +113,7 @@ packages и module metadata синхронизированы.
 - [x] Slice 1: storefront formatting/fallback helper extraction (`fallback_text`, `count_label`, `open_link_label`, `label_value_pair`, `error_with_context`, `summarize_content`, `module_href`, fallback wrappers).
 - [x] `crates/rustok-blog/storefront/src/lib.rs` переведён на `core::*` helper-слой для выбранного use-case.
 - [x] Dual-path transport contract preserved (`native #[server]` + GraphQL fallback).
+- [x] Slice 2: admin submit-error banner class fallback moved to core (`issue_banner_class_or_hidden`) without changing transport path.
 - [ ] Sync admin surface for the same helper family where applicable and attach parity evidence.
 - [ ] `cargo xtask module validate blog` / `cargo xtask module test blog` rerun after next slice touching runtime contract.
 

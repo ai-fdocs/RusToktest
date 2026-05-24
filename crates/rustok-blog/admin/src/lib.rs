@@ -704,11 +704,9 @@ pub fn BlogAdmin() -> impl IntoView {
 
                         <Show when=move || submit_error.get().is_some()>
                             <div class=move || {
-                                submit_error
-                                    .get()
-                                    .as_ref()
-                                    .map(|issue| core::issue_banner_class(issue.kind))
-                                    .unwrap_or("hidden")
+                                core::issue_banner_class_or_hidden(
+                                    submit_error.get().as_ref().map(|issue| issue.kind),
+                                )
                             }>
                                 {move || {
                                     submit_error.get().map(|issue| {

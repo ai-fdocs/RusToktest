@@ -156,6 +156,10 @@ pub fn issue_banner_class(kind: WritePathIssueKind) -> &'static str {
     }
 }
 
+pub fn issue_banner_class_or_hidden(kind: Option<WritePathIssueKind>) -> &'static str {
+    kind.map(issue_banner_class).unwrap_or("hidden")
+}
+
 pub fn issue_kind_label(kind: WritePathIssueKind) -> &'static str {
     match kind {
         WritePathIssueKind::Validation => "Validation",
@@ -272,6 +276,11 @@ mod tests {
             issue_banner_class(WritePathIssueKind::Validation),
             "rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900"
         );
+        assert_eq!(
+            issue_banner_class_or_hidden(Some(WritePathIssueKind::Runtime)),
+            "rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        );
+        assert_eq!(issue_banner_class_or_hidden(None), "hidden");
         assert_eq!(issue_kind_label(WritePathIssueKind::Runtime), "Runtime");
     }
 }
