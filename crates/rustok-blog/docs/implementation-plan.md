@@ -132,6 +132,7 @@ packages и module metadata синхронизированы.
 - [x] Slice 18: admin optional text default mapping switched from inline `unwrap_or_default()` to `core::optional_text_or_default`.
 - [x] Slice 19: admin tags input formatting switched from inline `post.tags.join(\", \")` to `core::tags_input_value`.
 - [x] Slice 20: admin submit-button state selection moved to core (`submit_button_state` + `SubmitButtonState`) to keep UI as thin label mapper.
+- [x] Slice 21: admin selected-post effect branch switched to `core::should_load_selected_post` (single predicate ownership in core).
 - [x] Sync admin surface for the same helper family where applicable and attach parity evidence.
 - [ ] `cargo xtask module validate blog` / `cargo xtask module test blog` rerun after next slice touching runtime contract.
 

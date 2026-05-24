@@ -111,10 +111,6 @@ pub fn should_load_selected_post(post_id: Option<&str>) -> bool {
     post_id.map(has_non_empty_text).unwrap_or(false)
 }
 
-pub fn selected_post_id_if_loadable<'a>(post_id: Option<&'a str>) -> Option<&'a str> {
-    post_id.filter(|value| has_non_empty_text(value))
-}
-
 pub fn trimmed_text(value: &str) -> String {
     value.trim().to_string()
 }
@@ -338,9 +334,6 @@ mod tests {
         assert!(should_load_selected_post(Some("post-1")));
         assert!(!should_load_selected_post(Some("   ")));
         assert!(!should_load_selected_post(None));
-        assert_eq!(selected_post_id_if_loadable(Some("post-1")), Some("post-1"));
-        assert_eq!(selected_post_id_if_loadable(Some("   ")), None);
-        assert_eq!(selected_post_id_if_loadable(None), None);
         assert_eq!(trimmed_text(" abc "), "abc".to_string());
         assert_eq!(
             fallback_post_slug(None, "missing-slug"),

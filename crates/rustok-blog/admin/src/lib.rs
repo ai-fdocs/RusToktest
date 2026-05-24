@@ -207,8 +207,10 @@ pub fn BlogAdmin() -> impl IntoView {
     let effect_default_locale = default_locale.clone();
     Effect::new(move |_| {
         let selected_post_id = selected_post_query.get();
-        if let Some(post_id) = core::selected_post_id_if_loadable(selected_post_id.as_deref()) {
-            initial_edit_post.run((post_id.to_string(), effect_default_locale.clone()));
+        if core::should_load_selected_post(selected_post_id.as_deref()) {
+            if let Some(post_id) = selected_post_id {
+                initial_edit_post.run((post_id.trim().to_string(), effect_default_locale.clone()));
+            }
         } else {
             reset_form(
                 set_editing_post_id,
