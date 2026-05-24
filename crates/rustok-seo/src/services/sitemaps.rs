@@ -15,6 +15,7 @@ use super::{normalize_effective_locale, SeoService, SITEMAP_CHUNK_SIZE};
 
 const SITEMAP_SUBMIT_TIMEOUT_SECS: u64 = 5;
 const SITEMAP_SUBMIT_MAX_ERROR_LEN: usize = 4000;
+const SITEMAP_SUBMIT_MAX_FAILURE_DETAILS: usize = 8;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct SitemapSubmitEndpoint {
@@ -27,6 +28,7 @@ struct SitemapSubmissionSummary {
     success_count: usize,
     failure_count: usize,
     failures: Vec<String>,
+    omitted_failure_count: usize,
 }
 
 impl SitemapSubmissionSummary {
@@ -39,6 +41,12 @@ impl SitemapSubmissionSummary {
             self.success_count, self.failure_count
         )];
         parts.extend(self.failures);
+        if self.omitted_failure_count > 0 {
+            parts.push(format!(
+                "... and {} more failure(s) omitted",
+                self.omitted_failure_count
+            ));
+        }
         let mut message = parts.join("; ");
         if message.len() > SITEMAP_SUBMIT_MAX_ERROR_LEN {
             message.truncate(SITEMAP_SUBMIT_MAX_ERROR_LEN);
@@ -378,14 +386,13 @@ impl SeoService {
             success_count: 0,
             failure_count: 0,
             failures: Vec::new(),
+            omitted_failure_count: 0,
         };
         for endpoint in endpoints {
             let Some(url) = build_sitemap_submission_url(endpoint.as_str(), sitemap_index_url)
             else {
                 summary.failure_count += 1;
-                summary
-                    .failures
-                    .push(format!("invalid endpoint: {endpoint}"));
+                push_submission_failure(&mut summary, format!("invalid endpoint: {endpoint}"));
                 continue;
             };
             let request = SitemapSubmitEndpoint {
@@ -396,11 +403,19 @@ impl SeoService {
                 Ok(()) => summary.success_count += 1,
                 Err(message) => {
                     summary.failure_count += 1;
-                    summary.failures.push(message);
+                    push_submission_failure(&mut summary, message);
                 }
             }
         }
         summary
+    }
+}
+
+fn push_submission_failure(summary: &mut SitemapSubmissionSummary, message: String) {
+    if summary.failures.len() < SITEMAP_SUBMIT_MAX_FAILURE_DETAILS {
+        summary.failures.push(message);
+    } else {
+        summary.omitted_failure_count += 1;
     }
 }
 
@@ -1148,6 +1163,7 @@ mod tests {
             success_count: 3,
             failure_count: 0,
             failures: Vec::new(),
+            omitted_failure_count: 0,
         };
         assert_eq!(summary.into_error(), None);
     }
@@ -1158,6 +1174,7 @@ mod tests {
             success_count: 2,
             failure_count: 1,
             failures: Vec::new(),
+            omitted_failure_count: 0,
         };
 
         let message = summary.into_error().expect("error summary expected");
@@ -1173,9 +1190,25 @@ mod tests {
             success_count: 0,
             failure_count: 1,
             failures: vec!["x".repeat(SITEMAP_SUBMIT_MAX_ERROR_LEN + 200)],
+            omitted_failure_count: 0,
         };
         let message = summary.into_error().expect("error expected");
         assert!(message.len() <= SITEMAP_SUBMIT_MAX_ERROR_LEN + 3);
         assert!(message.ends_with("..."));
+    }
+
+    #[test]
+    fn submission_summary_omits_extra_failure_details_deterministically() {
+        let mut summary = SitemapSubmissionSummary {
+            success_count: 0,
+            failure_count: 11,
+            failures: Vec::new(),
+            omitted_failure_count: 0,
+        };
+        for idx in 0..11 {
+            super::push_submission_failure(&mut summary, format!("failure #{idx}"));
+        }
+        let message = summary.into_error().expect("error expected");
+        assert!(message.contains("... and 3 more failure(s) omitted"));
     }
 }
