@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../app_shell/app_shell_page.dart';
 import '../registry/module_entry_adapter.dart';
 import '../registry/registry_adaptation_summary.dart';
+import 'registry_warnings_card.dart';
 
 const _routeCodec = RouteCodec(
   RouteSanitizer({
@@ -80,17 +81,7 @@ class ModulesHomePage extends StatelessWidget {
     return ListView(
       children: [
         const ListTile(title: Text('RusTok Modules')),
-        if (adaptationSummary.hasWarnings)
-          Card(
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            color: Theme.of(context).colorScheme.errorContainer,
-            child: ListTile(
-              title: const Text('Registry adaptation warnings'),
-              subtitle: Text(
-                adaptationSummary.message,
-              ),
-            ),
-          ),
+        RegistryWarningsCard(summary: adaptationSummary),
         for (final moduleRoute in moduleRoutes)
           ExpansionTile(
             title: Text(moduleRoute.navTitle),
