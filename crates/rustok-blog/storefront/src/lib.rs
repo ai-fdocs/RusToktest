@@ -112,10 +112,7 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
 
     let title = post.title;
     let effective_locale = post.effective_locale;
-    let status = core::status_label(
-        post.status.as_str(),
-        &t(locale.as_deref(), "blog.selected.unknownStatus", "unknown"),
-    );
+    let status = post.status;
     let slug = core::fallback_text(
         post.slug,
         &t(
@@ -142,6 +139,7 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
     );
     let tags = post.tags;
     let body_format = post.body_format;
+    let unknown_status_label = t(locale.as_deref(), "blog.selected.unknownStatus", "unknown");
     let body = core::body_or_fallback(
         post.body.map(|body| {
             core::summarize_content(
@@ -174,7 +172,7 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
             <div class="mt-3">
                 <BlogStatusBadge
                     status=status
-                    unknown_label=t(locale.as_deref(), "blog.selected.unknownStatus", "unknown")
+                    unknown_label=unknown_status_label
                 />
             </div>
             <p class="mt-3 text-sm text-muted-foreground">{excerpt}</p>
@@ -210,6 +208,7 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
     let route_segment =
         core::route_segment_or_default(route_context.route_segment.as_ref().cloned(), "blog");
     let module_route_base = route_context.module_route_base(route_segment.as_str());
+    let unknown_status_label = t(locale.as_deref(), "blog.list.unknownStatus", "unknown");
 
     if items.is_empty() {
         return view! {
@@ -247,7 +246,7 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
                             <article class="rounded-2xl border border-border bg-background p-5">
                                 <BlogStatusBadge
                                     status=post.status
-                                    unknown_label=t(locale.as_deref(), "blog.list.unknownStatus", "unknown")
+                                    unknown_label=unknown_status_label.clone()
                                 />
                                 <h4 class="mt-2 text-base font-semibold text-foreground">{post.title}</h4>
                                 <p class="mt-2 text-sm text-muted-foreground">
