@@ -139,6 +139,16 @@ class GenerateMobileManifestTests(unittest.TestCase):
                 ).strip()
             )
 
+                    [provides.admin_ui]
+                    route_segment = "content"
+                    """
+                ).strip()
+            )
+            (root / "crates/mod-b/rustok-module.toml").write_text(
+                textwrap.dedent(
+                    """
+                    [module]
+                    slug = "forum"
 
             with self.assertRaises(ValueError) as ctx:
                 scan_modules(root)
@@ -229,6 +239,48 @@ class GenerateMobileManifestTests(unittest.TestCase):
 
             modules = scan_modules(root)
             self.assertEqual(modules[0]["permissions"], ["blog.read", "blog.write"])
+
+    def test_scan_modules_drops_permissions_with_invalid_format(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / "crates/mod-a").mkdir(parents=True)
+
+            (root / "crates/mod-a/rustok-module.toml").write_text(
+                textwrap.dedent(
+                    """
+                    [module]
+                    slug = "blog"
+
+                    [provides.admin_ui]
+                    route_segment = "blog"
+                    permissions = ["blog.read", "blog/read", "bad space", "ok:perm"]
+                    """
+                ).strip()
+            )
+
+            modules = scan_modules(root)
+            self.assertEqual(modules[0]["permissions"], ["blog.read", "ok:perm"])
+
+    def test_scan_modules_falls_back_locale_namespace_when_normalized_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / "crates/mod-a").mkdir(parents=True)
+
+            (root / "crates/mod-a/rustok-module.toml").write_text(
+                textwrap.dedent(
+                    """
+                    [module]
+                    slug = "blog"
+
+                    [provides.admin_ui]
+                    route_segment = "blog"
+                    locale_namespace = "!!!"
+                    """
+                ).strip()
+            )
+
+            modules = scan_modules(root)
+            self.assertEqual(modules[0]["locale_namespace"], "blog")
 
 
 if __name__ == "__main__":

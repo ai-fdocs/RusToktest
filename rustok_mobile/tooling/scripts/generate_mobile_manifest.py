@@ -9,6 +9,8 @@ import pathlib
 import re
 import tomllib
 
+_PERMISSION_RE = re.compile(r"^[a-z0-9_.:]+$")
+
 _ICON_RULES: tuple[tuple[str, str], ...] = (
     ("auth", "shield"),
     ("rbac", "shield"),
@@ -80,7 +82,7 @@ def _parse_permissions(admin_ui: dict[str, object]) -> list[str]:
         if not isinstance(item, str):
             continue
         value = item.strip().lower()
-        if not value or value in seen:
+        if not value or not _PERMISSION_RE.fullmatch(value) or value in seen:
             continue
         seen.add(value)
         permissions.append(value)
@@ -89,7 +91,10 @@ def _parse_permissions(admin_ui: dict[str, object]) -> list[str]:
 
 def _parse_locale_namespace(admin_ui: dict[str, object], module_slug: str) -> str:
     raw = str(admin_ui.get("locale_namespace", "")).strip()
-    return _normalize_key(raw or module_slug)
+    normalized = _normalize_key(raw or module_slug)
+    if normalized:
+        return normalized
+    return _normalize_key(module_slug)
 
 def _parse_child_pages(admin_ui: dict[str, object]) -> list[dict[str, str]]:
     pages_raw = admin_ui.get("child_pages")
