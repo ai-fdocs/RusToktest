@@ -273,6 +273,10 @@ pub fn published_posts_ready_items<T>(
     }
 }
 
+pub fn published_posts_empty_state_message(message: String) -> String {
+    message
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -566,6 +570,14 @@ mod tests {
         assert_eq!(
             published_posts_ready_items::<String>(vec![], "empty".to_string()),
             Err("empty".to_string())
+        );
+    }
+
+    #[test]
+    fn published_posts_empty_state_message_passthrough() {
+        assert_eq!(
+            published_posts_empty_state_message("No items".to_string()),
+            "No items".to_string()
         );
     }
 }
