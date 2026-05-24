@@ -308,7 +308,7 @@ pub fn BlogAdmin() -> impl IntoView {
             set_busy_key.set(Some(core::busy_key_for_publish(post_id.as_str())));
 
             spawn_local(async move {
-                let result = if publish {
+                let result = if core::should_publish_now(publish) {
                     api::publish_post(
                         token_value,
                         tenant_value,

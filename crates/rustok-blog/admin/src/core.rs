@@ -178,6 +178,10 @@ pub fn next_publish_state(is_published: bool) -> bool {
     !is_published
 }
 
+pub fn should_publish_now(publish: bool) -> bool {
+    publish
+}
+
 pub fn has_required_draft_fields(title: &str, body: &str) -> bool {
     !title.is_empty() && !body.is_empty()
 }
@@ -347,6 +351,8 @@ mod tests {
         assert!(!should_show_archive_action(true));
         assert!(!next_publish_state(true));
         assert!(next_publish_state(false));
+        assert!(should_publish_now(true));
+        assert!(!should_publish_now(false));
         assert!(has_required_draft_fields("Title", "Body"));
         assert!(!has_required_draft_fields("", "Body"));
         assert!(!has_required_draft_fields("Title", ""));
