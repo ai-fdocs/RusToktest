@@ -4,10 +4,10 @@
 
 - Current phase: plan_sync
 - Last checkpoint: Зафиксированы checkout recovery/versioning guards в umbrella roadmap: checking_out re-entry fences, release/complete transition semantics и transport-visible regression coverage синхронизированы с cart boundary.
-- Next step: Продолжить Phase 10.1 returns foundation (`rustok-order` entity/service lifecycle + admin REST/GraphQL transport) и синхронно расширять transport parity checks для post-order surface в ecommerce family.
+- Next step: Вести Phase 10.1 returns foundation в FFA/FBA-first режиме для всей ecommerce family: каждый инкремент сразу закрывает module-owned UI ownership, boundary-ready contracts и transport parity evidence без deferred migration debt.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
-- Last updated at (UTC): 2026-05-24T18:10:00Z
+- Last updated at (UTC): 2026-05-24T20:10:00Z
 
 
 ## FFA/FBA status
