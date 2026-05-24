@@ -3,11 +3,11 @@
 ## Execution checkpoint
 
 - Current phase: plan_sync
-- Last checkpoint: Проведён re-check ранее внедрённого refund/read-side среза (route contract + backlog alignment) и зафиксирован FFA/FBA transition track для ecommerce implementation plan.
-- Next step: Продолжить Phase 10.1 returns foundation (`rustok-order` entity/service lifecycle + admin REST/GraphQL transport) и синхронно закрывать FFA/FBA alignment checklist в ecommerce family.
+- Last checkpoint: Зафиксированы checkout recovery/versioning guards в umbrella roadmap: checking_out re-entry fences, release/complete transition semantics и transport-visible regression coverage синхронизированы с cart boundary.
+- Next step: Продолжить Phase 10.1 returns foundation (`rustok-order` entity/service lifecycle + admin REST/GraphQL transport) и синхронно расширять transport parity checks для post-order surface в ecommerce family.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
-- Last updated at (UTC): 2026-05-24T16:35:00Z
+- Last updated at (UTC): 2026-05-24T18:10:00Z
 
 
 ## FFA/FBA status
@@ -236,6 +236,7 @@ Fluid Frontend Architecture (FFA) и Fluid Backend Architecture (FBA):
   отклоняют mutation paths для typed promotions и generic adjustment writes, `release_checkout`
   восстанавливает допустимые мутации без выставления `completed_at`, а `complete_cart` оставляет
   cart в финальном `completed` состоянии без повторного checkout/release.
+- umbrella-level regression expectations синхронизированы с cart boundary: checkout recovery в `rustok-commerce` обязан сохранять visibility этих guardrails на transport/service уровне (re-entry/release/complete invariants не могут «прятаться» только в unit coverage cart-модуля).
 
 ### Phase 4. Order/payment/fulfillment transport
 
