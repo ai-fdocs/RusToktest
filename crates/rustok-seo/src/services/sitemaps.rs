@@ -1221,6 +1221,27 @@ mod tests {
         assert!(message.contains("endpoint statuses: [status #0, status #1, status #2]"));
         assert!(!message.contains("status #3"));
     }
+
+    #[test]
+    fn submission_summary_error_with_status_samples_is_bounded_and_utf8_safe() {
+        let mut summary = SitemapSubmissionSummary {
+            failure_count: 1,
+            ..Default::default()
+        };
+        for idx in 0..80 {
+            super::push_endpoint_status(
+                &mut summary,
+                format!("{}-{}", "статус".repeat(100), idx),
+            );
+        }
+        push_submission_failure(&mut summary, format!("ошибка: {}", "Ж".repeat(10_000)));
+
+        let message = summary.into_error().expect("error expected");
+        assert!(message.len() <= SITEMAP_SUBMIT_MAX_ERROR_LEN + 3);
+        assert!(message.ends_with("..."));
+        assert!(std::str::from_utf8(message.as_bytes()).is_ok());
+        assert!(message.contains("endpoint statuses omitted:"));
+    }
     #[test]
     fn submission_summary_omits_extra_failure_details_deterministically() {
         let mut summary = SitemapSubmissionSummary {
