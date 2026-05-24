@@ -268,6 +268,22 @@ class VerifyMobileManifestTests(unittest.TestCase):
         self.assertIsNotNone(error)
         self.assertIn("duplicates module_slug", error)
 
+    def test_validate_snapshot_schema_rejects_permission_with_invalid_chars(self):
+        error = _validate_snapshot_schema(
+            [
+                {
+                    "module_slug": "blog",
+                    "surface_kind": "admin_mobile",
+                    "route_segment": "blog",
+                    "permissions": ["blog/read"],
+                    "locale_namespace": "blog",
+                    "child_pages": [],
+                }
+            ]
+        )
+        self.assertIsNotNone(error)
+        self.assertIn("must use [a-z0-9_.:]", error)
+
 
 if __name__ == "__main__":
     unittest.main()

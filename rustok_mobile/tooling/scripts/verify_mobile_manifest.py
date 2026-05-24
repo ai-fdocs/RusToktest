@@ -20,10 +20,15 @@ else:
 
 
 _SNAKE_CASE_RE = re.compile(r"^[a-z0-9_]+$")
+_PERMISSION_RE = re.compile(r"^[a-z0-9_.:]+$")
 
 
 def _is_snake_case(value: str) -> bool:
     return bool(value) and bool(_SNAKE_CASE_RE.fullmatch(value))
+
+
+def _is_permission_key(value: str) -> bool:
+    return bool(value) and bool(_PERMISSION_RE.fullmatch(value))
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -109,6 +114,10 @@ def _validate_snapshot_schema(entries: object) -> str | None:
             if not isinstance(permission, str) or not permission.strip():
                 return (
                     f"snapshot entry #{index} permission #{permission_index} is invalid"
+                )
+            if not _is_permission_key(permission):
+                return (
+                    f"snapshot entry #{index} permission #{permission_index} must use [a-z0-9_.:]"
                 )
             if permission in seen_permissions:
                 return (
