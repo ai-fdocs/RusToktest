@@ -246,6 +246,16 @@ pub fn published_posts_or_empty_message<T>(
     }
 }
 
+pub fn published_posts_view_state<T>(
+    items: Vec<T>,
+    empty_message: String,
+) -> (Option<Vec<T>>, Option<String>) {
+    match published_posts_or_empty_message(items, empty_message) {
+        Ok(items) => (Some(items), None),
+        Err(message) => (None, Some(message)),
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -503,6 +513,18 @@ mod tests {
         assert_eq!(
             published_posts_or_empty_message::<String>(vec![], "empty".to_string()),
             Err("empty".to_string())
+        );
+    }
+
+    #[test]
+    fn published_posts_view_state_maps_to_option_pair() {
+        assert_eq!(
+            published_posts_view_state(vec!["a".to_string()], "empty".to_string()),
+            (Some(vec!["a".to_string()]), None)
+        );
+        assert_eq!(
+            published_posts_view_state::<String>(vec![], "empty".to_string()),
+            (None, Some("empty".to_string()))
         );
     }
 }

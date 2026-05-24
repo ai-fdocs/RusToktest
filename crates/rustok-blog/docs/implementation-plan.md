@@ -8,14 +8,14 @@ packages и module metadata синхронизированы.
 ## Execution checkpoint
 
 - Current phase: phase_b_in_progress
-- Last checkpoint: FFA slice #49 completed (storefront published-post empty-state branch switched from inline emptiness guard to `core::published_posts_or_empty_message(...)` result mapping, preserving dual-path transport contract).
+- Last checkpoint: FFA slice #50 completed (storefront published-post view state switched from direct `Result` matching to `core::published_posts_view_state(...)` option-pair mapping, preserving dual-path transport contract).
 - Next step: Зафиксировать evidence по parity checklist и выбрать следующий один use-case для admin/storefront core extraction без изменения transport-контракта.
 - Open blockers: None.
 - Hand-off notes for next agent:
   1. Продолжать one-task-per-iteration: один helper/use-case -> storefront/admin -> docs double-check.
   2. Не менять dual-path контракт (`native #[server]` + GraphQL fallback) при FFA-декомпозиции.
   3. После каждого slice обновлять parity evidence (`docs/verification/ffa-ui-parity-checklist.md`).
-- Last updated at (UTC): 2026-05-25T02:28:00Z
+- Last updated at (UTC): 2026-05-25T02:40:00Z
 
 ## FFA/FBA status
 
@@ -172,6 +172,7 @@ packages и module metadata синхронизированы.
 - [x] Slice 47: storefront status-badge owned status mapping switched to `core::status_badge_view(...)`.
 - [x] Slice 48: storefront selected-post tags visibility/data mapping switched to `core::selected_post_tag_items(...)`.
 - [x] Slice 49: storefront published-post empty-state mapping switched to `core::published_posts_or_empty_message(...)`.
+- [x] Slice 50: storefront published-post view-state mapping switched to `core::published_posts_view_state(...)`.
 - [x] Sync admin surface for the same helper family where applicable and attach parity evidence.
 - [ ] `cargo xtask module validate blog` / `cargo xtask module test blog` rerun after next slice touching runtime contract.
 
