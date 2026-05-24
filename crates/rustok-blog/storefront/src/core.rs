@@ -42,6 +42,18 @@ pub fn body_or_fallback(value: Option<String>, fallback: &str) -> String {
     fallback_text(value, fallback)
 }
 
+pub fn summarized_body_or_fallback(
+    body: Option<String>,
+    body_format: &str,
+    no_body_fallback: &str,
+    raw_format_template: &str,
+) -> String {
+    body_or_fallback(
+        body.map(|content| summarize_content(content.as_str(), body_format, raw_format_template)),
+        no_body_fallback,
+    )
+}
+
 pub fn summarize_content(content: &str, format: &str, fallback_template: &str) -> String {
     if format.eq_ignore_ascii_case("markdown") {
         return content.trim().to_string();
@@ -99,6 +111,28 @@ mod tests {
             summarize_content(
                 "raw payload",
                 "json",
+                "Stored in `{format}` format. Raw body length: {count} characters.",
+            ),
+            "Stored in `json` format. Raw body length: 11 characters.".to_string()
+        );
+    }
+
+    #[test]
+    fn summarized_body_or_fallback_handles_none_and_raw_payload() {
+        assert_eq!(
+            summarized_body_or_fallback(
+                None,
+                "markdown",
+                "No body content yet.",
+                "Stored in `{format}` format. Raw body length: {count} characters.",
+            ),
+            "No body content yet.".to_string()
+        );
+        assert_eq!(
+            summarized_body_or_fallback(
+                Some("raw payload".to_string()),
+                "json",
+                "No body content yet.",
                 "Stored in `{format}` format. Raw body length: {count} characters.",
             ),
             "Stored in `json` format. Raw body length: 11 characters.".to_string()

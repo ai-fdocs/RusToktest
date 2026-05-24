@@ -140,22 +140,18 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
     let tags = post.tags;
     let body_format = post.body_format;
     let unknown_status_label = t(locale.as_deref(), "blog.selected.unknownStatus", "unknown");
-    let body = core::body_or_fallback(
-        post.body.map(|body| {
-            core::summarize_content(
-                body.as_str(),
-                body_format.as_str(),
-                &t(
-                    locale.as_deref(),
-                    "blog.body.rawFormat",
-                    "Stored in `{format}` format. Raw body length: {count} characters.",
-                ),
-            )
-        }),
+    let body = core::summarized_body_or_fallback(
+        post.body,
+        body_format.as_str(),
         &t(
             locale.as_deref(),
             "blog.selected.noBody",
             "No body content yet.",
+        ),
+        &t(
+            locale.as_deref(),
+            "blog.body.rawFormat",
+            "Stored in `{format}` format. Raw body length: {count} characters.",
         ),
     );
 
