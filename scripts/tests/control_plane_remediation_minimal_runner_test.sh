@@ -89,6 +89,12 @@ if ! rg -q "Control-plane remediation minimal verification: PASS \([0-9]{2}h:[0-
   exit 1
 fi
 
+if ! rg -q "--> migration tests: PASS \([0-9]{2}h:[0-9]{2}m:[0-9]{2}s\)" "$STEP_OUTPUT"; then
+  echo "success scenario missing per-step duration suffix" >&2
+  cat "$STEP_OUTPUT" >&2
+  exit 1
+fi
+
 # timeout mode: ensure step timeout wiring is active and surfaces timeout failure
 cat > "$FIXTURE_ROOT/fakebin/cargo" <<'SH'
 #!/usr/bin/env bash
