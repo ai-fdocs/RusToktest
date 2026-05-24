@@ -518,4 +518,51 @@ Go/No-Go для перехода в следующую волну:
 3. implementation-plan конкретного модуля (локальные шаги и runbook);
 4. release-gate evidence (CI + observability + rollback artifacts).
 
+## 12. Ближайший execution-пакет (май–июль 2026): продолжение разработки `page builder` и перенос `pages` в FBA
+
+Этот блок фиксирует конкретный пакет работ “что делать дальше” без повторного пересмотра всей дорожной карты.
+
+### 12.1 Sprint 1 (до 2026-06-15): contract freeze и anti-drift
+
+- [ ] Утвердить `builder_contract_version=v1` для reference builder provider и `rustok-pages` consumer metadata.
+- [ ] Зафиксировать таблицу совместимости `provider_version -> consumer_min_version` и проверять её в CI как hard gate.
+- [ ] Закрепить единый typed error contract (`validation`, `sanitize`, `rbac`, `runtime`) для `preview/tree/properties/publish`.
+
+**Артефакты Sprint 1:**
+- changelog entry по contract freeze;
+- CI отчёт anti-drift check;
+- обновлённые metadata snapshots provider/consumer.
+
+### 12.2 Sprint 2 (до 2026-06-30): `rustok-pages` fallback hardening
+
+- [ ] Провести проверку профилей `builder_off`, `publish_off`, `preview_off` для `apps/admin` и `apps/next-admin`.
+- [ ] Подтвердить, что `list/read/menu` surfaces в `pages` не дают 5xx при частичном/полном disable builder capabilities.
+- [ ] Зафиксировать UX-semantic для disabled publish capability (typed error + operator guidance + trace-id).
+
+**Артефакты Sprint 2:**
+- fallback regression report (admin + storefront);
+- incidents/alerts dry log по disable-сценариям;
+- обновлённый runbook переключений tenant-by-tenant.
+
+### 12.3 Sprint 3 (до 2026-07-15): Wave 0/Wave 1 readiness
+
+- [ ] Автоматизировать control-plane dry-run change-set для профилей `all_on/publish_off/preview_off/builder_off`.
+- [ ] Собрать обязательный Wave 1 readiness packet: metadata, smoke, observability, rollback note.
+- [ ] Провести совместный Go/No-Go review: Platform + Builder owners + Pages owners.
+
+**Артефакты Sprint 3:**
+- audit trail с before/after snapshots;
+- SLO отчёт (`preview p95`, `publish p95`, sanitize failure rate);
+- подписанный протокол Go/No-Go для pilot tenants.
+
+### 12.4 Как масштабировать после `pages` (дальше по плану)
+
+После завершения Sprint 3 модуль `pages` считается эталонным FBA-consumer кейсом, и pipeline из разделов 9–11 переносится без изменений на:
+
+1. `blog` (Queue A) — приоритет на publish/read consistency и typed error parity.
+2. `forum` (Queue A) — приоритет на moderation/publish lifecycle и fallback stability.
+3. layout/index интеграции (Queue B) — приоритет на routing/canonical/index consistency при capability деградации.
+
+Переход между модулями выполняется только при наличии полного evidence-пакета предыдущего шага (metadata + fallback + observability + rollback).
+
 Без синхронного обновления этих артефактов модуль не переводится в следующую rollout-волну.
