@@ -14,7 +14,7 @@ import { spawnSync } from "node:child_process";
 
 const scriptPath = path.resolve("scripts/verify/verify-ffa-ui-migration-contract.mjs");
 
-function withFixture({ pipeline }) {
+function withFixture({ pipeline, contractCommand, docsCommand }) {
   const root = mkdtempSync(path.join(tmpdir(), "rustok-ffa-verify-"));
   mkdirSync(path.join(root, "docs", "research"), { recursive: true });
   mkdirSync(path.join(root, "docs", "verification"), { recursive: true });
@@ -71,8 +71,9 @@ function withFixture({ pipeline }) {
         scripts: {
           "verify:ffa:ui:migration": pipeline,
           "verify:ffa:ui:migration:contract":
-            "node scripts/verify/verify-ffa-ui-migration-contract.mjs",
-          "verify:ffa:ui:migration:docs": "bash scripts/verify/verify-ffa-ui-doc-patterns.sh",
+            contractCommand ?? "node scripts/verify/verify-ffa-ui-migration-contract.mjs",
+          "verify:ffa:ui:migration:docs":
+            docsCommand ?? "bash scripts/verify/verify-ffa-ui-doc-patterns.sh",
         },
       },
       null,
@@ -113,6 +114,37 @@ test("fails when migration pipeline misses docs command", () => {
     const result = runVerifier(fixture.root);
     assert.notEqual(result.status, 0, "Expected FAIL fixture to fail");
     assert.match(result.stderr, /verify:ffa:ui:migration:docs/);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+
+test("passes when pipeline uses extra whitespace", () => {
+  const fixture = withFixture({
+    pipeline: "npm   run verify:ffa:ui:migration:contract   &&   npm run verify:ffa:ui:migration:docs",
+  });
+
+  try {
+    const result = runVerifier(fixture.root);
+    assert.equal(result.status, 0, `Expected whitespace-tolerant fixture to succeed:
+${result.stdout}
+${result.stderr}`);
+  } finally {
+    fixture.cleanup();
+  }
+});
+
+test("fails when contract script command is drifted", () => {
+  const fixture = withFixture({
+    pipeline: "npm run verify:ffa:ui:migration:contract && npm run verify:ffa:ui:migration:docs",
+    contractCommand: "node scripts/verify/some-other-command.mjs",
+  });
+
+  try {
+    const result = runVerifier(fixture.root);
+    assert.notEqual(result.status, 0, "Expected drifted contract command fixture to fail");
+    assert.match(result.stderr, /должен быть равен/);
   } finally {
     fixture.cleanup();
   }

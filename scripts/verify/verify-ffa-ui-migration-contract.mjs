@@ -184,6 +184,11 @@ function parsePackageJson() {
   }
 }
 
+
+function normalizeCommand(command) {
+  return command.replace(/\s+/g, " ").trim();
+}
+
 function collectValidationErrors({ plan, connectivity, checklist, docsIndex, packageJson }) {
   const errors = [];
 
@@ -224,7 +229,7 @@ function collectValidationErrors({ plan, connectivity, checklist, docsIndex, pac
       return;
     }
 
-    if (expectedCommand !== null && scriptValue.trim() !== expectedCommand) {
+    if (expectedCommand !== null && normalizeCommand(scriptValue) !== normalizeCommand(expectedCommand)) {
       errors.push(
         `Скрипт ${scriptName} должен быть равен: ${expectedCommand}; фактически: ${scriptValue.trim()}`,
       );
@@ -233,8 +238,9 @@ function collectValidationErrors({ plan, connectivity, checklist, docsIndex, pac
 
   const migrationPipeline = scripts["verify:ffa:ui:migration"];
   if (typeof migrationPipeline === "string") {
+    const normalizedPipeline = normalizeCommand(migrationPipeline);
     requiredMigrationPipelineCommands.forEach((command) => {
-      if (!migrationPipeline.includes(command)) {
+      if (!normalizedPipeline.includes(normalizeCommand(command))) {
         errors.push(`Скрипт verify:ffa:ui:migration должен содержать команду: ${command}`);
       }
     });
