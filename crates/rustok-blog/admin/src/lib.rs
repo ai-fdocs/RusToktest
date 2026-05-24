@@ -578,11 +578,11 @@ pub fn BlogAdmin() -> impl IntoView {
                     <div class="space-y-1">
                         <h2 class="text-lg font-semibold text-card-foreground">
                             {move || {
-                                if core::is_editing_mode(editing_post_id.get().as_deref()) {
-                                    form_edit_title.clone()
-                                } else {
-                                    form_create_title.clone()
-                                }
+                                core::edit_action_label(
+                                    core::is_editing_mode(editing_post_id.get().as_deref()),
+                                    form_edit_title.clone(),
+                                    form_create_title.clone(),
+                                )
                             }}
                         </h2>
                         <p class="text-sm text-muted-foreground">{form_subtitle.clone()}</p>

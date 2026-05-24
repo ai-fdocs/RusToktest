@@ -134,6 +134,7 @@ packages и module metadata синхронизированы.
 - [x] Slice 20: admin submit-button state selection moved to core (`submit_button_state` + `SubmitButtonState`) to keep UI as thin label mapper.
 - [x] Slice 21: admin selected-post effect branch switched to core-owned loadability predicate/normalization flow.
 - [x] Slice 22: admin selected-post id normalization moved to core (`loadable_post_id`) and nested UI branch removed.
+- [x] Slice 23: admin form title select (`edit/create`) switched from inline conditional to `core::edit_action_label`.
 - [x] Sync admin surface for the same helper family where applicable and attach parity evidence.
 - [ ] `cargo xtask module validate blog` / `cargo xtask module test blog` rerun after next slice touching runtime contract.
 
