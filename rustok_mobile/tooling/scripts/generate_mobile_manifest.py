@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import pathlib
 import json
 import re
@@ -118,6 +119,7 @@ def scan_modules(repo_root: pathlib.Path) -> list[dict[str, object]]:
         modules.append(
             {
                 "module_key": module_key,
+                "module_slug": slug,
                 "route_segment": route_segment,
                 "nav_label": nav_label,
                 "icon": _pick_icon(slug),
@@ -178,7 +180,7 @@ def to_snapshot(modules: list[dict[str, object]]) -> list[dict[str, object]]:
         route_segment = str(module["route_segment"])
         snapshot.append(
             {
-                "module_slug": str(module["module_key"]).removeprefix("rustok_"),
+                "module_slug": str(module.get("module_slug") or str(module["module_key"]).removeprefix("rustok_")),
                 "surface_kind": "admin_mobile",
                 "route_segment": route_segment,
                 "permissions": [],
