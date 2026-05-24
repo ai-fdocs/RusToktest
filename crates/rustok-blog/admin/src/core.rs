@@ -100,6 +100,10 @@ pub fn has_non_empty_text(value: &str) -> bool {
     !value.trim().is_empty()
 }
 
+pub fn should_autofill_slug(current_slug: &str) -> bool {
+    !has_non_empty_text(current_slug)
+}
+
 pub fn trimmed_text(value: &str) -> String {
     value.trim().to_string()
 }
@@ -116,6 +120,26 @@ pub fn row_is_busy_for_post(busy_key: Option<&str>, post_id: &str) -> bool {
     busy_key
         .map(|key| key.contains(post_id))
         .unwrap_or(false)
+}
+
+pub fn is_editing_post(editing_post_id: Option<&str>, post_id: &str) -> bool {
+    editing_post_id == Some(post_id)
+}
+
+pub fn is_editing_mode(editing_post_id: Option<&str>) -> bool {
+    editing_post_id.is_some()
+}
+
+pub fn has_issue(issue: Option<WritePathIssueKind>) -> bool {
+    issue.is_some()
+}
+
+pub fn issue_kind(issue: Option<&WritePathIssue>) -> Option<WritePathIssueKind> {
+    issue.map(|value| value.kind)
+}
+
+pub fn has_items<T>(items: &[T]) -> bool {
+    !items.is_empty()
 }
 
 pub fn edit_action_label(is_editing: bool, editing_label: String, edit_label: String) -> String {
@@ -142,6 +166,18 @@ pub fn should_show_archive_action(is_archived: bool) -> bool {
     !is_archived
 }
 
+pub fn has_required_draft_fields(title: &str, body: &str) -> bool {
+    !title.is_empty() && !body.is_empty()
+}
+
+pub fn is_markdown_format(value: &str) -> bool {
+    value.trim().eq_ignore_ascii_case("markdown")
+}
+
+pub fn should_show_raw_body_warning(body_format: &str) -> bool {
+    !is_markdown_format(body_format)
+}
+
 pub fn issue_banner_class(kind: WritePathIssueKind) -> &'static str {
     match kind {
         WritePathIssueKind::Validation => {
@@ -154,6 +190,10 @@ pub fn issue_banner_class(kind: WritePathIssueKind) -> &'static str {
             "rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
         }
     }
+}
+
+pub fn issue_banner_class_or_hidden(kind: Option<WritePathIssueKind>) -> &'static str {
+    kind.map(issue_banner_class).unwrap_or("hidden")
 }
 
 pub fn issue_kind_label(kind: WritePathIssueKind) -> &'static str {
@@ -239,6 +279,8 @@ mod tests {
         );
         assert!(has_non_empty_text(" x "));
         assert!(!has_non_empty_text("   "));
+        assert!(should_autofill_slug("   "));
+        assert!(!should_autofill_slug("existing-slug"));
         assert_eq!(trimmed_text(" abc "), "abc".to_string());
         assert_eq!(
             fallback_post_slug(None, "missing-slug"),
@@ -250,6 +292,20 @@ mod tests {
         );
         assert!(row_is_busy_for_post(Some("edit:42"), "42"));
         assert!(!row_is_busy_for_post(Some("edit:41"), "42"));
+        assert!(is_editing_post(Some("42"), "42"));
+        assert!(!is_editing_post(Some("41"), "42"));
+        assert!(!is_editing_post(None, "42"));
+        assert!(is_editing_mode(Some("42")));
+        assert!(!is_editing_mode(None));
+        assert!(has_issue(Some(WritePathIssueKind::Runtime)));
+        assert!(!has_issue(None));
+        assert_eq!(
+            issue_kind(Some(&WritePathIssue::with_runtime("runtime issue"))),
+            Some(WritePathIssueKind::Runtime)
+        );
+        assert_eq!(issue_kind(None), None);
+        assert!(has_items(&[1, 2, 3]));
+        assert!(!has_items::<u8>(&[]));
         assert_eq!(
             edit_action_label(true, "Editing".to_string(), "Edit".to_string()),
             "Editing".to_string()
@@ -268,11 +324,24 @@ mod tests {
         );
         assert!(should_show_archive_action(false));
         assert!(!should_show_archive_action(true));
+        assert!(has_required_draft_fields("Title", "Body"));
+        assert!(!has_required_draft_fields("", "Body"));
+        assert!(!has_required_draft_fields("Title", ""));
+        assert!(is_markdown_format("markdown"));
+        assert!(is_markdown_format(" Markdown "));
+        assert!(!is_markdown_format("rt_json_v1"));
+        assert!(should_show_raw_body_warning("rt_json_v1"));
+        assert!(!should_show_raw_body_warning("markdown"));
         assert_eq!(
             issue_banner_class(WritePathIssueKind::Validation),
             "rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900"
         );
+        assert_eq!(
+            issue_banner_class_or_hidden(Some(WritePathIssueKind::Runtime)),
+            "rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        );
+        assert_eq!(issue_banner_class_or_hidden(None), "hidden");
         assert_eq!(issue_kind_label(WritePathIssueKind::Runtime), "Runtime");
     }
 }
-use rustok_api::WritePathIssueKind;
+use rustok_api::{WritePathIssue, WritePathIssueKind};
