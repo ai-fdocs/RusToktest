@@ -8,14 +8,14 @@ packages и module metadata синхронизированы.
 ## Execution checkpoint
 
 - Current phase: phase_b_in_progress
-- Last checkpoint: FFA slice #40 completed (storefront selected-post fallback mapping for `slug/excerpt/published_at` moved from three inline fallback calls to `core::selected_post_fallback_fields(...)`, dual-path transport unchanged).
+- Last checkpoint: FFA slice #41 completed (storefront published-post card excerpt/link composition moved from inline fallback/link pairing to `core::list_post_summary(...)`, dual-path transport unchanged).
 - Next step: Зафиксировать evidence по parity checklist и выбрать следующий один use-case для admin/storefront core extraction без изменения transport-контракта.
 - Open blockers: None.
 - Hand-off notes for next agent:
   1. Продолжать one-task-per-iteration: один helper/use-case -> storefront/admin -> docs double-check.
   2. Не менять dual-path контракт (`native #[server]` + GraphQL fallback) при FFA-декомпозиции.
   3. После каждого slice обновлять parity evidence (`docs/verification/ffa-ui-parity-checklist.md`).
-- Last updated at (UTC): 2026-05-25T00:49:00Z
+- Last updated at (UTC): 2026-05-25T01:02:00Z
 
 ## FFA/FBA status
 
@@ -163,6 +163,7 @@ packages и module metadata синхронизированы.
 - [x] Slice 38: storefront post-link (`href` + localized open label) composition switched from inline pairing to `core::post_link(...)`.
 - [x] Slice 39: storefront selected-post meta (`slug/locale/published`) label/value composition switched from inline calls to `core::post_meta_pairs(...)`.
 - [x] Slice 40: storefront selected-post fallback mapping (`slug/excerpt/published_at`) switched from inline fallbacks to `core::selected_post_fallback_fields(...)`.
+- [x] Slice 41: storefront published-post card summary (`excerpt` + `href` + open label) switched from inline composition to `core::list_post_summary(...)`.
 - [x] Sync admin surface for the same helper family where applicable and attach parity evidence.
 - [ ] `cargo xtask module validate blog` / `cargo xtask module test blog` rerun after next slice touching runtime contract.
 

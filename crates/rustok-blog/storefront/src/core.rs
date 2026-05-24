@@ -29,6 +29,10 @@ pub fn post_meta_pairs(
     ]
 }
 
+pub fn list_post_excerpt(post_excerpt: Option<String>, fallback: &str) -> String {
+    fallback_excerpt(post_excerpt, fallback)
+}
+
 pub fn error_with_context(context: &str, error: &str) -> String {
     format!("{context}: {error}")
 }
@@ -42,6 +46,20 @@ pub fn post_link(base: &str, slug: &str, open_label: &str) -> (String, String) {
         module_href(base, slug),
         open_link_label(open_label, slug),
     )
+}
+
+pub fn list_post_summary(
+    slug: Option<String>,
+    missing_slug_fallback: &str,
+    excerpt: Option<String>,
+    excerpt_fallback: &str,
+    module_route_base: &str,
+    open_label: &str,
+) -> (String, String, String) {
+    let resolved_slug = fallback_slug(slug, missing_slug_fallback);
+    let resolved_excerpt = list_post_excerpt(excerpt, excerpt_fallback);
+    let (href, resolved_open_label) = post_link(module_route_base, resolved_slug.as_str(), open_label);
+    (resolved_excerpt, href, resolved_open_label)
 }
 
 pub fn fallback_slug(value: Option<String>, fallback: &str) -> String {
@@ -238,6 +256,21 @@ mod tests {
                 "missing-slug".to_string(),
                 "No excerpt yet.".to_string(),
                 "Unscheduled".to_string(),
+            )
+        );
+        assert_eq!(
+            list_post_summary(
+                None,
+                "missing-slug",
+                None,
+                "No excerpt yet.",
+                "/store/modules/blog",
+                "Open",
+            ),
+            (
+                "No excerpt yet.".to_string(),
+                "/store/modules/blog?slug=missing-slug".to_string(),
+                "Open missing-slug".to_string(),
             )
         );
     }
