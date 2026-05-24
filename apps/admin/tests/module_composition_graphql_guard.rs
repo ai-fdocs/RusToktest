@@ -257,6 +257,40 @@ fn module_composition_helpers_preserve_server_owned_lifecycle_parity_matrix_cont
 }
 
 #[test]
+fn module_composition_helpers_do_not_parse_lifecycle_operation_status_taxonomy() {
+    let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let api_path = crate_root.join("src/features/modules/api.rs");
+    let content = fs::read_to_string(&api_path).expect("read api.rs");
+
+    let status_fragments = [
+        "validated",
+        "running",
+        "committed",
+        "failed",
+        "status",
+        "operation",
+        "retryable_issue",
+    ];
+
+    for signature in [
+        "pub async fn install_module(",
+        "pub async fn uninstall_module(",
+        "pub async fn upgrade_module(",
+        "pub async fn toggle_module(",
+    ] {
+        let helper_body = extract_function_block(&content, signature)
+            .unwrap_or_else(|| panic!("helper signature not found: {signature}"));
+
+        for fragment in status_fragments {
+            assert!(
+                !helper_body.contains(fragment),
+                "{signature} must not parse lifecycle operation status fragment `{fragment}`"
+            );
+        }
+    }
+}
+
+#[test]
 fn module_composition_helpers_do_not_cross_wire_foreign_mutation_contracts() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let api_path = crate_root.join("src/features/modules/api.rs");
