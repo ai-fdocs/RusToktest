@@ -114,7 +114,10 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
 
     let title = post.title;
     let effective_locale = post.effective_locale;
-    let status = post.status;
+    let status = core::status_label(
+        post.status.as_str(),
+        &t(locale.as_deref(), "blog.selected.unknownStatus", "unknown"),
+    );
     let slug = core::fallback_text(
         post.slug,
         &t(locale.as_deref(), "blog.selected.missingSlug", "missing-slug"),
@@ -228,7 +231,10 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
                         view! {
                             <article class="rounded-2xl border border-border bg-background p-5">
                                 <span class=core::status_badge_css(post.status.as_str())>
-                                    {post.status}
+                                    {core::status_label(
+                                        post.status.as_str(),
+                                        &t(locale.as_deref(), "blog.list.unknownStatus", "unknown"),
+                                    )}
                                 </span>
                                 <h4 class="mt-2 text-base font-semibold text-foreground">{post.title}</h4>
                                 <p class="mt-2 text-sm text-muted-foreground">

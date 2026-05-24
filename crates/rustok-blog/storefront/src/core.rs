@@ -64,6 +64,15 @@ pub fn status_badge_css(status: &str) -> &'static str {
     }
 }
 
+pub fn status_label(status: &str, fallback: &str) -> String {
+    let normalized = status.trim();
+    if normalized.is_empty() {
+        fallback.to_string()
+    } else {
+        normalized.to_string()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -136,5 +145,14 @@ mod tests {
             status_badge_css("  Published  "),
             "inline-flex rounded-full border border-emerald-300/50 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium uppercase tracking-[0.18em] text-emerald-800 dark:border-emerald-700/40 dark:bg-emerald-900/25 dark:text-emerald-300"
         );
+    }
+
+    #[test]
+    fn status_label_trims_and_falls_back() {
+        assert_eq!(
+            status_label("  published  ", "unknown"),
+            "published".to_string()
+        );
+        assert_eq!(status_label("   ", "unknown"), "unknown".to_string());
     }
 }
