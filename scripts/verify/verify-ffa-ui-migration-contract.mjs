@@ -23,13 +23,31 @@ const requiredPlanHeadings = [
   "RACI (кто принимает phase-gates)",
 ];
 
-const requiredChecklistPatterns = [
-  /- \[[ xX]\] Native path \(Leptos SSR\/hydrate\) работает для целевого сценария\./,
-  /- \[[ xX]\] GraphQL fallback работает для того же сценария\./,
-  /- \[[ xX]\] UI слой не владеет transport\/business логикой\./,
-  /- \[[ xX]\] Доступ к transport идёт через core ports\./,
-  /- \[[ xX]\] Core слой не зависит от `leptos\*`\./,
-  /- \[[ xX]\] Выполнен `npm run verify:ffa:ui:migration`\./,
+const requiredChecklistChecks = [
+  {
+    label: "native path checklist item",
+    pattern: /- \[[ xX]\] Native path \(Leptos SSR\/hydrate\) работает для целевого сценария\./,
+  },
+  {
+    label: "graphql fallback checklist item",
+    pattern: /- \[[ xX]\] GraphQL fallback работает для того же сценария\./,
+  },
+  {
+    label: "ui/business ownership checklist item",
+    pattern: /- \[[ xX]\] UI слой не владеет transport\/business логикой\./,
+  },
+  {
+    label: "transport-through-core checklist item",
+    pattern: /- \[[ xX]\] Доступ к transport идёт через core ports\./,
+  },
+  {
+    label: "core-leptos-independence checklist item",
+    pattern: /- \[[ xX]\] Core слой не зависит от `leptos\*`\./,
+  },
+  {
+    label: "ffa verify evidence checklist item",
+    pattern: /- \[[ xX]\] Выполнен `npm run verify:ffa:ui:migration`\./,
+  },
 ];
 
 const requiredConnectivityMentions = ["rustok-pages", "rustok-search"];
@@ -49,7 +67,10 @@ function normalizeMarkdown(content) {
 function getMarkdownHeadings(content) {
   return content
     .split("\n")
-    .map((line) => line.match(/^#{1,6}\s+(.*)$/)?.[1]?.trim())
+    .map((line, index) => {
+      const match = line.match(/^#{1,6}\s+(.*)$/);
+      return match ? { text: match[1].trim(), line: index + 1 } : null;
+    })
     .filter(Boolean);
 }
 
@@ -66,16 +87,19 @@ function readRequiredDocs() {
 function collectValidationErrors({ plan, connectivity, checklist }) {
   const errors = [];
 
-  const planHeadings = new Set(getMarkdownHeadings(plan));
+  const planHeadingIndex = new Map(
+    getMarkdownHeadings(plan).map((heading) => [heading.text, heading.line]),
+  );
+
   requiredPlanHeadings.forEach((heading) => {
-    if (!planHeadings.has(heading)) {
+    if (!planHeadingIndex.has(heading)) {
       errors.push(`Не найден обязательный heading в migration plan: ${heading}`);
     }
   });
 
-  requiredChecklistPatterns.forEach((pattern) => {
+  requiredChecklistChecks.forEach(({ label, pattern }) => {
     if (!pattern.test(checklist)) {
-      errors.push(`Не найден обязательный checklist-паттерн: ${pattern}`);
+      errors.push(`Не найден обязательный checklist-паттерн (${label})`);
     }
   });
 
