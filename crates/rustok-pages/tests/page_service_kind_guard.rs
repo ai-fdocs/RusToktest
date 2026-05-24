@@ -96,8 +96,11 @@ async fn seed_pages_module_settings(
                 created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             );
+            DELETE FROM tenant_modules
+            WHERE tenant_id = '{}' AND module_slug = 'pages';
             INSERT INTO tenant_modules (id, tenant_id, module_slug, enabled, settings)
             VALUES ('{}', '{}', 'pages', 1, '{}');",
+            tenant_id,
             Uuid::new_v4(),
             tenant_id,
             settings
@@ -310,4 +313,47 @@ async fn update_markdown_body_is_allowed_when_builder_toggle_is_false() {
 
     let body = updated.body.expect("body should be present");
     assert_eq!(body.format, "markdown");
+}
+
+#[tokio::test]
+async fn create_and_publish_markdown_is_allowed_when_builder_disabled_but_publish_enabled() {
+    let (db, page_service, _block_service, tenant_id, security) = setup().await;
+    seed_pages_module_settings(
+        &db,
+        tenant_id,
+        "{\"builder\":{\"enabled\":false,\"publish\":{\"enabled\":true}}}",
+    )
+    .await;
+
+    let created = page_service
+        .create(
+            tenant_id,
+            security,
+            CreatePageInput {
+                translations: vec![PageTranslationInput {
+                    locale: "en".to_string(),
+                    title: "Published markdown page".to_string(),
+                    slug: Some("published-markdown-page".to_string()),
+                    meta_title: None,
+                    meta_description: None,
+                }],
+                template: Some("default".to_string()),
+                body: Some(PageBodyInput {
+                    locale: "en".to_string(),
+                    content: "publish markdown path".to_string(),
+                    format: Some("markdown".to_string()),
+                    content_json: None,
+                }),
+                blocks: None,
+                channel_slugs: None,
+                publish: true,
+            },
+        )
+        .await
+        .expect("markdown publish should remain available when builder is disabled");
+
+    assert_eq!(
+        created.status,
+        rustok_content::entities::node::ContentStatus::Published
+    );
 }
