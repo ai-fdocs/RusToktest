@@ -60,6 +60,8 @@ EOF
 
 cleanup_fixture_repo() {
   rm -rf "$FIXTURE_ROOT"
+  [[ -n "${FAIL_OUTPUT_FILE:-}" ]] && rm -f "$FAIL_OUTPUT_FILE"
+  [[ -n "${VERIFY_ALL_OUTPUT_FILE:-}" ]] && rm -f "$VERIFY_ALL_OUTPUT_FILE"
 }
 
 test_baseline_passes_on_isolated_fixture() {
@@ -104,16 +106,18 @@ builder_off = [
 ]
 EOF
 
-  if (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-fba-baseline.mjs >/tmp/page_builder_fixture_fail.out 2>&1); then
+  FAIL_OUTPUT_FILE="$(mktemp)"
+  if (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-fba-baseline.mjs >"$FAIL_OUTPUT_FILE" 2>&1); then
     echo "expected baseline to fail on contract mismatch fixture"
-    cat /tmp/page_builder_fixture_fail.out
+    cat "$FAIL_OUTPUT_FILE"
     exit 1
   fi
 }
 
 test_verify_all_alias_runs_page_builder_baseline() {
-  (cd "$REPO_ROOT" && "$VERIFY_DIR/verify-all.sh" page-builder-fba-baseline >/tmp/page_builder_verify_all.out)
-  grep -q "PASS" /tmp/page_builder_verify_all.out
+  VERIFY_ALL_OUTPUT_FILE="$(mktemp)"
+  (cd "$REPO_ROOT" && "$VERIFY_DIR/verify-all.sh" page-builder-fba-baseline >"$VERIFY_ALL_OUTPUT_FILE")
+  grep -q "PASS" "$VERIFY_ALL_OUTPUT_FILE"
 }
 
 create_fixture_repo
