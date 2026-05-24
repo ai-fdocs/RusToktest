@@ -285,6 +285,39 @@ mod map_server_fn_error_tests {
     }
 
     #[test]
+    fn composition_runtime_taxonomy_matrix_is_forwarded_without_remapping() {
+        let cases = [
+            "REVISION_CONFLICT: Platform composition revision conflict: expected 7, current 11",
+            "INVALID_MODULE: module 'bad slug' is invalid",
+            "REQUIRED_MODULE: module 'pages' is required",
+            "UNKNOWN_DEPENDENCY: module 'checkout' references unknown dependency 'pricing'",
+            "INTERNAL_ERROR: failed to enqueue build",
+        ];
+
+        for case in cases {
+            let mapped = map_server_fn_error(ServerFnError::new(format!("GraphQL error: {case}")));
+            assert!(
+                matches!(mapped, GraphqlHttpError::Graphql(message) if message == case),
+                "expected composition taxonomy message to be forwarded unchanged for case {case}"
+            );
+        }
+    }
+
+    #[test]
+    fn composition_manifest_fragments_are_forwarded_without_local_parsing() {
+        let payload = "GraphQL error: REVISION_CONFLICT {\"extensions\":{\"code\":\"REVISION_CONFLICT\",\"manifest_ref\":\"platform_state:42\",\"manifest_revision\":42,\"expected_revision\":41}}";
+        let mapped = map_server_fn_error(ServerFnError::new(payload));
+
+        assert!(
+            matches!(mapped, GraphqlHttpError::Graphql(message)
+                if message.contains("\"manifest_ref\":\"platform_state:42\"")
+                && message.contains("\"manifest_revision\":42")
+                && message.contains("\"expected_revision\":41")),
+            "expected manifest revision fragments to be forwarded unchanged without local parsing"
+        );
+    }
+
+    #[test]
     fn maps_http_prefix_and_preserves_payload() {
         let mapped = normalize_server_fn_error_message("Http error: 409 conflict");
         assert!(matches!(mapped, GraphqlHttpError::Http(message) if message == "409 conflict"));
