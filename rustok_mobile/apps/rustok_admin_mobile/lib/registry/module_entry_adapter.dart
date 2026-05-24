@@ -82,5 +82,15 @@ List<ModuleRouteEntry> adaptModuleEntries(List<MobileModuleEntry> entries) {
 }
 
 String _sanitizeSegment(String value) {
-  return value.trim().replaceAll(RegExp(r'^/+|/+$'), '');
+  final trimmed = value.trim().replaceAll(RegExp(r'^/+|/+$'), '').toLowerCase();
+  if (trimmed.isEmpty) {
+    return '';
+  }
+
+  const allowed = r'^[a-z0-9_-]+$';
+  if (!RegExp(allowed).hasMatch(trimmed)) {
+    return '';
+  }
+
+  return trimmed;
 }

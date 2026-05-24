@@ -15,7 +15,6 @@ const _routeCodec = RouteCodec(
 );
 
 GoRouter buildRouter(List<ModuleRouteEntry> moduleRoutes) {
-
   return GoRouter(
     initialLocation: modulesRootPath,
     routes: [
@@ -115,7 +114,6 @@ class ModulePlaceholderPage extends StatelessWidget {
     );
   }
 }
-
 
 class ModuleChildPlaceholderPage extends StatelessWidget {
   const ModuleChildPlaceholderPage({

@@ -100,4 +100,31 @@ void main() {
     expect(blog.childRoutes, hasLength(2));
     expect(blog.childRoutes.map((c) => c.subpath), ['posts', 'new']);
   });
+
+
+  test('normalizes case and rejects non-canonical segments', () {
+    final entries = <MobileModuleEntry>[
+      const MobileModuleEntry(
+        moduleKey: 'rustok_media',
+        routeSegment: '/Media/',
+        nav: MobileNavMeta(title: 'Media', icon: 'perm_media'),
+        childPages: [
+          MobileChildPage(subpath: 'Library', title: 'Library'),
+          MobileChildPage(subpath: 'bad/path', title: 'Invalid Nested'),
+          MobileChildPage(subpath: 'bad path', title: 'Invalid Space'),
+        ],
+      ),
+    ];
+
+    final adapted = adaptModuleEntries(entries);
+
+    expect(adapted, hasLength(1));
+    final media = adapted.single;
+    expect(media.routeSegment, 'media');
+    expect(media.path, '/modules/media');
+    expect(media.childRoutes, hasLength(1));
+    expect(media.childRoutes.single.subpath, 'library');
+    expect(media.childRoutes.single.path, '/modules/media/library');
+  });
+
 }
