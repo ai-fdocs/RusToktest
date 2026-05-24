@@ -122,6 +122,10 @@ def _validate_snapshot_schema(entries: object) -> str | None:
                         f"snapshot entry #{index} child #{child_index} has invalid {key}"
                     )
             subpath = child["subpath"]
+            if not _is_snake_case(subpath):
+                return (
+                    f"snapshot entry #{index} child #{child_index} subpath must be snake_case"
+                )
             if subpath in seen_subpaths:
                 return (
                     f"snapshot entry #{index} child #{child_index} duplicates subpath '{subpath}'"
