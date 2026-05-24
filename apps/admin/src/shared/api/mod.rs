@@ -375,6 +375,25 @@ mod map_server_fn_error_tests {
     }
 
     #[test]
+    fn graphql_prefixed_taxonomy_payloads_with_transport_prefix_strings_stay_graphql_variant() {
+        let cases = [
+            "GraphQL error: REVISION_CONFLICT: Http error: 409 stale revision",
+            "GraphQL error: UNKNOWN_MODULE: Http error: module not found",
+            "GraphQL error: MODULE_HOOK_FAILED: Unauthorized downstream scope mismatch",
+            "GraphQL error: INTERNAL_ERROR: Network saturation during enqueue",
+        ];
+
+        for case in cases {
+            let mapped = map_server_fn_error(ServerFnError::new(case));
+            let expected = case.trim_start_matches("GraphQL error: ").to_string();
+            assert!(
+                matches!(mapped, GraphqlHttpError::Graphql(message) if message == expected),
+                "GraphQL-prefixed taxonomy payload `{case}` must stay Graphql variant without transport remap"
+            );
+        }
+    }
+
+    #[test]
     fn maps_http_prefix_and_preserves_payload() {
         let mapped = normalize_server_fn_error_message("Http error: 409 conflict");
         assert!(matches!(mapped, GraphqlHttpError::Http(message) if message == "409 conflict"));
