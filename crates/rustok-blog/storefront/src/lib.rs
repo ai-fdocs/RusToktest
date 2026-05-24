@@ -219,7 +219,7 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
         ),
     );
     let items = match items {
-        Some(items) => items,
+        Some(items) => core::published_posts_items_or_default(Some(items)),
         None => {
             return view! {
                 <article class="rounded-2xl border border-dashed border-border p-6">

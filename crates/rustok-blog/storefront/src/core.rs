@@ -256,6 +256,10 @@ pub fn published_posts_view_state<T>(
     }
 }
 
+pub fn published_posts_items_or_default<T>(items: Option<Vec<T>>) -> Vec<T> {
+    items.unwrap_or_default()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -525,6 +529,18 @@ mod tests {
         assert_eq!(
             published_posts_view_state::<String>(vec![], "empty".to_string()),
             (None, Some("empty".to_string()))
+        );
+    }
+
+    #[test]
+    fn published_posts_items_or_default_returns_empty_for_none() {
+        assert_eq!(
+            published_posts_items_or_default::<String>(None),
+            Vec::<String>::new()
+        );
+        assert_eq!(
+            published_posts_items_or_default(Some(vec!["x".to_string()])),
+            vec!["x".to_string()]
         );
     }
 }
