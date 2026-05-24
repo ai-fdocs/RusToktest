@@ -377,6 +377,49 @@ async fn create_and_list_order_returns() {
 }
 
 #[tokio::test]
+async fn list_order_returns_clamps_per_page_upper_bound_to_100() {
+    let service = setup().await;
+    let tenant_id = Uuid::new_v4();
+    let actor_id = Uuid::new_v4();
+
+    let order = service
+        .create_order(tenant_id, actor_id, create_order_input())
+        .await
+        .expect("order should be created");
+
+    for index in 0..101 {
+        service
+            .create_return(
+                tenant_id,
+                order.id,
+                CreateOrderReturnInput {
+                    reason: Some(format!("reason-{index}")),
+                    note: None,
+                    metadata: serde_json::json!({ "source": "per-page-upper-bound-test", "index": index }),
+                },
+            )
+            .await
+            .expect("return should be created");
+    }
+
+    let (rows, total) = service
+        .list_returns(
+            tenant_id,
+            ListOrderReturnsInput {
+                page: 1,
+                per_page: 1_000,
+                order_id: Some(order.id),
+                status: None,
+            },
+        )
+        .await
+        .expect("per_page upper bound should clamp");
+
+    assert_eq!(total, 101);
+    assert_eq!(rows.len(), 100, "per_page > 100 should clamp to 100 rows");
+}
+
+#[tokio::test]
 async fn list_order_returns_clamps_pagination_bounds() {
     let service = setup().await;
     let tenant_id = Uuid::new_v4();
