@@ -71,6 +71,14 @@ function normalizeMarkdown(content) {
   return content.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "");
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function stripCodeFences(content) {
+  return content.replace(/```[\s\S]*?```/g, "");
+}
+
 function getMarkdownHeadings(content) {
   return content
     .split("\n")
@@ -92,14 +100,12 @@ function readRequiredDocs() {
   };
 }
 
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function hasMarkdownLink(content, target) {
+  const normalizedContent = stripCodeFences(content);
   const escapedTarget = escapeRegExp(target);
+
   const inlineLinkPattern = new RegExp(`\\[[^\\]]+\\]\\([^)]*${escapedTarget}[^)]*\\)`);
-  if (inlineLinkPattern.test(content)) {
+  if (inlineLinkPattern.test(normalizedContent)) {
     return true;
   }
 
@@ -108,12 +114,12 @@ function hasMarkdownLink(content, target) {
 
   const usedRefs = new Set();
   let useMatch;
-  while ((useMatch = referenceUsePattern.exec(content)) !== null) {
+  while ((useMatch = referenceUsePattern.exec(normalizedContent)) !== null) {
     usedRefs.add(useMatch[1].toLowerCase());
   }
 
   let defMatch;
-  while ((defMatch = referenceDefPattern.exec(content)) !== null) {
+  while ((defMatch = referenceDefPattern.exec(normalizedContent)) !== null) {
     const ref = defMatch[1].toLowerCase();
     const href = defMatch[2];
     if (usedRefs.has(ref) && href.includes(target)) {
