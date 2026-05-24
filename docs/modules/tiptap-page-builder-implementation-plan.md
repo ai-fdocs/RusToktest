@@ -347,7 +347,7 @@ Notes: <known deviations or waivers>
 - [ ] CI-gate содержит сценарии fallback на legacy-read path при недоступности capability-layer.
 - [ ] Stores/admin UIs проходят parity-check по error semantics (`validation/sanitize/runtime`).
 - [ ] Для legacy block-driven path утверждён tenant-by-tenant sunset график.
-- [ ] Для Wave 0 зафиксированы toggle snapshots (before/after) и audit trail в control-plane логах.
+- [~] Для Wave 0 зафиксированы toggle snapshots (before/after) и audit trail в control-plane логах (template/rules зафиксированы, ждём фактические execution packets).
 
 
 ### 7.5 Ownership / approvals matrix
@@ -367,14 +367,14 @@ Notes: <known deviations or waivers>
 
 **Итерация PB-FBA-1 (contract hardening + metadata parity)**
 
-- [ ] Зафиксировать в `rustok-pages` machine-readable матрицу capability fallback (`builder_off`, `preview_off`, `publish_off`) и связать её с runtime error catalog.
+- [~] Зафиксировать в `rustok-pages` machine-readable матрицу capability fallback (`builder_off`, `preview_off`, `publish_off`) и связать её с runtime error catalog (toggle profiles + degraded modes зафиксированы в manifest; связка с error catalog закрывается в Phase 5).
 - [ ] Закрыть contract-parity по consumer adapters (Next/Leptos/Flutter) на уровне одинаковых error semantics, без требования UI 1:1.
 - [ ] Зафиксировать anti-drift checks: `contract_version` между provider/consumer должен валидироваться в CI.
 
 **Итерация PB-FBA-2 (operability + fallback verification)**
 
 - [ ] Добавить обязательный fallback regression gate: отключение `builder.enabled` не ломает `list/read/menu` surfaces и не вызывает 5xx.
-- [ ] Привязать tenant-switch операции к control-plane audit trail (before/after snapshots + keep/rollback decision).
+- [~] Привязать tenant-switch операции к control-plane audit trail (before/after snapshots + keep/rollback decision) — execution log template и обязательные артефакты уже зафиксированы в Phase 3.3/3.4, остаётся operational evidence из Wave 0.
 - [ ] Вынести унифицированные SLO threshold checks в release-gate для wave-переходов (`preview p95`, `publish p95`, sanitize failure rate).
 
 **Итерация PB-FBA-3 (pilot execution + sunset discipline)**
@@ -451,6 +451,22 @@ Notes: <known deviations or waivers>
 4. **Pilot readiness review**
    - совместный sign-off Platform + Pages + Builder owners;
    - согласование on-call и incident ownership до включения pilot-tenant.
+
+### 8.6 Ближайший execution backlog (следующая итерация)
+
+1. **PB-FBA-1a — contract/evidence sync**
+   - обновить `docs/modules/implementation-plans-registry.md` после фиксации Wave 0 evidence packet;
+   - приложить ссылки на `toggle snapshots` и `fallback gate` результаты для `all_on/publish_off/preview_off/builder_off`.
+2. **PB-FBA-1b — error catalog binding**
+   - связать `degraded_modes` из `rustok-module.toml` с typed runtime error catalog в `rustok-pages`;
+   - добавить проверку anti-drift: каждый degraded mode должен иметь documented error code.
+3. **PB-FBA-2a — CI fallback gate hardening**
+   - довести до required-check сценарии `builder_off` и `publish_off` без 5xx на read/list surfaces;
+   - зафиксировать waiver policy: временные исключения только с owner sign-off и expiry date.
+
+Критерий завершения 8.6:
+
+- есть machine-verifiable evidence, что toggle semantics и fallback behavior подтверждены не только документацией, но и CI + execution packet артефактами.
 
 ### 8.5 Артефакты, обязательные для Go/No-Go
 
