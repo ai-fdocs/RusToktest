@@ -39,6 +39,9 @@ usage() {
     echo "  ui-i18n-parity    Verify module UI i18n parity"
     echo "  flex-multilingual-contract  Verify Flex multilingual live contract guardrails"
     echo "  module-lifecycle-bypass-usage  Verify lifecycle bypass helper is blocked in production paths"
+    echo "  page-builder-contract-parity  Verify page-builder provider/consumer contract version parity"
+    echo "  page-builder-fallback-profiles  Verify required page-builder fallback/toggle profile structure"
+    echo "  page-builder-toggle-profiles-consistency  Verify page-builder toggle profile flag combinations"
     echo ""
     echo "Without arguments, runs all scripts."
 }
@@ -67,6 +70,9 @@ SCRIPTS=(
     "verify-ui-i18n-parity.mjs:UI i18n Parity"
     "verify-flex-multilingual-contract.mjs:Flex Multilingual Contract"
     "verify-module-lifecycle-bypass-usage.mjs:Module Lifecycle Bypass Usage"
+    "verify-page-builder-contract-parity.mjs:Page Builder Contract Parity"
+    "verify-page-builder-fallback-profiles.mjs:Page Builder Fallback Profiles"
+    "verify-page-builder-toggle-profiles-consistency.mjs:Page Builder Toggle Profiles Consistency"
 )
 
 # Filter to selected script if specified

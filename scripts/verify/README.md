@@ -21,6 +21,9 @@
 ./scripts/verify/verify-deployment-profiles.sh
 node scripts/verify/verify-flex-multilingual-contract.mjs
 node scripts/verify/verify-module-lifecycle-bypass-usage.mjs
+node scripts/verify/verify-page-builder-contract-parity.mjs
+node scripts/verify/verify-page-builder-fallback-profiles.mjs
+node scripts/verify/verify-page-builder-toggle-profiles-consistency.mjs
 ```
 
 ## Когда запускать
@@ -39,6 +42,9 @@ node scripts/verify/verify-module-lifecycle-bypass-usage.mjs
 | Проверка deployment profile matrix | `./scripts/verify/verify-all.sh deployment-profiles` |
 | Проверка drift в Flex multilingual contract | `node scripts/verify/verify-flex-multilingual-contract.mjs` |
 | Проверка запрета lifecycle bypass helper в production | `node scripts/verify/verify-module-lifecycle-bypass-usage.mjs` |
+| Проверка parity provider/consumer для page-builder контракта | `node scripts/verify/verify-page-builder-contract-parity.mjs` |
+| Проверка required fallback/toggle профилей page-builder | `node scripts/verify/verify-page-builder-fallback-profiles.mjs` |
+| Проверка консистентности значений в toggle профилях page-builder | `node scripts/verify/verify-page-builder-toggle-profiles-consistency.mjs` |
 
 ## Описание скриптов
 
