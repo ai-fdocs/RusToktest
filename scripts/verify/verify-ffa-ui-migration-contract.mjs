@@ -20,6 +20,7 @@ const requiredPlanSections = [
   "## Политика актуализации verification scripts",
   "## Phase-gate критерии (обязательные переходы между фазами)",
   "## KPI parity (измеримые пороги)",
+  "## RACI (кто принимает phase-gates)",
 ];
 
 const requiredChecklistItems = [
@@ -28,6 +29,7 @@ const requiredChecklistItems = [
   "- [ ] UI слой не владеет transport/business логикой.",
   "- [ ] Доступ к transport идёт через core ports.",
   "- [ ] Core слой не зависит от `leptos*`.",
+  "- [ ] Выполнен `npm run verify:ffa:ui:migration`.",
 ];
 
 function assertFileExists(relPath) {
