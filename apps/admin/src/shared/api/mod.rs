@@ -318,6 +318,30 @@ mod map_server_fn_error_tests {
     }
 
     #[test]
+    fn graphql_prefixed_composition_payload_with_unauthorized_word_stays_graphql_variant() {
+        let mapped = map_server_fn_error(ServerFnError::new(
+            "GraphQL error: REVISION_CONFLICT: Unauthorized actor tried stale revision write",
+        ));
+        assert!(
+            matches!(mapped, GraphqlHttpError::Graphql(message)
+                if message == "REVISION_CONFLICT: Unauthorized actor tried stale revision write"),
+            "GraphQL-prefixed composition payload must remain Graphql variant and not become Unauthorized transport error"
+        );
+    }
+
+    #[test]
+    fn graphql_prefixed_composition_payload_with_network_word_stays_graphql_variant() {
+        let mapped = map_server_fn_error(ServerFnError::new(
+            "GraphQL error: INTERNAL_ERROR: Network jitter during build enqueue",
+        ));
+        assert!(
+            matches!(mapped, GraphqlHttpError::Graphql(message)
+                if message == "INTERNAL_ERROR: Network jitter during build enqueue"),
+            "GraphQL-prefixed composition payload must remain Graphql variant and not become Network transport error"
+        );
+    }
+
+    #[test]
     fn maps_http_prefix_and_preserves_payload() {
         let mapped = normalize_server_fn_error_message("Http error: 409 conflict");
         assert!(matches!(mapped, GraphqlHttpError::Http(message) if message == "409 conflict"));
