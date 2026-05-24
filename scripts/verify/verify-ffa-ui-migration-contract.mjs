@@ -81,12 +81,6 @@ function getMarkdownHeadings(content) {
     .filter(Boolean);
 }
 
-function findLineNumber(content, pattern) {
-  const lines = content.split("\n");
-  const index = lines.findIndex((line) => pattern.test(line));
-  return index >= 0 ? index + 1 : null;
-}
-
 function readRequiredDocs() {
   const [planPath, connectivityPath, checklistPath, docsIndexPath] = requiredDocs.map(assertFileExists);
 
@@ -96,6 +90,12 @@ function readRequiredDocs() {
     checklist: normalizeMarkdown(readFileSync(checklistPath, "utf8")),
     docsIndex: normalizeMarkdown(readFileSync(docsIndexPath, "utf8")),
   };
+}
+
+function hasMarkdownLink(content, target) {
+  const escapedTarget = target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const markdownLinkPattern = new RegExp(`\\[[^\\]]+\\]\\([^)]*${escapedTarget}[^)]*\\)`);
+  return markdownLinkPattern.test(content);
 }
 
 function collectValidationErrors({ plan, connectivity, checklist, docsIndex }) {
@@ -112,8 +112,7 @@ function collectValidationErrors({ plan, connectivity, checklist, docsIndex }) {
   });
 
   requiredChecklistChecks.forEach(({ label, pattern }) => {
-    const line = findLineNumber(checklist, pattern);
-    if (line === null) {
+    if (!pattern.test(checklist)) {
       errors.push(`Не найден обязательный checklist-паттерн (${label})`);
     }
   });
@@ -125,19 +124,10 @@ function collectValidationErrors({ plan, connectivity, checklist, docsIndex }) {
   });
 
   requiredIndexRefs.forEach((refPath) => {
-    if (!docsIndex.includes(refPath)) {
-      errors.push(`Не найдена обязательная ссылка в docs/index.md: ${refPath}`);
+    if (!hasMarkdownLink(docsIndex, refPath)) {
+      errors.push(`Не найдена обязательная markdown-ссылка в docs/index.md: ${refPath}`);
     }
   });
-
-  if (errors.length === 0) {
-    requiredPlanHeadings.forEach((heading) => {
-      const line = planHeadingIndex.get(heading);
-      if (line != null) {
-        console.log(`[verify-ffa-ui-migration-contract] heading ok: ${heading} (line ${line})`);
-      }
-    });
-  }
 
   return errors.sort((a, b) => a.localeCompare(b, "ru"));
 }
