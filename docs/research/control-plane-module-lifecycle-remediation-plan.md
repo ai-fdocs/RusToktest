@@ -748,3 +748,8 @@ rollback-стратегии и Definition of Done по итерациям.
 - Усилен operational runner `scripts/verify/run-control-plane-remediation-minimal.sh`: добавлен inter-process lock (`flock`) в `target/.control-plane-remediation-minimal.lock`, чтобы исключить параллельные запуски и снизить повторяемые `Blocking waiting for file lock ...` между итерациями.
 - Для ускоренного повторного прогона после pre-existing formatting drift добавлен управляемый флаг `RUSTOK_VERIFY_SKIP_FMT=1` (только для локального цикла triage; release-gate остаётся с обязательным fmt-check).
 - Batch-2 пункт verification остаётся `[~]` до полного зелёного прогона полного набора без skip-флагов.
+
+### Актуализация 2026-05-24 (итерация 52)
+
+- Для нового minimal runner добавлен smoke/guard тест `scripts/tests/control_plane_remediation_minimal_runner_test.sh` (syntax + lock-conflict path + skip-fmt path до шага migration).
+- `scripts/tests/README.md` и `scripts/verify/README.md` синхронизированы с новым runner/test entrypoint, чтобы operational usage и локальные проверки были воспроизводимыми.

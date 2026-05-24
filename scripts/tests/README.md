@@ -9,6 +9,7 @@ scripts/tests/check_dependabot_directories_test.sh
 scripts/tests/check_lifecycle_runbook_doc_links_test.sh
 scripts/tests/auth_release_gate_test.sh
 scripts/tests/page_builder_fba_verify_test.sh
+scripts/tests/control_plane_remediation_minimal_runner_test.sh
 ```
 
 ## Правила
