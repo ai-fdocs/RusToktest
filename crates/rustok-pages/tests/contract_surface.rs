@@ -6,3 +6,67 @@ fn implementation_plan_tracks_contract_test_coverage() {
         "implementation plan must include contract test checklist item"
     );
 }
+
+#[test]
+fn module_manifest_declares_fba_builder_consumer_contract() {
+    let manifest = include_str!("../rustok-module.toml");
+    let value: toml::Value =
+        toml::from_str(manifest).expect("rustok-module.toml must stay valid TOML");
+
+    let dependency = value
+        .get("dependencies")
+        .and_then(|deps| deps.get("page_builder"))
+        .expect("pages manifest must declare dependencies.page_builder");
+
+    assert_eq!(
+        dependency
+            .get("module")
+            .and_then(toml::Value::as_str)
+            .expect("dependencies.page_builder.module is required"),
+        "page-builder",
+        "pages must consume external page-builder module"
+    );
+
+    assert_eq!(
+        dependency
+            .get("contract")
+            .and_then(toml::Value::as_str)
+            .expect("dependencies.page_builder.contract is required"),
+        "grapesjs_v1",
+        "pages and builder contract drifted"
+    );
+
+    assert_eq!(
+        dependency
+            .get("contract_version")
+            .and_then(toml::Value::as_str)
+            .expect("dependencies.page_builder.contract_version is required"),
+        "1.0",
+        "pages contract version drifted"
+    );
+
+    let consumer = value
+        .get("fba")
+        .and_then(|fba| fba.get("builder_consumer"))
+        .expect("fba.builder_consumer metadata is required");
+
+    let degraded_modes = consumer
+        .get("degraded_modes")
+        .expect("fba.builder_consumer.degraded_modes must be defined");
+    for key in ["builder_disabled", "preview_disabled", "publish_disabled"] {
+        assert!(
+            degraded_modes.get(key).and_then(toml::Value::as_str).is_some(),
+            "missing degraded mode mapping: {key}"
+        );
+    }
+
+    let profiles = consumer
+        .get("toggle_profiles")
+        .expect("fba.builder_consumer.toggle_profiles must be defined");
+    for profile in ["all_on", "publish_off", "preview_off", "builder_off"] {
+        assert!(
+            profiles.get(profile).and_then(toml::Value::as_array).is_some(),
+            "missing toggle profile: {profile}"
+        );
+    }
+}
