@@ -234,6 +234,15 @@ fn module_composition_helpers_preserve_server_owned_lifecycle_parity_matrix_cont
         "previous_effective_enabled",
         "retryable",
     ];
+    let composition_error_fragments = [
+        "REVISION_CONFLICT",
+        "INVALID_MODULE",
+        "REQUIRED_MODULE",
+        "UNKNOWN_DEPENDENCY",
+        "INTERNAL_ERROR",
+        "manifest_ref",
+        "platform_state:",
+    ];
 
     for signature in [
         "pub async fn install_module(",
@@ -247,6 +256,7 @@ fn module_composition_helpers_preserve_server_owned_lifecycle_parity_matrix_cont
         for fragment in lifecycle_taxonomy_fragments
             .iter()
             .chain(journal_metadata_fragments.iter())
+            .chain(composition_error_fragments.iter())
         {
             assert!(
                 !helper_body.contains(fragment),
