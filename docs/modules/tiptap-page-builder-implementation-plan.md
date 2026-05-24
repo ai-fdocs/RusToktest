@@ -636,3 +636,45 @@ Go/No-Go для перехода в следующую волну:
 - критические риски (`R1`, `R2`) эскалируются в течение 30 минут с момента детекта;
 - деградационные риски (`R3`, `R4`) — в течение 1 рабочего дня с обязательным remediation plan;
 - без закрытого mitigation item модуль не продвигается в следующую rollout-волну.
+
+### 12.9 Execution cadence и DoD по волнам (чтобы продолжать без повторных трактовок)
+
+#### Еженедельный cadence (до завершения Wave 1)
+
+- **Понедельник (plan sync, 30 мин):**
+  - актуализация статуса checkpoint’ов `A1/B1/C1-D1`;
+  - проверка открытых рисков `PB-FBA-R1..R4` и назначение owner/action.
+- **Среда (evidence sync, 30 мин):**
+  - сверка, что пакет `metadata/fallback/observability/rollback` пополняется фактическими артефактами;
+  - фиксация drift-замечаний между provider/consumer metadata.
+- **Пятница (promotion review, 30 мин):**
+  - решение `keep/rollback/hold` по текущему tenant cohort;
+  - обновление go/no-go статуса и блокеров следующей волны.
+
+#### Definition of Done для перехода Wave 0 -> Wave 1
+
+Переход разрешён только при одновременном выполнении:
+
+1. **Contract integrity**
+   - [ ] `builder_contract_version` и `consumer_min_version` подтверждены CI anti-drift gate без waiver.
+2. **Fallback integrity**
+   - [ ] проверены `all_on/publish_off/preview_off/builder_off` и нет 5xx в `admin list/read` + `storefront read`.
+3. **Operational integrity**
+   - [ ] есть complete audit trail (`before/after`, smoke, decision log) по toggle change-set.
+4. **Observability integrity**
+   - [ ] подтверждены SLO-границы (`preview p95`, `publish p95`, sanitize failure rate) и есть correlation trace examples.
+5. **Ownership integrity**
+   - [ ] есть явный sign-off Platform + Builder + Pages + Frontend owners.
+
+Если любой пункт не закрыт, статус волны остаётся `hold`, а модуль не масштабируется на `blog/forum` очереди.
+
+### 12.10 Что считаем “продолжили по плану” к концу июля 2026
+
+Чтобы зафиксировать измеримый результат, к **2026-07-31** ожидается минимальный outcome:
+
+- [ ] `pages` прошёл Wave 0 с полным evidence packet и без блокирующих `R1/R2`.
+- [ ] Wave 1 readiness packet подготовлен и подписан owner-группами.
+- [ ] Для `blog` и `forum` создан стартовый migration backlog по тому же шаблону (`contract/fallback/observability/rollback`).
+- [ ] В `docs/modules/registry.md` отражён актуальный maturity-state по `builder/pages` треку.
+
+Этот outcome является checkpoint для решения о переходе к broad rollout (Wave 2) в следующем плановом цикле.
