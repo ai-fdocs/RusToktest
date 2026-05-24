@@ -92,10 +92,36 @@ function readRequiredDocs() {
   };
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 function hasMarkdownLink(content, target) {
-  const escapedTarget = target.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const markdownLinkPattern = new RegExp(`\\[[^\\]]+\\]\\([^)]*${escapedTarget}[^)]*\\)`);
-  return markdownLinkPattern.test(content);
+  const escapedTarget = escapeRegExp(target);
+  const inlineLinkPattern = new RegExp(`\\[[^\\]]+\\]\\([^)]*${escapedTarget}[^)]*\\)`);
+  if (inlineLinkPattern.test(content)) {
+    return true;
+  }
+
+  const referenceUsePattern = /\[[^\]]+\]\[([^\]]+)\]/g;
+  const referenceDefPattern = /^\[([^\]]+)\]:\s*(\S+)/gm;
+
+  const usedRefs = new Set();
+  let useMatch;
+  while ((useMatch = referenceUsePattern.exec(content)) !== null) {
+    usedRefs.add(useMatch[1].toLowerCase());
+  }
+
+  let defMatch;
+  while ((defMatch = referenceDefPattern.exec(content)) !== null) {
+    const ref = defMatch[1].toLowerCase();
+    const href = defMatch[2];
+    if (usedRefs.has(ref) && href.includes(target)) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 function collectValidationErrors({ plan, connectivity, checklist, docsIndex }) {
