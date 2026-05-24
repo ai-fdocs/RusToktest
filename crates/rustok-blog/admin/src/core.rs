@@ -142,6 +142,10 @@ pub fn is_editing_post(editing_post_id: Option<&str>, post_id: &str) -> bool {
     editing_post_id == Some(post_id)
 }
 
+pub fn should_reset_form_after_delete(editing_post_id: Option<&str>, deleted_post_id: &str) -> bool {
+    is_editing_post(editing_post_id, deleted_post_id)
+}
+
 pub fn is_editing_mode(editing_post_id: Option<&str>) -> bool {
     editing_post_id.is_some()
 }
@@ -376,6 +380,9 @@ mod tests {
         assert!(is_editing_post(Some("42"), "42"));
         assert!(!is_editing_post(Some("41"), "42"));
         assert!(!is_editing_post(None, "42"));
+        assert!(should_reset_form_after_delete(Some("42"), "42"));
+        assert!(!should_reset_form_after_delete(Some("41"), "42"));
+        assert!(!should_reset_form_after_delete(None, "42"));
         assert!(is_editing_mode(Some("42")));
         assert!(!is_editing_mode(None));
         assert!(has_issue(Some(WritePathIssueKind::Runtime)));

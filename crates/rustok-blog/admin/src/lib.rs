@@ -421,7 +421,7 @@ pub fn BlogAdmin() -> impl IntoView {
         spawn_local(async move {
             match api::delete_post(token_value, tenant_value, post_id.clone()).await {
                 Ok(true) => {
-                    if core::is_editing_post(
+                    if core::should_reset_form_after_delete(
                         editing_post_id.get_untracked().as_deref(),
                         post_id.as_str(),
                     ) {
