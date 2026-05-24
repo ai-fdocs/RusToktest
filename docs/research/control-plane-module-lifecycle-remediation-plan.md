@@ -735,3 +735,9 @@ rollback-стратегии и Definition of Done по итерациям.
 - Закрыт operational-gate по dependabot directory contract: устранены дубли директорий `/apps/admin` и `/apps/storefront` в `.github/dependabot.yml`, после чего `scripts/ci/check-dependabot-directories.py` проходит зелёно.
 - Повторно подтверждены CI non-regression контракты для module platform: `cargo xtask validate-manifest` и `cargo xtask module validate` выполняются с PASS.
 - Release-gate чекбокс `CI-gates подтверждены как non-regression` переведён в `[x]`; незакрытым остаётся отдельный пункт про полный минимальный verification-набор (fmt/tests bundle).
+
+### Актуализация 2026-05-24 (итерация 50)
+
+- Повторный запуск `cargo fmt --all -- --check` снова не прошёл: зафиксирован масштабный rustfmt-drift в уже существующих файлах (`apps/admin`, `apps/server`, `crates/rustok-seo`, `crates/rustok-tenant`, и др.), без новых функциональных регрессий.
+- Параллельно повторно запущены `cargo xtask validate-manifest` и `cargo xtask module validate`; оба прогона упирались в длительную перекомпиляцию и lock contention (`Blocking waiting for file lock ...`) в рамках окна итерации.
+- Чекбокс минимального verification-набора сохраняется в `[ ]` до отдельного зелёного прогона fmt + server/migration bundle после стабилизации build-cache/lock-окна.
