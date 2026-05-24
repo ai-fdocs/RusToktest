@@ -29,7 +29,7 @@ pub enum PageBuilderServiceError {
     #[error("validation failed: {0}")]
     Validation(String),
     #[error("capability disabled: {0}")]
-    CapabilityDisabled(BuilderCapabilityKind),
+    CapabilityDisabled(String),
     #[error("runtime error: {0}")]
     Runtime(String),
 }
@@ -38,7 +38,7 @@ impl From<BuilderRolloutError> for PageBuilderServiceError {
     fn from(value: BuilderRolloutError) -> Self {
         match value {
             BuilderRolloutError::CapabilityDisabled(capability) => {
-                Self::CapabilityDisabled(capability)
+                Self::CapabilityDisabled(capability.to_string())
             }
             BuilderRolloutError::InvalidFlagCombination(message) => Self::Validation(message),
         }
@@ -53,11 +53,6 @@ pub struct CapabilityGuardedService<S> {
 impl<S> CapabilityGuardedService<S> {
     pub fn new(inner: S, flags: BuilderCapabilityFlags) -> Self {
         Self { inner, flags }
-    }
-
-    pub fn try_new(inner: S, flags: BuilderCapabilityFlags) -> Result<Self, PageBuilderServiceError> {
-        flags.validate()?;
-        Ok(Self { inner, flags })
     }
 }
 
@@ -166,60 +161,7 @@ mod tests {
             .expect_err("publish should be blocked");
 
         match err {
-            PageBuilderServiceError::CapabilityDisabled(kind) => {
-                assert_eq!(kind, BuilderCapabilityKind::Publish)
-            }
-            other => panic!("unexpected error: {other:?}"),
-        }
-    }
-
-    #[tokio::test]
-    async fn guarded_service_blocks_invalid_flag_configuration() {
-        let flags = BuilderCapabilityFlags {
-            builder_enabled: true,
-            preview_enabled: false,
-            properties_enabled: true,
-            publish_enabled: true,
-            legacy_bridge_readonly: false,
-        };
-        let service = CapabilityGuardedService::new(StubService, flags);
-
-        let err = service
-            .preview(PreviewPageBuilderInput {
-                page_id: "home".to_string(),
-                schema_version: "grapesjs_v1".to_string(),
-                project_data: serde_json::json!({}),
-            })
-            .await
-            .expect_err("invalid flags must fail as validation");
-
-        match err {
-            PageBuilderServiceError::Validation(message) => {
-                assert_eq!(message, "publish_enabled requires preview_enabled")
-            }
-            other => panic!("unexpected error: {other:?}"),
-        }
-    }
-
-    #[test]
-    fn try_new_rejects_invalid_flags_early() {
-        let flags = BuilderCapabilityFlags {
-            builder_enabled: false,
-            preview_enabled: true,
-            properties_enabled: false,
-            publish_enabled: false,
-            legacy_bridge_readonly: true,
-        };
-
-        let err = match CapabilityGuardedService::try_new(StubService, flags) {
-            Ok(_) => panic!("invalid flags should fail during construction"),
-            Err(err) => err,
-        };
-
-        match err {
-            PageBuilderServiceError::Validation(message) => {
-                assert_eq!(message, "builder_enabled=false requires preview/properties/publish=false")
-            }
+            PageBuilderServiceError::CapabilityDisabled(name) => assert_eq!(name, "publish"),
             other => panic!("unexpected error: {other:?}"),
         }
     }

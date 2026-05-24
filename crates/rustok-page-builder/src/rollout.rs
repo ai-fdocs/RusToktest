@@ -58,7 +58,7 @@ impl BuilderCapabilityFlags {
 #[derive(Debug, thiserror::Error, PartialEq, Eq)]
 pub enum BuilderRolloutError {
     #[error("capability disabled: {0}")]
-    CapabilityDisabled(BuilderCapabilityKind),
+    CapabilityDisabled(&'static str),
     #[error("invalid flag combination: {0}")]
     InvalidFlagCombination(String),
 }
@@ -71,6 +71,7 @@ pub fn ensure_capability(
     if flags.is_allowed(capability) {
         Ok(())
     } else {
-        Err(BuilderRolloutError::CapabilityDisabled(capability))
+        Err(BuilderRolloutError::CapabilityDisabled(capability.as_str()))
     }
 }
+
