@@ -716,3 +716,9 @@ rollback-стратегии и Definition of Done по итерациям.
 - Запущен минимальный verification-набор для текущей ветки (`cargo fmt --all -- --check`, `cargo test -p migration`, `cargo test -p rustok-server module_lifecycle`, `cargo test -p rustok-server platform_composition`).
 - Полное выполнение verification-пакета заблокировано текущими pre-existing проблемами workspace: `cargo fmt --check` падает из-за синтаксической ошибки в `apps/server/src/controllers/channel.rs` (unexpected closing delimiter), а длительные server/migration test-команды не завершились в окне итерации из-за массовой перекомпиляции и file-lock contention.
 - Чекбокс `Минимальный verification набор ...` остаётся `[ ]` до зелёного прогона после устранения синтаксической ошибки и повторного запуска пакета.
+
+### Актуализация 2026-05-24 (итерация 47)
+
+- Для operational-gate прогона выполнены `cargo xtask validate-manifest` (PASS) и `cargo xtask module validate` (FAIL).
+- `xtask module validate` теперь проходит `channel`, но останавливается на новом pre-existing contract drift: модуль `pages` имеет dependency mismatch между `modules.toml` и `crates/rustok-pages/rustok-module.toml` (`modules.toml={content}` vs `rustok-module.toml={page_builder,content}`).
+- Чекбокс `CI-gates подтверждены как non-regression` остаётся `[ ]` до выравнивания module dependency contract для `pages` и повторного зелёного прогона xtask-пакета.
