@@ -94,8 +94,8 @@
 - [x] Определить стратегию включения: internal → pilot → broad rollout.
 - [x] Подготовить матрицу включения/исключения по tenant и модулю (см. Phase 3.2).
 - [~] Согласовать операционный runbook переключений (процедура и rollback-условия зафиксированы, требуется owner sign-off в execution log).
-- [ ] Зафиксировать baseline-only rollout: OSS GrapesJS + vendor-neutral `grapesjs_v1` contract без расширения platform-контракта под вендор-специфику.
-- [ ] Зафиксировать FBA governance-профиль для `rustok-pages` как reference-модуля: capability boundaries, control-plane hooks, module health contract, ownership SLA.
+- [x] Зафиксировать baseline-only rollout: OSS GrapesJS + vendor-neutral `grapesjs_v1` contract без расширения platform-контракта под вендор-специфику (см. Phase 3.5).
+- [~] Зафиксировать FBA governance-профиль для `rustok-pages` как reference-модуля: capability boundaries, control-plane hooks, module health contract, ownership SLA (профиль и SLA baseline заданы в Phase 3.6; acceptance в Phase 5).
 
 **DoD фазы:** controlled rollout возможен без redeploy.
 
@@ -211,6 +211,43 @@ Notes: <known deviations or waivers>
 2. Любой `waiver` требует явной ссылки на инцидент/тикет и срок действия waiver.
 3. Для `Wave 1` и выше обязательна ссылка на storefront regression-check отчёт (`apps/storefront` + `apps/next-frontend`).
 
+### Фаза 3.5 — Baseline-only rollout policy (freeze)
+
+В рамках текущего трека фиксируется **strict baseline** без расширения platform-контракта:
+
+- runtime/editor baseline: только OSS GrapesJS (self-hosted);
+- transport/storage baseline: только vendor-neutral `grapesjs_v1`;
+- integration policy: любые vendor-specific plugins допустимы только как локальные UI adapters без изменения backend contract;
+- compatibility policy: legacy bridge остаётся read-only до sunset, без feature growth.
+
+Запрещено в рамках Phase 3–5:
+
+1. Добавлять новые обязательные поля в `grapesjs_v1` под конкретного вендора.
+2. Вводить control-plane флаги, которые имеют смысл только для vendor-specific runtime.
+3. Подменять fallback semantics для legacy-read path vendor-зависимыми правилами.
+
+Критерий соответствия baseline-only policy:
+
+- любой новый change-set в rollout содержит отметку `contract_impact: none|compatible`;
+- при `contract_impact=compatible` приложен schema-diff и подтверждение backward-compatibility.
+
+### Фаза 3.6 — FBA governance-профиль для `rustok-pages` (baseline)
+
+Минимальный governance-профиль до broad rollout:
+
+| Контур | Ответственный owner | SLA / реакция | Артефакт контроля |
+|---|---|---|---|
+| Control-plane toggles (`builder.*`) | Platform team | rollback decision ≤ 15 мин при P1 | execution log + audit trail |
+| Page/menu runtime contract | Pages owners | hotfix triage ≤ 30 мин при publish regression | incident ticket + runbook link |
+| Runtime adapters (Next/Leptos) | Runtime owners | parity regression ack ≤ 1 рабочий день | parity-check report |
+| Observability & alerts | Platform + module owners | alert acknowledge ≤ 10 мин | alert timeline + postmortem |
+
+Обязательные governance-правила:
+
+1. Любой rollout change-set должен иметь назначенного `decision owner` и `rollback owner`.
+2. Owner для control-plane и owner для runtime adapter не могут быть одним и тем же человеком в Wave 1/2.
+3. Для спорных случаев приоритет решения — у platform on-call, с последующей фиксацией в post-incident review.
+
 ### Фаза 4 — Миграция legacy markdown → rt_json_v1
 
 **Статус:** [ ] Todo
@@ -310,7 +347,7 @@ Notes: <known deviations or waivers>
 - [ ] CI-gate содержит сценарии fallback на legacy-read path при недоступности capability-layer.
 - [ ] Stores/admin UIs проходят parity-check по error semantics (`validation/sanitize/runtime`).
 - [ ] Для legacy block-driven path утверждён tenant-by-tenant sunset график.
-- [ ] Для Wave 0 зафиксированы toggle snapshots (before/after) и audit trail в control-plane логах.
+- [~] Для Wave 0 зафиксированы toggle snapshots (before/after) и audit trail в control-plane логах (template/rules зафиксированы, ждём фактические execution packets).
 
 
 ### 7.5 Ownership / approvals matrix
@@ -330,14 +367,14 @@ Notes: <known deviations or waivers>
 
 **Итерация PB-FBA-1 (contract hardening + metadata parity)**
 
-- [ ] Зафиксировать в `rustok-pages` machine-readable матрицу capability fallback (`builder_off`, `preview_off`, `publish_off`) и связать её с runtime error catalog.
+- [~] Зафиксировать в `rustok-pages` machine-readable матрицу capability fallback (`builder_off`, `preview_off`, `publish_off`) и связать её с runtime error catalog (toggle profiles + degraded modes зафиксированы в manifest; связка с error catalog закрывается в Phase 5).
 - [ ] Закрыть contract-parity по consumer adapters (Next/Leptos/Flutter) на уровне одинаковых error semantics, без требования UI 1:1.
 - [ ] Зафиксировать anti-drift checks: `contract_version` между provider/consumer должен валидироваться в CI.
 
 **Итерация PB-FBA-2 (operability + fallback verification)**
 
 - [ ] Добавить обязательный fallback regression gate: отключение `builder.enabled` не ломает `list/read/menu` surfaces и не вызывает 5xx.
-- [ ] Привязать tenant-switch операции к control-plane audit trail (before/after snapshots + keep/rollback decision).
+- [~] Привязать tenant-switch операции к control-plane audit trail (before/after snapshots + keep/rollback decision) — execution log template и обязательные артефакты уже зафиксированы в Phase 3.3/3.4, остаётся operational evidence из Wave 0.
 - [ ] Вынести унифицированные SLO threshold checks в release-gate для wave-переходов (`preview p95`, `publish p95`, sanitize failure rate).
 
 **Итерация PB-FBA-3 (pilot execution + sunset discipline)**
@@ -414,6 +451,22 @@ Notes: <known deviations or waivers>
 4. **Pilot readiness review**
    - совместный sign-off Platform + Pages + Builder owners;
    - согласование on-call и incident ownership до включения pilot-tenant.
+
+### 8.6 Ближайший execution backlog (следующая итерация)
+
+1. **PB-FBA-1a — contract/evidence sync**
+   - обновить `docs/modules/implementation-plans-registry.md` после фиксации Wave 0 evidence packet;
+   - приложить ссылки на `toggle snapshots` и `fallback gate` результаты для `all_on/publish_off/preview_off/builder_off`.
+2. **PB-FBA-1b — error catalog binding**
+   - связать `degraded_modes` из `rustok-module.toml` с typed runtime error catalog в `rustok-pages`;
+   - добавить проверку anti-drift: каждый degraded mode должен иметь documented error code.
+3. **PB-FBA-2a — CI fallback gate hardening**
+   - довести до required-check сценарии `builder_off` и `publish_off` без 5xx на read/list surfaces;
+   - зафиксировать waiver policy: временные исключения только с owner sign-off и expiry date.
+
+Критерий завершения 8.6:
+
+- есть machine-verifiable evidence, что toggle semantics и fallback behavior подтверждены не только документацией, но и CI + execution packet артефактами.
 
 ### 8.5 Артефакты, обязательные для Go/No-Go
 
