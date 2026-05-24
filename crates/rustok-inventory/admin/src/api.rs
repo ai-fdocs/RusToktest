@@ -77,6 +77,18 @@ fn graphql_url() -> String {
     }
 }
 
+
+fn normalize_status_filter(status: Option<String>) -> Option<String> {
+    status.and_then(|value| {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_ascii_uppercase())
+        }
+    })
+}
+
 async fn request<V, T>(
     query: &str,
     variables: Option<V>,
@@ -124,7 +136,7 @@ pub async fn fetch_products(
             extra: ProductsVariables {
                 locale,
                 filter: ProductsFilter {
-                    status,
+                    status: normalize_status_filter(status),
                     vendor: None,
                     search,
                     page: Some(1),
@@ -157,4 +169,24 @@ pub async fn fetch_product(
     )
     .await?;
     Ok(response.product)
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_status_filter;
+
+    #[test]
+    fn normalize_status_filter_trims_and_uppercases_values() {
+        assert_eq!(
+            normalize_status_filter(Some(" active ".to_string())),
+            Some("ACTIVE".to_string())
+        );
+    }
+
+    #[test]
+    fn normalize_status_filter_drops_blank_values() {
+        assert_eq!(normalize_status_filter(Some("   ".to_string())), None);
+        assert_eq!(normalize_status_filter(None), None);
+    }
 }
