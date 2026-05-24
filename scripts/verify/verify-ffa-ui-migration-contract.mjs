@@ -23,13 +23,13 @@ const requiredPlanSections = [
   "## RACI (кто принимает phase-gates)",
 ];
 
-const requiredChecklistItems = [
-  "- [ ] Native path (Leptos SSR/hydrate) работает для целевого сценария.",
-  "- [ ] GraphQL fallback работает для того же сценария.",
-  "- [ ] UI слой не владеет transport/business логикой.",
-  "- [ ] Доступ к transport идёт через core ports.",
-  "- [ ] Core слой не зависит от `leptos*`.",
-  "- [ ] Выполнен `npm run verify:ffa:ui:migration`.",
+const requiredChecklistPatterns = [
+  /- \[ \] Native path \(Leptos SSR\/hydrate\) работает для целевого сценария\./,
+  /- \[ \] GraphQL fallback работает для того же сценария\./,
+  /- \[ \] UI слой не владеет transport\/business логикой\./,
+  /- \[ \] Доступ к transport идёт через core ports\./,
+  /- \[ \] Core слой не зависит от `leptos\*`\./,
+  /- \[ \] Выполнен `npm run verify:ffa:ui:migration`\./,
 ];
 
 function assertFileExists(relPath) {
@@ -46,21 +46,31 @@ function assertContains(content, value, label) {
   }
 }
 
+function assertMatches(content, pattern, label) {
+  if (!pattern.test(content)) {
+    throw new Error(`Не найден обязательный паттерн (${label}): ${pattern}`);
+  }
+}
+
+function normalizeMarkdown(content) {
+  return content.replace(/\r\n/g, "\n").replace(/[ \t]+$/gm, "");
+}
+
 try {
   const planPath = assertFileExists(requiredDocs[0]);
   const connectivityPath = assertFileExists(requiredDocs[1]);
   const checklistPath = assertFileExists(requiredDocs[2]);
 
-  const plan = readFileSync(planPath, "utf8");
-  const checklist = readFileSync(checklistPath, "utf8");
-  const connectivity = readFileSync(connectivityPath, "utf8");
+  const plan = normalizeMarkdown(readFileSync(planPath, "utf8"));
+  const checklist = normalizeMarkdown(readFileSync(checklistPath, "utf8"));
+  const connectivity = normalizeMarkdown(readFileSync(connectivityPath, "utf8"));
 
   requiredPlanSections.forEach((section) => {
     assertContains(plan, section, "plan section");
   });
 
-  requiredChecklistItems.forEach((item) => {
-    assertContains(checklist, item, "checklist item");
+  requiredChecklistPatterns.forEach((pattern) => {
+    assertMatches(checklist, pattern, "checklist item");
   });
 
   assertContains(
