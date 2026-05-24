@@ -361,6 +361,20 @@ mod map_server_fn_error_tests {
     }
 
     #[test]
+    fn graphql_prefixed_composition_extensions_with_transport_words_stay_graphql_variant() {
+        let payload = "GraphQL error: REVISION_CONFLICT {\"extensions\":{\"code\":\"REVISION_CONFLICT\",\"manifest_ref\":\"platform_state:44\",\"manifest_revision\":44,\"expected_revision\":43,\"detail\":\"Unauthorized actor during Network partition\"}}";
+        let mapped = map_server_fn_error(ServerFnError::new(payload));
+
+        assert!(
+            matches!(mapped, GraphqlHttpError::Graphql(message)
+                if message.contains("\"code\":\"REVISION_CONFLICT\"")
+                && message.contains("\"manifest_ref\":\"platform_state:44\"")
+                && message.contains("Unauthorized actor during Network partition")),
+            "GraphQL-prefixed composition extensions payload must remain Graphql variant and preserve extension fragments verbatim"
+        );
+    }
+
+    #[test]
     fn maps_http_prefix_and_preserves_payload() {
         let mapped = normalize_server_fn_error_message("Http error: 409 conflict");
         assert!(matches!(mapped, GraphqlHttpError::Http(message) if message == "409 conflict"));
