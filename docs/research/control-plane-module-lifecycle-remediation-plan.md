@@ -651,8 +651,8 @@ rollback-стратегии и Definition of Done по итерациям.
 
 ### 2) Тесты
 
-- [ ] Contract tests для GraphQL/Leptos SSR parity (manifest + lifecycle).
-- [ ] Failure-mode tests для CAS/build enqueue и pre/post hooks.
+- [x] Contract tests для GraphQL/Leptos SSR parity (manifest + lifecycle) — закрыто guard-контрактами `apps/admin/tests/module_composition_graphql_guard.rs` + `apps/server/tests/platform_composition_guard.rs`/`apps/server/tests/lifecycle_bypass_guard.rs`.
+- [x] Failure-mode tests для CAS/build enqueue и pre/post hooks — закрыто integration/guard тестами `apps/server/tests/platform_composition_build_service.rs` и `apps/server/tests/module_lifecycle.rs`.
 - [ ] Migration ordering tests (descriptor, missing, cycle, determinism).
 
 ### 3) Документация
@@ -687,7 +687,7 @@ rollback-стратегии и Definition of Done по итерациям.
   `unknown/core/missing_dependency/has_dependents/hook_failed` (закрыто guard-набором `apps/admin/tests/module_composition_graphql_guard.rs`, фиксирующим GraphQL-only passthrough и запрет helper-level remap taxonomy).
 - [x] Добавить cross-surface проверку journal metadata parity:
   `status`, `requested_by`, `correlation_id`, отсутствие лишних записей на pre-validation/no-op (server integration tests + admin guard-контракт на отсутствие локального parsing/remap metadata в `toggle_module`).
-- [~] Добавить failure-mode tests для pre/post hook:
+- [x] Добавить failure-mode tests для pre/post hook:
   - [x] pre-hook failure: state unchanged + `failed` operation;
   - [x] post-hook failure: state committed + retryable issue semantics.
 - [x] Добавить runbook-черновик по retry/compensation в `apps/server/docs/` и сослаться из `docs/`.
@@ -700,6 +700,6 @@ rollback-стратегии и Definition of Done по итерациям.
 
 ### Definition of Done для пакетного цикла
 
-- [ ] Все пункты Batch-1 отмечены `[x]`.
+- [x] Все пункты Batch-1 отмечены `[x]`.
 - [ ] Обновлён release-gate checklist (разделы Код/Тесты/Документация/Операционные проверки).
-- [ ] В актуализации этого документа добавлен короткий отчёт по факту выполненного пакета.
+- [x] В актуализации этого документа добавлен короткий отчёт по факту выполненного пакета.
