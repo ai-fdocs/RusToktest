@@ -1123,11 +1123,11 @@ _Легенда статусов: `⬜ Planned` — не начато, `🟡 In 
 | ⬜ Planned | **Phase 5 — Offline/advanced sync (optional)** | Добавить офлайн-сценарии только после продуктового подтверждения требований. | [Open questions и ограничения](#open-questions-и-ограничения), [Риски и митигации](#риски-и-митигации) | Есть утверждённые offline requirements и реализована целевая стратегия sync/outbox. |
 
 
-#### Операционный статус плана (обновлено: 2026-05-24)
+#### Операционный статус плана (обновлено: 2026-05-24, FFA continuation)
 
 - **FFA в плане отмечен:** ✅ Да. FFA-baseline явно зафиксирован в `Phase 0 — Foundation` и отдельно закреплён в anti-drift guardrail разделе.
 - **Текущий фокус выполнения:** `Phase 2 — Registry/codegen` (статус `🟡 In progress`) без изменения platform contract.
-- **Следующая точка контроля:** перевод `Phase 1 — Pilot module` в `🟡 In progress` после фиксации первого E2E module-owned mobile флоу.
+- **Следующая точка контроля:** закрыть FFA-safe входные критерии `Phase 1` (registry freeze + codegen reproducibility + host adapter seam) и в этом же треке перевести `Phase 1 — Pilot module` в `🟡 In progress`.
 
 #### Ближайший execution backlog (Phase 2 → Phase 1)
 
@@ -1135,6 +1135,17 @@ _Легенда статусов: `⬜ Planned` — не начато, `🟡 In 
 2. **Codegen pipeline:** добавить reproducible генерацию `mobile_manifest.g.dart` из manifest snapshot + CI-проверку diff generated-файлов.
 3. **Host integration seam:** подключить registry через единый adapter-слой (`module_entry_adapter`) и убрать ручное перечисление модулей в shell routing/nav.
 4. **Pilot gate:** после стабилизации registry перевести `Phase 1 — Pilot module` в `🟡 In progress` и взять один модульный E2E-флоу (`modules` или `blog`) как контроль parity.
+
+
+
+#### Sprint continuation (FFA-first, ближайшие 2 PR)
+
+| PR | Цель | Обязательные артефакты | FFA-критерий приёмки |
+|---|---|---|---|
+| **PR-A: Registry contract freeze** | Зафиксировать минимальный mobile contract без Flutter-only расширений | `mobile_manifest` schema snapshot, таблица compatibility-правил, changelog полей | Contract описывает capability/surface, а не runtime-детали Flutter; отсутствуют mobile-exclusive API поля. |
+| **PR-B: Codegen + host seam** | Сделать deterministic codegen и единый adapter в host | reproducible generation pipeline, diff-check generated файлов в CI, `module_entry_adapter` как единственная точка подключения | Новый модуль подключается декларативно через registry без ручной правки shell-routing; route/locale/auth контекст остаётся host-owned. |
+
+**Правило перехода в `Phase 1`:** после merge `PR-A` и `PR-B` взять pilot-флоу `modules` (предпочтительно) или `blog`, и зафиксировать первое E2E-доказательство parity (login → module list/detail → обратно в shell) без feature-local transport-клиентов.
 
 #### FFA-проверка для каждого PR в этом треке
 
