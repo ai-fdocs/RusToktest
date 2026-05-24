@@ -80,6 +80,11 @@ pub fn label_with_id(template: &str, id: &str) -> String {
     template.replace("{id}", id)
 }
 
+pub fn label_with_optional_id(template: &str, id: Option<&str>) -> String {
+    id.map(|value| label_with_id(template, value))
+        .unwrap_or_default()
+}
+
 pub fn count_label(template: &str, total: u64) -> String {
     template.replace("{count}", &total.to_string())
 }
@@ -158,6 +163,14 @@ pub fn should_reset_form_after_delete(
 
 pub fn is_editing_mode(editing_post_id: Option<&str>) -> bool {
     editing_post_id.is_some()
+}
+
+pub fn editing_post_id_if_editing_mode(editing_post_id: Option<String>) -> Option<String> {
+    if is_editing_mode(editing_post_id.as_deref()) {
+        editing_post_id
+    } else {
+        None
+    }
 }
 
 pub fn has_issue(issue: Option<WritePathIssueKind>) -> bool {
@@ -349,6 +362,11 @@ mod tests {
     #[test]
     fn label_count_and_status_helpers_work() {
         assert_eq!(label_with_id("Editing post {id}", "42"), "Editing post 42");
+        assert_eq!(
+            label_with_optional_id("Editing post {id}", Some("42")),
+            "Editing post 42"
+        );
+        assert_eq!(label_with_optional_id("Editing post {id}", None), "");
         assert_eq!(count_label("{count} total", 7), "7 total");
         assert!(is_published_status("published"));
         assert!(is_archived_status("archived"));
@@ -400,6 +418,11 @@ mod tests {
         assert!(!should_reset_form_after_delete(None, "42"));
         assert!(is_editing_mode(Some("42")));
         assert!(!is_editing_mode(None));
+        assert_eq!(
+            editing_post_id_if_editing_mode(Some("42".to_string())),
+            Some("42".to_string())
+        );
+        assert_eq!(editing_post_id_if_editing_mode(None), None);
         assert!(has_issue(Some(WritePathIssueKind::Runtime)));
         assert!(!has_issue(None));
         assert_eq!(

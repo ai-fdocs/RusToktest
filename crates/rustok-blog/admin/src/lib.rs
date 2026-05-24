@@ -97,17 +97,12 @@ pub fn BlogAdmin() -> impl IntoView {
     });
     let editing_banner_locale = ui_locale.clone();
     let editing_banner_text = Memo::new(move |_| {
-        editing_post_id
-            .get()
-            .map(|post_id| {
-                let template = t(
-                    editing_banner_locale.as_deref(),
-                    "blog.form.editingBanner",
-                    "Editing post {id}",
-                );
-                core::label_with_id(template.as_str(), post_id.as_str())
-            })
-            .unwrap_or_default()
+        let template = t(
+            editing_banner_locale.as_deref(),
+            "blog.form.editingBanner",
+            "Editing post {id}",
+        );
+        core::label_with_optional_id(template.as_str(), editing_post_id.get().as_deref())
     });
     let reset_current_post = Callback::new({
         let query_writer = query_writer.clone();
@@ -144,7 +139,7 @@ pub fn BlogAdmin() -> impl IntoView {
                 token_value,
                 tenant_value,
                 post_id.clone(),
-                Some(requested_locale),
+                core::locale_arg(requested_locale.as_str()),
             )
             .await
             {
@@ -233,7 +228,7 @@ pub fn BlogAdmin() -> impl IntoView {
         set_busy_key.set(Some(core::busy_key_for_save(editing_post.as_deref())));
 
         spawn_local(async move {
-            let result = match editing_post {
+            let result = match core::editing_post_id_if_editing_mode(editing_post) {
                 Some(post_id) => api::update_post(token_value, tenant_value, post_id, draft).await,
                 None => api::create_post(token_value, tenant_value, draft).await,
             };

@@ -8,14 +8,14 @@ packages и module metadata синхронизированы.
 ## Execution checkpoint
 
 - Current phase: phase_b_in_progress
-- Last checkpoint: FFA slice #30 completed (admin posts list fetch locale arg switched from inline `Some(locale)` to `core::locale_arg(...)`, dual-path transport unchanged).
+- Last checkpoint: FFA slice #34 completed (admin editing-banner optional-id mapping moved to `core::label_with_optional_id(...)`, dual-path transport unchanged).
 - Next step: Зафиксировать evidence по parity checklist и выбрать следующий один use-case для admin/storefront core extraction без изменения transport-контракта.
 - Open blockers: None.
 - Hand-off notes for next agent:
   1. Продолжать one-task-per-iteration: один helper/use-case -> storefront/admin -> docs double-check.
   2. Не менять dual-path контракт (`native #[server]` + GraphQL fallback) при FFA-декомпозиции.
   3. После каждого slice обновлять parity evidence (`docs/verification/ffa-ui-parity-checklist.md`).
-- Last updated at (UTC): 2026-05-24T22:25:00Z
+- Last updated at (UTC): 2026-05-24T23:58:00Z
 
 ## FFA/FBA status
 
@@ -153,6 +153,10 @@ packages и module metadata синхронизированы.
 - [x] Slice 28: admin delete success branch reset switched from inline `reset_form(...)` to shared `reset_form_action.run(())` callback.
 - [x] Slice 29: admin selected-post effect request mapping switched from inline `(post_id, default_locale)` tuple to `core::selected_post_request(...)`.
 - [x] Slice 30: admin posts fetch locale option switched from inline `Some(locale)` to `core::locale_arg(...)` for helper consistency.
+- [x] Slice 31: admin selected-post fetch locale option switched from inline `Some(requested_locale)` to `core::locale_arg(...)`.
+- [x] Slice 32: admin save-path create/update branch switched from inline `match Option` to `core::is_editing_mode(...)` guard.
+- [x] Slice 33: admin save-path update-id extraction switched to `core::editing_post_id_if_editing_mode(...)` and removed inline `expect(...)`.
+- [x] Slice 34: admin editing-banner label mapping switched from inline `map(...).unwrap_or_default()` to `core::label_with_optional_id(...)`.
 - [x] Sync admin surface for the same helper family where applicable and attach parity evidence.
 - [ ] `cargo xtask module validate blog` / `cargo xtask module test blog` rerun after next slice touching runtime contract.
 
