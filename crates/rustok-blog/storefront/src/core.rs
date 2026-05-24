@@ -235,6 +235,17 @@ pub fn selected_post_tag_items(tags: Vec<String>) -> Option<Vec<String>> {
     }
 }
 
+pub fn published_posts_or_empty_message<T>(
+    items: Vec<T>,
+    empty_message: String,
+) -> Result<Vec<T>, String> {
+    if has_items(items.as_slice()) {
+        Ok(items)
+    } else {
+        Err(empty_message)
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -480,6 +491,18 @@ mod tests {
         assert_eq!(
             selected_post_tag_items(vec!["news".to_string(), "release".to_string()]),
             Some(vec!["news".to_string(), "release".to_string()])
+        );
+    }
+
+    #[test]
+    fn published_posts_or_empty_message_maps_empty_and_non_empty() {
+        assert_eq!(
+            published_posts_or_empty_message(vec!["a".to_string()], "empty".to_string()),
+            Ok(vec!["a".to_string()])
+        );
+        assert_eq!(
+            published_posts_or_empty_message::<String>(vec![], "empty".to_string()),
+            Err("empty".to_string())
         );
     }
 }

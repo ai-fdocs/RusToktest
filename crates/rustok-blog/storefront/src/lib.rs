@@ -210,16 +210,26 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
     let module_route_base = route_context.module_route_base(route_segment.as_str());
     let unknown_status_label = t(locale.as_deref(), "blog.list.unknownStatus", "unknown");
 
-    if !core::has_items(items.as_slice()) {
-        return view! {
-            <article class="rounded-2xl border border-dashed border-border p-6">
-                <p class="text-sm text-muted-foreground">
-                    {t(locale.as_deref(), "blog.list.empty", "No published blog posts are available for storefront rendering yet.")}
-                </p>
-            </article>
+    let items = match core::published_posts_or_empty_message(
+        items,
+        t(
+            locale.as_deref(),
+            "blog.list.empty",
+            "No published blog posts are available for storefront rendering yet.",
+        ),
+    ) {
+        Ok(items) => items,
+        Err(empty_message) => {
+            return view! {
+                <article class="rounded-2xl border border-dashed border-border p-6">
+                    <p class="text-sm text-muted-foreground">
+                        {empty_message}
+                    </p>
+                </article>
+            }
+            .into_any();
         }
-        .into_any();
-    }
+    };
 
     view! {
         <div class="space-y-3">
