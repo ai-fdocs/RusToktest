@@ -722,3 +722,9 @@ rollback-стратегии и Definition of Done по итерациям.
 - Для operational-gate прогона выполнены `cargo xtask validate-manifest` (PASS) и `cargo xtask module validate` (FAIL).
 - `xtask module validate` теперь проходит `channel`, но останавливается на новом pre-existing contract drift: модуль `pages` имеет dependency mismatch между `modules.toml` и `crates/rustok-pages/rustok-module.toml` (`modules.toml={content}` vs `rustok-module.toml={page_builder,content}`).
 - Чекбокс `CI-gates подтверждены как non-regression` остаётся `[ ]` до выравнивания module dependency contract для `pages` и повторного зелёного прогона xtask-пакета.
+
+
+### Актуализация 2026-05-24 (итерация 48)
+
+- Закрыт цепочный drift по `pages` dependency contract для CI-gate `xtask`: синхронизированы `modules.toml`, runtime `RusToKModule::dependencies()` и `apps/server` feature-graph (`mod-pages -> mod-page_builder`), а также central registry entry в `docs/modules/registry.md`.
+- Повторный прогон показал `PASS` для `cargo xtask validate-manifest` и `cargo xtask module validate`; это снимает блокер operational-gate по module contract validation.
