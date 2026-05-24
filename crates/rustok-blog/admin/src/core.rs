@@ -142,6 +142,10 @@ pub fn should_show_archive_action(is_archived: bool) -> bool {
     !is_archived
 }
 
+pub fn has_required_draft_fields(title: &str, body: &str) -> bool {
+    !title.is_empty() && !body.is_empty()
+}
+
 pub fn issue_banner_class(kind: WritePathIssueKind) -> &'static str {
     match kind {
         WritePathIssueKind::Validation => {
@@ -272,6 +276,9 @@ mod tests {
         );
         assert!(should_show_archive_action(false));
         assert!(!should_show_archive_action(true));
+        assert!(has_required_draft_fields("Title", "Body"));
+        assert!(!has_required_draft_fields("", "Body"));
+        assert!(!has_required_draft_fields("Title", ""));
         assert_eq!(
             issue_banner_class(WritePathIssueKind::Validation),
             "rounded-xl border border-amber-300/60 bg-amber-50 px-4 py-3 text-sm text-amber-900"

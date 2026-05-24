@@ -242,7 +242,7 @@ pub fn BlogAdmin() -> impl IntoView {
             tags: core::parse_tags(tags_input.get_untracked().as_str()),
         };
 
-        if draft.title.is_empty() || draft.body.is_empty() {
+        if !core::has_required_draft_fields(draft.title.as_str(), draft.body.as_str()) {
             set_submit_error.set(Some(WritePathIssue::new(t(
                 submit_ui_locale.as_deref(),
                 "blog.error.requiredFields",
