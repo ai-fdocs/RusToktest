@@ -825,3 +825,11 @@ rollback-стратегии и Definition of Done по итерациям.
 - Добавлена обязательная политика decommission для временных артефактов execution-плана:
   после закрытия remediation-плана удалить скрипты, alias, README-вставки, временные CI/gates и
   итерационные operational-следы, оставив только финальный результат/архив.
+
+### Актуализация 2026-05-24 (итерация 64)
+
+- Выполнен прогон `./scripts/verify/run-control-plane-remediation-minimal.sh` без skip-флагов:
+  пакет по-прежнему падает на шаге `cargo fmt --all -- --check` из-за pre-existing formatting drift
+  в несвязанных с remediation областях workspace.
+- Чекбокс `Минимальный verification набор из этого плана прогнан на ветке` остаётся в статусе `[ ]`
+  до отдельного зелёного прогона полного пакета после выравнивания workspace formatting baseline.
