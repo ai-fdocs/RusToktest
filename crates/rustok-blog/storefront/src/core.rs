@@ -22,6 +22,13 @@ pub fn module_href(base: &str, slug: &str) -> String {
     format!("{base}?slug={slug}")
 }
 
+pub fn post_link(base: &str, slug: &str, open_label: &str) -> (String, String) {
+    (
+        module_href(base, slug),
+        open_link_label(open_label, slug),
+    )
+}
+
 pub fn fallback_slug(value: Option<String>, fallback: &str) -> String {
     fallback_text(value, fallback)
 }
@@ -165,6 +172,13 @@ mod tests {
         assert_eq!(
             body_or_fallback(None, "No body content yet."),
             "No body content yet.".to_string()
+        );
+        assert_eq!(
+            post_link("/store/modules/blog", "hello-world", "Open"),
+            (
+                "/store/modules/blog?slug=hello-world".to_string(),
+                "Open hello-world".to_string()
+            )
         );
     }
 

@@ -237,7 +237,11 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
                             post.slug,
                             &t(locale.as_deref(), "blog.selected.missingSlug", "missing-slug"),
                         );
-                        let href = core::module_href(module_route_base.as_str(), slug.as_str());
+                        let (href, open_label) = core::post_link(
+                            module_route_base.as_str(),
+                            slug.as_str(),
+                            &t(locale.as_deref(), "blog.list.open", "Open"),
+                        );
                         view! {
                             <article class="rounded-2xl border border-border bg-background p-5">
                                 <BlogStatusBadge
@@ -252,7 +256,7 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
                                     )}
                                 </p>
                                 <a class="mt-3 inline-flex text-sm text-primary hover:underline" href=href>
-                                    {core::open_link_label(&t(locale.as_deref(), "blog.list.open", "Open"), slug.as_str())}
+                                    {open_label}
                                 </a>
                                 <p class="mt-3 text-xs text-muted-foreground">
                                     {core::label_value_pair(&t(locale.as_deref(), "blog.list.localeLabel", "locale"), post.effective_locale.as_str())}

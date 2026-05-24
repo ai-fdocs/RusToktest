@@ -8,14 +8,14 @@ packages и module metadata синхронизированы.
 ## Execution checkpoint
 
 - Current phase: phase_b_in_progress
-- Last checkpoint: FFA slice #37 completed (storefront body summary + fallback mapping moved from inline `Option::map(...) + summarize_content + body_or_fallback` composition to `core::summarized_body_or_fallback(...)`, dual-path transport unchanged).
+- Last checkpoint: FFA slice #38 completed (storefront post-link composition moved from inline `module_href + open_link_label` pairing to `core::post_link(...)`, dual-path transport unchanged).
 - Next step: Зафиксировать evidence по parity checklist и выбрать следующий один use-case для admin/storefront core extraction без изменения transport-контракта.
 - Open blockers: None.
 - Hand-off notes for next agent:
   1. Продолжать one-task-per-iteration: один helper/use-case -> storefront/admin -> docs double-check.
   2. Не менять dual-path контракт (`native #[server]` + GraphQL fallback) при FFA-декомпозиции.
   3. После каждого slice обновлять parity evidence (`docs/verification/ffa-ui-parity-checklist.md`).
-- Last updated at (UTC): 2026-05-25T00:18:00Z
+- Last updated at (UTC): 2026-05-25T00:29:00Z
 
 ## FFA/FBA status
 
@@ -160,6 +160,7 @@ packages и module metadata синхронизированы.
 - [x] Slice 35: storefront tags/list empty-state predicates switched from inline `.is_empty()` to `core::has_items(...)` for collection guard reuse.
 - [x] Slice 36: storefront status-badge label/css composition switched from inline mapping to `core::status_presentation(...)`.
 - [x] Slice 37: storefront body summary/fallback composition switched from inline `Option::map(...)` flow to `core::summarized_body_or_fallback(...)`.
+- [x] Slice 38: storefront post-link (`href` + localized open label) composition switched from inline pairing to `core::post_link(...)`.
 - [x] Sync admin surface for the same helper family where applicable and attach parity evidence.
 - [ ] `cargo xtask module validate blog` / `cargo xtask module test blog` rerun after next slice touching runtime contract.
 
