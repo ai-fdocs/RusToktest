@@ -34,19 +34,26 @@ class ModuleChildRouteEntry {
 
 List<ModuleRouteEntry> adaptModuleEntries(List<MobileModuleEntry> entries) {
   final adapted = <ModuleRouteEntry>[];
+  final usedModuleKeys = <String>{};
+  final usedRouteSegments = <String>{};
 
   for (final entry in entries) {
+    final moduleKey = entry.moduleKey.trim();
     final routeSegment = _sanitizeSegment(entry.routeSegment);
-    if (entry.moduleKey.trim().isEmpty || routeSegment.isEmpty) {
+    if (moduleKey.isEmpty || routeSegment.isEmpty) {
+      continue;
+    }
+    if (!usedModuleKeys.add(moduleKey) || !usedRouteSegments.add(routeSegment)) {
       continue;
     }
 
     final basePath = '$modulesRootPath/$routeSegment';
     final childRoutes = <ModuleChildRouteEntry>[];
+    final usedChildSubpaths = <String>{};
 
     for (final child in entry.childPages) {
       final subpath = _sanitizeSegment(child.subpath);
-      if (subpath.isEmpty) {
+      if (subpath.isEmpty || !usedChildSubpaths.add(subpath)) {
         continue;
       }
 
@@ -62,7 +69,7 @@ List<ModuleRouteEntry> adaptModuleEntries(List<MobileModuleEntry> entries) {
 
     adapted.add(
       ModuleRouteEntry(
-        moduleKey: entry.moduleKey,
+        moduleKey: moduleKey,
         routeSegment: routeSegment,
         path: basePath,
         navTitle: entry.nav.title,

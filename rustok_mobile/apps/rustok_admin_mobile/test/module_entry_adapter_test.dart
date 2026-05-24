@@ -66,4 +66,38 @@ void main() {
     expect(search.childRoutes, hasLength(1));
     expect(search.childRoutes.single.path, '/modules/search/analytics');
   });
+
+  test('deduplicates conflicting module keys, route segments, and child subpaths', () {
+    final entries = <MobileModuleEntry>[
+      const MobileModuleEntry(
+        moduleKey: ' rustok_blog ',
+        routeSegment: '/blog/',
+        nav: MobileNavMeta(title: 'Blog', icon: 'article'),
+        childPages: [
+          MobileChildPage(subpath: 'posts', title: 'Posts A'),
+          MobileChildPage(subpath: '/posts/', title: 'Posts B'),
+          MobileChildPage(subpath: 'new', title: 'New Post'),
+        ],
+      ),
+      const MobileModuleEntry(
+        moduleKey: 'rustok_blog',
+        routeSegment: '/blog-v2/',
+        nav: MobileNavMeta(title: 'Blog Duplicate Key', icon: 'article'),
+      ),
+      const MobileModuleEntry(
+        moduleKey: 'rustok_blog_alt',
+        routeSegment: '/blog/',
+        nav: MobileNavMeta(title: 'Blog Duplicate Route', icon: 'article'),
+      ),
+    ];
+
+    final adapted = adaptModuleEntries(entries);
+
+    expect(adapted, hasLength(1));
+    final blog = adapted.single;
+    expect(blog.moduleKey, 'rustok_blog');
+    expect(blog.routeSegment, 'blog');
+    expect(blog.childRoutes, hasLength(2));
+    expect(blog.childRoutes.map((c) => c.subpath), ['posts', 'new']);
+  });
 }
