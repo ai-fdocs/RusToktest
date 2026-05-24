@@ -3,6 +3,7 @@ set -euo pipefail
 
 SECONDS=0
 CURRENT_STEP="bootstrap"
+CURRENT_COMMAND="n/a"
 
 format_duration() {
   local total="$1"
@@ -17,6 +18,7 @@ on_error() {
   echo
   echo "Control-plane remediation minimal verification: FAIL" >&2
   echo "Failed step: ${CURRENT_STEP}" >&2
+  echo "Failed command: ${CURRENT_COMMAND}" >&2
   echo "Elapsed: $(format_duration "${SECONDS}")" >&2
   exit "${exit_code}"
 }
@@ -57,9 +59,11 @@ run_step() {
   CURRENT_STEP="${title}"
   printf "\n==> %s\n" "${title}"
   printf "$ %s\n" "$*"
+  CURRENT_COMMAND="$*"
   step_timeout "$@"
   local step_elapsed=$((SECONDS - step_start))
   printf "--> %s: PASS (%s)\n" "${title}" "$(format_duration "${step_elapsed}")"
+  CURRENT_COMMAND="n/a"
 }
 
 if [[ "${RUSTOK_VERIFY_SKIP_FMT:-0}" == "1" ]]; then

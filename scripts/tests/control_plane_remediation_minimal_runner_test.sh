@@ -131,6 +131,12 @@ if ! rg -q "Failed step: migration tests" "$TIMEOUT_OUTPUT"; then
   exit 1
 fi
 
+if ! rg -q "Failed command: cargo test -p migration" "$TIMEOUT_OUTPUT"; then
+  echo "timeout scenario did not report failed command summary" >&2
+  cat "$TIMEOUT_OUTPUT" >&2
+  exit 1
+fi
+
 if ! rg -q "Control-plane remediation minimal verification: FAIL" "$TIMEOUT_OUTPUT"; then
   echo "timeout scenario did not report fail summary" >&2
   cat "$TIMEOUT_OUTPUT" >&2
