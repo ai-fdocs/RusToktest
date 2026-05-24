@@ -768,3 +768,7 @@ rollback-стратегии и Definition of Done по итерациям.
 
 - Runner `run-control-plane-remediation-minimal.sh` усилен preflight-проверкой `flock` и поддержкой `RUSTOK_VERIFY_STEP_TIMEOUT` для ограничения длительности каждого шага в длинных CI/local прогонах.
 - `scripts/verify/README.md` дополнен примером timeout-конфигурации для reproducible long-run execution.
+
+### Актуализация 2026-05-24 (итерация 56)
+
+- Для runner smoke-test добавлен негативный timeout-сценарий (`RUSTOK_VERIFY_STEP_TIMEOUT=1s`), подтверждающий fail-fast поведение на затянутом шаге migration.
