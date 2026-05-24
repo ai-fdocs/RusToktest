@@ -84,7 +84,7 @@ fn toggle_err_has_dependents(dependents: &str) -> String {
 }
 
 fn toggle_err_hook_failed(reason: &str) -> String {
-    format!("Module lifecycle hook failed before state commit: {reason}")
+    format!("Module lifecycle hook failed: {reason}")
 }
 
 fn map_custom_field_error(error: rustok_core::field_schema::FlexError) -> FieldError {
