@@ -184,8 +184,11 @@ pub fn BlogAdmin() -> impl IntoView {
     let initial_edit_post = edit_post;
     let effect_default_locale = default_locale.clone();
     Effect::new(move |_| {
-        if let Some(post_id) = core::loadable_post_id(selected_post_query.get().as_deref()) {
-            initial_edit_post.run((post_id, effect_default_locale.clone()));
+        if let Some(request) = core::selected_post_request(
+            selected_post_query.get().as_deref(),
+            effect_default_locale.as_str(),
+        ) {
+            initial_edit_post.run(request);
         } else {
             reset_form_action.run(())
         }
