@@ -354,6 +354,26 @@ impl SeoService {
         sitemap_index_url: &str,
         adapter: &dyn SitemapSubmissionAdapter,
     ) -> Result<(), String> {
+        let summary = self
+            .collect_submission_summary(endpoints, sitemap_index_url, adapter)
+            .await;
+        tracing::debug!(
+            success_count = summary.success_count,
+            failure_count = summary.failure_count,
+            "SEO sitemap endpoint submission finished"
+        );
+        match summary.into_error() {
+            Some(message) => Err(message),
+            None => Ok(()),
+        }
+    }
+
+    async fn collect_submission_summary(
+        &self,
+        endpoints: &[String],
+        sitemap_index_url: &str,
+        adapter: &dyn SitemapSubmissionAdapter,
+    ) -> SitemapSubmissionSummary {
         let mut summary = SitemapSubmissionSummary {
             success_count: 0,
             failure_count: 0,
@@ -363,9 +383,7 @@ impl SeoService {
             let Some(url) = build_sitemap_submission_url(endpoint.as_str(), sitemap_index_url)
             else {
                 summary.failure_count += 1;
-                summary
-                    .failures
-                    .push(format!("invalid endpoint: {endpoint}"));
+                summary.failures.push(format!("invalid endpoint: {endpoint}"));
                 continue;
             };
             let request = SitemapSubmitEndpoint {
@@ -380,10 +398,7 @@ impl SeoService {
                 }
             }
         }
-        match summary.into_error() {
-            Some(message) => Err(message),
-            None => Ok(()),
-        }
+        summary
     }
 }
 
