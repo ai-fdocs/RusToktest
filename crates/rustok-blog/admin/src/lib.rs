@@ -205,22 +205,26 @@ pub fn BlogAdmin() -> impl IntoView {
     });
     let initial_edit_post = edit_post;
     let effect_default_locale = default_locale.clone();
-    Effect::new(move |_| match selected_post_query.get() {
-        Some(post_id) if core::has_non_empty_text(post_id.as_str()) => {
-            initial_edit_post.run((post_id, effect_default_locale.clone()));
+    Effect::new(move |_| {
+        let selected_post_id = selected_post_query.get();
+        if core::should_load_selected_post(selected_post_id.as_deref()) {
+            if let Some(post_id) = selected_post_id {
+                initial_edit_post.run((post_id, effect_default_locale.clone()));
+            }
+        } else {
+            reset_form(
+                set_editing_post_id,
+                set_title,
+                set_slug,
+                set_excerpt,
+                set_body,
+                set_locale,
+                set_body_format,
+                set_tags_input,
+                set_publish_now,
+                effect_default_locale.as_str(),
+            )
         }
-        _ => reset_form(
-            set_editing_post_id,
-            set_title,
-            set_slug,
-            set_excerpt,
-            set_body,
-            set_locale,
-            set_body_format,
-            set_tags_input,
-            set_publish_now,
-            effect_default_locale.as_str(),
-        ),
     });
 
     let submit_ui_locale = ui_locale.clone();
