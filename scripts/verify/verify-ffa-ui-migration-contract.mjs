@@ -32,24 +32,14 @@ const requiredChecklistPatterns = [
   /- \[[ xX]\] Выполнен `npm run verify:ffa:ui:migration`\./,
 ];
 
+const requiredConnectivityMentions = ["rustok-pages", "rustok-search"];
+
 function assertFileExists(relPath) {
   const fullPath = path.join(repoRoot, relPath);
   if (!existsSync(fullPath)) {
     throw new Error(`Отсутствует обязательный документ: ${relPath}`);
   }
   return fullPath;
-}
-
-function assertContains(content, value, label) {
-  if (!content.includes(value)) {
-    throw new Error(`Не найден обязательный фрагмент (${label}): ${value}`);
-  }
-}
-
-function assertMatches(content, pattern, label) {
-  if (!pattern.test(content)) {
-    throw new Error(`Не найден обязательный паттерн (${label}): ${pattern}`);
-  }
 }
 
 function normalizeMarkdown(content) {
@@ -63,40 +53,50 @@ function getMarkdownHeadings(content) {
     .filter(Boolean);
 }
 
-function assertHeadingExists(headings, expectedHeading) {
-  if (!headings.includes(expectedHeading)) {
-    throw new Error(`Не найден обязательный heading: ${expectedHeading}`);
-  }
+function readRequiredDocs() {
+  const [planPath, connectivityPath, checklistPath] = requiredDocs.map(assertFileExists);
+
+  return {
+    plan: normalizeMarkdown(readFileSync(planPath, "utf8")),
+    connectivity: normalizeMarkdown(readFileSync(connectivityPath, "utf8")),
+    checklist: normalizeMarkdown(readFileSync(checklistPath, "utf8")),
+  };
 }
 
-try {
-  const planPath = assertFileExists(requiredDocs[0]);
-  const connectivityPath = assertFileExists(requiredDocs[1]);
-  const checklistPath = assertFileExists(requiredDocs[2]);
+function collectValidationErrors({ plan, connectivity, checklist }) {
+  const errors = [];
 
-  const plan = normalizeMarkdown(readFileSync(planPath, "utf8"));
-  const checklist = normalizeMarkdown(readFileSync(checklistPath, "utf8"));
-  const connectivity = normalizeMarkdown(readFileSync(connectivityPath, "utf8"));
-
-  const planHeadings = getMarkdownHeadings(plan);
+  const planHeadings = new Set(getMarkdownHeadings(plan));
   requiredPlanHeadings.forEach((heading) => {
-    assertHeadingExists(planHeadings, heading);
+    if (!planHeadings.has(heading)) {
+      errors.push(`Не найден обязательный heading в migration plan: ${heading}`);
+    }
   });
 
   requiredChecklistPatterns.forEach((pattern) => {
-    assertMatches(checklist, pattern, "checklist item");
+    if (!pattern.test(checklist)) {
+      errors.push(`Не найден обязательный checklist-паттерн: ${pattern}`);
+    }
   });
 
-  assertContains(
-    connectivity,
-    "rustok-pages",
-    "pilot connectivity map should include rustok-pages",
-  );
-  assertContains(
-    connectivity,
-    "rustok-search",
-    "pilot connectivity map should include rustok-search",
-  );
+  requiredConnectivityMentions.forEach((mention) => {
+    if (!connectivity.includes(mention)) {
+      errors.push(`Не найден обязательный пилот в connectivity map: ${mention}`);
+    }
+  });
+
+  return errors;
+}
+
+try {
+  const docs = readRequiredDocs();
+  const errors = collectValidationErrors(docs);
+
+  if (errors.length > 0) {
+    console.error("[verify-ffa-ui-migration-contract] FAIL");
+    errors.forEach((error) => console.error(`- ${error}`));
+    process.exit(1);
+  }
 
   console.log("[verify-ffa-ui-migration-contract] PASS");
   console.log("Проверены обязательные документы и baseline-контракты FFA migration.");
