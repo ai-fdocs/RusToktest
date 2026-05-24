@@ -3,6 +3,7 @@ const SITEMAP_SUBMIT_MAX_FAILURE_DETAILS: usize = 8;
 const SITEMAP_SUBMIT_MAX_FAILURE_DETAIL_LEN: usize = 512;
 const SITEMAP_SUBMIT_MAX_ENDPOINT_STATUSES: usize = 24;
 const SITEMAP_SUBMIT_MAX_ENDPOINT_STATUS_LEN: usize = 160;
+const SITEMAP_SUBMIT_MAX_ERROR_STATUS_DETAILS: usize = 3;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) struct SitemapSubmissionSummary {
@@ -41,6 +42,22 @@ impl SitemapSubmissionSummary {
             parts.push(format!(
                 "... and {} more failure(s) omitted",
                 self.omitted_failure_count
+            ));
+        }
+        if !self.endpoint_statuses.is_empty() {
+            let details = self
+                .endpoint_statuses
+                .iter()
+                .take(SITEMAP_SUBMIT_MAX_ERROR_STATUS_DETAILS)
+                .cloned()
+                .collect::<Vec<_>>()
+                .join(", ");
+            parts.push(format!("endpoint statuses: [{details}]"));
+        }
+        if self.omitted_endpoint_status_count > 0 {
+            parts.push(format!(
+                "endpoint statuses omitted: {}",
+                self.omitted_endpoint_status_count
             ));
         }
         let message = parts.join("; ");
