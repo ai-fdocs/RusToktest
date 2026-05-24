@@ -233,16 +233,9 @@ pub fn BlogAdmin() -> impl IntoView {
         set_busy_key.set(Some(core::busy_key_for_save(editing_post.as_deref())));
 
         spawn_local(async move {
-            let result = if core::is_editing_mode(editing_post.as_deref()) {
-                api::update_post(
-                    token_value,
-                    tenant_value,
-                    editing_post.expect("editing post id must exist in editing mode"),
-                    draft,
-                )
-                .await
-            } else {
-                api::create_post(token_value, tenant_value, draft).await
+            let result = match core::editing_post_id_if_editing_mode(editing_post) {
+                Some(post_id) => api::update_post(token_value, tenant_value, post_id, draft).await,
+                None => api::create_post(token_value, tenant_value, draft).await,
             };
 
             match result {

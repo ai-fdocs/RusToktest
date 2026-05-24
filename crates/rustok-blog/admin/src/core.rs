@@ -160,6 +160,14 @@ pub fn is_editing_mode(editing_post_id: Option<&str>) -> bool {
     editing_post_id.is_some()
 }
 
+pub fn editing_post_id_if_editing_mode(editing_post_id: Option<String>) -> Option<String> {
+    if is_editing_mode(editing_post_id.as_deref()) {
+        editing_post_id
+    } else {
+        None
+    }
+}
+
 pub fn has_issue(issue: Option<WritePathIssueKind>) -> bool {
     issue.is_some()
 }
@@ -400,6 +408,11 @@ mod tests {
         assert!(!should_reset_form_after_delete(None, "42"));
         assert!(is_editing_mode(Some("42")));
         assert!(!is_editing_mode(None));
+        assert_eq!(
+            editing_post_id_if_editing_mode(Some("42".to_string())),
+            Some("42".to_string())
+        );
+        assert_eq!(editing_post_id_if_editing_mode(None), None);
         assert!(has_issue(Some(WritePathIssueKind::Runtime)));
         assert!(!has_issue(None));
         assert_eq!(
