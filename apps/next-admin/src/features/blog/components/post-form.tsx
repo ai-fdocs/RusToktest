@@ -33,7 +33,7 @@ const formSchema = z
     title: z.string().min(2, 'Title must be at least 2 characters.'),
     slug: z.string().optional(),
     locale: z.string().min(2),
-    bodyFormat: z.enum(['markdown', 'rt_json_v1']).default('markdown'),
+    bodyFormat: z.enum(['markdown', 'rt_json_v1']).default('rt_json_v1'),
     body: z.string().default(''),
     contentJson: z.string().optional(),
     excerpt: z.string().optional(),
@@ -121,7 +121,7 @@ export default function PostForm({
     title: initialData?.title ?? '',
     slug: initialData?.slug ?? '',
     locale: defaultLocale,
-    bodyFormat: initialData?.contentJson ? 'rt_json_v1' : 'markdown',
+    bodyFormat: initialData ? (initialData.contentJson ? 'rt_json_v1' : 'markdown') : 'rt_json_v1',
     body: initialData?.body ?? '',
     contentJson: initialData?.contentJson
       ? stringifyRtDoc(initialDoc, defaultLocale)
@@ -287,8 +287,8 @@ export default function PostForm({
             name='bodyFormat'
             label='Body format'
             options={[
-              { label: 'Markdown (legacy)', value: 'markdown' },
-              { label: 'RT JSON v1 (rich editor)', value: 'rt_json_v1' }
+              { label: 'Markdown (legacy compatibility)', value: 'markdown' },
+              { label: 'RT JSON v1 (default, rich editor)', value: 'rt_json_v1' }
             ]}
           />
 
