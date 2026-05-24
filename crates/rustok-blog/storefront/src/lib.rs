@@ -243,17 +243,16 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
                             "missing-slug",
                         );
                         let open_label = t(locale.as_deref(), "blog.list.open", "Open");
-                        let locale_meta = core::list_post_locale_meta(
-                            &t(locale.as_deref(), "blog.list.localeLabel", "locale"),
-                            post.effective_locale.as_str(),
-                        );
-                        let (excerpt, href, open_label) = core::list_post_summary(
+                        let locale_label = t(locale.as_deref(), "blog.list.localeLabel", "locale");
+                        let (excerpt, href, open_label, locale_meta) = core::list_post_card_fields(
                             post.slug,
                             missing_slug_fallback.as_str(),
                             post.excerpt,
                             &t(locale.as_deref(), "blog.list.noExcerpt", "No excerpt yet."),
                             module_route_base.as_str(),
                             open_label.as_str(),
+                            locale_label.as_str(),
+                            post.effective_locale.as_str(),
                         );
                         view! {
                             <article class="rounded-2xl border border-border bg-background p-5">

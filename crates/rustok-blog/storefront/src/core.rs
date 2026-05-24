@@ -66,6 +66,28 @@ pub fn list_post_locale_meta(locale_label: &str, effective_locale: &str) -> Stri
     label_value_pair(locale_label, effective_locale)
 }
 
+pub fn list_post_card_fields(
+    slug: Option<String>,
+    missing_slug_fallback: &str,
+    excerpt: Option<String>,
+    excerpt_fallback: &str,
+    module_route_base: &str,
+    open_label: &str,
+    locale_label: &str,
+    effective_locale: &str,
+) -> (String, String, String, String) {
+    let (resolved_excerpt, href, resolved_open_label) = list_post_summary(
+        slug,
+        missing_slug_fallback,
+        excerpt,
+        excerpt_fallback,
+        module_route_base,
+        open_label,
+    );
+    let locale_meta = list_post_locale_meta(locale_label, effective_locale);
+    (resolved_excerpt, href, resolved_open_label, locale_meta)
+}
+
 pub fn fallback_slug(value: Option<String>, fallback: &str) -> String {
     fallback_text(value, fallback)
 }
@@ -280,6 +302,24 @@ mod tests {
         assert_eq!(
             list_post_locale_meta("locale", "en"),
             "locale: en".to_string()
+        );
+        assert_eq!(
+            list_post_card_fields(
+                None,
+                "missing-slug",
+                None,
+                "No excerpt yet.",
+                "/store/modules/blog",
+                "Open",
+                "locale",
+                "en",
+            ),
+            (
+                "No excerpt yet.".to_string(),
+                "/store/modules/blog?slug=missing-slug".to_string(),
+                "Open missing-slug".to_string(),
+                "locale: en".to_string(),
+            )
         );
     }
 
