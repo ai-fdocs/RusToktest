@@ -209,6 +209,27 @@ class GenerateMobileManifestTests(unittest.TestCase):
             self.assertEqual(modules[0]["locale_namespace"], "content_blog")
             self.assertEqual(modules[0]["permissions"], ["a.read", "z.read"])
 
+    def test_scan_modules_normalizes_permissions_to_lowercase(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            (root / "crates/mod-a").mkdir(parents=True)
+
+            (root / "crates/mod-a/rustok-module.toml").write_text(
+                textwrap.dedent(
+                    """
+                    [module]
+                    slug = "blog"
+
+                    [provides.admin_ui]
+                    route_segment = "blog"
+                    permissions = ["Blog.Read", "BLOG.READ", "blog.write"]
+                    """
+                ).strip()
+            )
+
+            modules = scan_modules(root)
+            self.assertEqual(modules[0]["permissions"], ["blog.read", "blog.write"])
+
 
 if __name__ == "__main__":
     unittest.main()

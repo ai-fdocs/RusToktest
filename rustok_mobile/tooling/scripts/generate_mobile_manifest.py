@@ -79,7 +79,7 @@ def _parse_permissions(admin_ui: dict[str, object]) -> list[str]:
     for item in raw:
         if not isinstance(item, str):
             continue
-        value = item.strip()
+        value = item.strip().lower()
         if not value or value in seen:
             continue
         seen.add(value)
