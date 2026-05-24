@@ -15,10 +15,10 @@
 
 ## FFA/FBA status
 
-- FFA status: `not_started`
-- FBA status: `not_started`
+- FFA status: `in_progress`
+- FBA status: `in_progress`
 - Evidence:
-  - module plan синхронизирован с central FFA/FBA readiness board;
+  - module plan синхронизирован с central FFA/FBA readiness board; UI surface уже опубликован и ведётся в migration/backlog ритме;
   - дальнейшее повышение статуса выполняется только вместе с verification evidence и обновлением local+central docs.
 - Last verified at (UTC): 2026-05-24T00:00:00Z
 - Owner: `rustok-product` module team

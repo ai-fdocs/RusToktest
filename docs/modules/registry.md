@@ -58,11 +58,11 @@ capability crate-ов и host-приложений в RusToK.
 | `pages` | admin + storefront | `in_progress` | `in_progress` | `crates/rustok-pages/docs/implementation-plan.md` |
 | `blog` | admin + storefront | `in_progress` | `in_progress` | `crates/rustok-blog/docs/implementation-plan.md` |
 | `search` | admin + storefront | `in_progress` | `in_progress` | `crates/rustok-search/docs/implementation-plan.md` |
-| `cart` | storefront | `not_started` | `not_started` | `crates/rustok-cart/docs/implementation-plan.md` |
-| `commerce` | admin + storefront | `not_started` | `in_progress` | `crates/rustok-commerce/docs/implementation-plan.md` |
-| `workflow` | admin | `not_started` | `not_started` | `crates/rustok-workflow/docs/implementation-plan.md` |
-| `region` | admin + storefront | `not_started` | `not_started` | `crates/rustok-region/docs/implementation-plan.md` |
-| `product` | admin + storefront | `not_started` | `not_started` | `crates/rustok-product/docs/implementation-plan.md` |
+| `cart` | storefront | `in_progress` | `in_progress` | `crates/rustok-cart/docs/implementation-plan.md` |
+| `commerce` | admin + storefront | `in_progress` | `in_progress` | `crates/rustok-commerce/docs/implementation-plan.md` |
+| `workflow` | admin | `in_progress` | `in_progress` | `crates/rustok-workflow/docs/implementation-plan.md` |
+| `region` | admin + storefront | `in_progress` | `in_progress` | `crates/rustok-region/docs/implementation-plan.md` |
+| `product` | admin + storefront | `in_progress` | `in_progress` | `crates/rustok-product/docs/implementation-plan.md` |
 
 ## Hotspot contract (DOC-12 / H1)
 
