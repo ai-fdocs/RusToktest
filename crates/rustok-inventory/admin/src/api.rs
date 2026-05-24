@@ -78,6 +78,17 @@ fn graphql_url() -> String {
 }
 
 
+fn normalize_locale_filter(locale: Option<String>) -> Option<String> {
+    locale.and_then(|value| {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
+}
+
 fn normalize_search_filter(search: Option<String>) -> Option<String> {
     search.and_then(|value| {
         let trimmed = value.trim();
@@ -145,7 +156,7 @@ pub async fn fetch_products(
         Some(TenantScopedVariables {
             tenant_id,
             extra: ProductsVariables {
-                locale,
+                locale: normalize_locale_filter(locale),
                 filter: ProductsFilter {
                     status: normalize_status_filter(status),
                     vendor: None,
@@ -173,7 +184,10 @@ pub async fn fetch_product(
         PRODUCT_QUERY,
         Some(TenantScopedVariables {
             tenant_id,
-            extra: ProductVariables { id, locale },
+            extra: ProductVariables {
+                id,
+                locale: normalize_locale_filter(locale),
+            },
         }),
         token,
         tenant_slug,
@@ -185,7 +199,19 @@ pub async fn fetch_product(
 
 #[cfg(test)]
 mod tests {
-    use super::{normalize_search_filter, normalize_status_filter};
+    use super::{
+        normalize_locale_filter, normalize_search_filter, normalize_status_filter,
+    };
+
+    #[test]
+    fn normalize_locale_filter_trims_and_drops_blank_values() {
+        assert_eq!(
+            normalize_locale_filter(Some("  de-DE  ".to_string())),
+            Some("de-DE".to_string())
+        );
+        assert_eq!(normalize_locale_filter(Some("   ".to_string())), None);
+        assert_eq!(normalize_locale_filter(None), None);
+    }
 
     #[test]
     fn normalize_search_filter_trims_and_drops_blank_values() {
