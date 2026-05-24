@@ -29,7 +29,7 @@ pub enum PageBuilderServiceError {
     #[error("validation failed: {0}")]
     Validation(String),
     #[error("capability disabled: {0}")]
-    CapabilityDisabled(String),
+    CapabilityDisabled(BuilderCapabilityKind),
     #[error("runtime error: {0}")]
     Runtime(String),
 }
@@ -38,7 +38,7 @@ impl From<BuilderRolloutError> for PageBuilderServiceError {
     fn from(value: BuilderRolloutError) -> Self {
         match value {
             BuilderRolloutError::CapabilityDisabled(capability) => {
-                Self::CapabilityDisabled(capability.to_string())
+                Self::CapabilityDisabled(capability)
             }
             BuilderRolloutError::InvalidFlagCombination(message) => Self::Validation(message),
         }
@@ -166,7 +166,9 @@ mod tests {
             .expect_err("publish should be blocked");
 
         match err {
-            PageBuilderServiceError::CapabilityDisabled(name) => assert_eq!(name, "publish"),
+            PageBuilderServiceError::CapabilityDisabled(kind) => {
+                assert_eq!(kind, BuilderCapabilityKind::Publish)
+            }
             other => panic!("unexpected error: {other:?}"),
         }
     }
