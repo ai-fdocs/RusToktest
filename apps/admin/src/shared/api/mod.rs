@@ -342,6 +342,25 @@ mod map_server_fn_error_tests {
     }
 
     #[test]
+    fn lifecycle_and_composition_taxonomy_with_transport_words_keep_graphql_variant_matrix() {
+        let cases = [
+            "GraphQL error: UNKNOWN_MODULE: Unauthorized module slug access",
+            "GraphQL error: MODULE_HOOK_FAILED: Network post-hook timeout",
+            "GraphQL error: REVISION_CONFLICT: Unauthorized stale revision write",
+            "GraphQL error: INTERNAL_ERROR: Network build queue unavailable",
+        ];
+
+        for case in cases {
+            let mapped = map_server_fn_error(ServerFnError::new(case));
+            let expected = case.trim_start_matches("GraphQL error: ").to_string();
+            assert!(
+                matches!(mapped, GraphqlHttpError::Graphql(message) if message == expected),
+                "taxonomy payload `{case}` must stay Graphql variant even with transport-like words"
+            );
+        }
+    }
+
+    #[test]
     fn maps_http_prefix_and_preserves_payload() {
         let mapped = normalize_server_fn_error_message("Http error: 409 conflict");
         assert!(matches!(mapped, GraphqlHttpError::Http(message) if message == "409 conflict"));
