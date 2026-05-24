@@ -53,6 +53,8 @@ pub fn summarize_content(content: &str, format: &str, fallback_template: &str) -
 }
 
 pub fn status_badge_css(status: &str) -> &'static str {
+    let status = status.trim();
+
     if status.eq_ignore_ascii_case("published") {
         "inline-flex rounded-full border border-emerald-300/50 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium uppercase tracking-[0.18em] text-emerald-800 dark:border-emerald-700/40 dark:bg-emerald-900/25 dark:text-emerald-300"
     } else if status.eq_ignore_ascii_case("archived") {
@@ -129,6 +131,10 @@ mod tests {
         assert_eq!(
             status_badge_css("draft"),
             "inline-flex rounded-full border border-primary/30 bg-primary/10 px-2.5 py-0.5 text-xs font-medium uppercase tracking-[0.18em] text-primary"
+        );
+        assert_eq!(
+            status_badge_css("  Published  "),
+            "inline-flex rounded-full border border-emerald-300/50 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium uppercase tracking-[0.18em] text-emerald-800 dark:border-emerald-700/40 dark:bg-emerald-900/25 dark:text-emerald-300"
         );
     }
 }
