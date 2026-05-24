@@ -504,3 +504,59 @@ async fn update_to_published_is_blocked_for_existing_grapesjs_page_when_builder_
         Err(PagesError::FeatureDisabled { feature }) if feature == "builder.enabled"
     ));
 }
+
+#[tokio::test]
+async fn update_to_published_markdown_is_allowed_when_builder_disabled_but_publish_enabled() {
+    let (db, page_service, _block_service, tenant_id, security) = setup().await;
+    let draft = page_service
+        .create(
+            tenant_id,
+            security.clone(),
+            CreatePageInput {
+                translations: vec![PageTranslationInput {
+                    locale: "en".to_string(),
+                    title: "Draft markdown page".to_string(),
+                    slug: Some("draft-markdown-page".to_string()),
+                    meta_title: None,
+                    meta_description: None,
+                }],
+                template: Some("default".to_string()),
+                body: Some(PageBodyInput {
+                    locale: "en".to_string(),
+                    content: "markdown draft".to_string(),
+                    format: Some("markdown".to_string()),
+                    content_json: None,
+                }),
+                blocks: None,
+                channel_slugs: None,
+                publish: false,
+            },
+        )
+        .await
+        .expect("must create draft markdown page");
+
+    seed_pages_module_settings(
+        &db,
+        tenant_id,
+        "{\"builder\":{\"enabled\":false,\"publish\":{\"enabled\":true}}}",
+    )
+    .await;
+
+    let updated = page_service
+        .update(
+            tenant_id,
+            security,
+            draft.id,
+            UpdatePageInput {
+                status: Some(rustok_content::entities::node::ContentStatus::Published),
+                ..Default::default()
+            },
+        )
+        .await
+        .expect("markdown publish transition should remain available");
+
+    assert_eq!(
+        updated.status,
+        rustok_content::entities::node::ContentStatus::Published
+    );
+}
