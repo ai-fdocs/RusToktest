@@ -234,17 +234,23 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
 
     view! {
         <div class="space-y-3">
-            <div class="flex items-center justify-between gap-3">
-                <h3 class="text-lg font-semibold text-card-foreground">
-                    {t(locale.as_deref(), "blog.list.title", "Published posts")}
-                </h3>
-                <span class="text-sm text-muted-foreground">
-                    {core::published_posts_total_label(
-                        total,
-                        &t(locale.as_deref(), "blog.list.total", "total"),
-                    )}
-                </span>
-            </div>
+            {move || {
+                let (list_title, total_label) = core::published_posts_header_view(
+                    t(locale.as_deref(), "blog.list.title", "Published posts"),
+                    total,
+                    &t(locale.as_deref(), "blog.list.total", "total"),
+                );
+                view! {
+                    <div class="flex items-center justify-between gap-3">
+                        <h3 class="text-lg font-semibold text-card-foreground">
+                            {list_title}
+                        </h3>
+                        <span class="text-sm text-muted-foreground">
+                            {total_label}
+                        </span>
+                    </div>
+                }
+            }}
             <div class="grid gap-3 md:grid-cols-2">
                 {items
                     .into_iter()

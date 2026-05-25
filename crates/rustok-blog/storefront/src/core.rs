@@ -10,6 +10,10 @@ pub fn published_posts_total_label(total: u64, suffix: &str) -> String {
     count_label(total, suffix)
 }
 
+pub fn published_posts_header_view(title: String, total: u64, total_suffix: &str) -> (String, String) {
+    (title, published_posts_total_label(total, total_suffix))
+}
+
 pub fn open_link_label(label: &str, slug: &str) -> String {
     format!("{label} {slug}")
 }
@@ -297,6 +301,14 @@ mod tests {
     #[test]
     fn published_posts_total_label_delegates_to_count_label() {
         assert_eq!(published_posts_total_label(7, "total"), "7 total".to_string());
+    }
+
+    #[test]
+    fn published_posts_header_view_returns_title_and_total_label() {
+        assert_eq!(
+            published_posts_header_view("Published posts".to_string(), 3, "total"),
+            ("Published posts".to_string(), "3 total".to_string())
+        );
     }
 
     #[test]
