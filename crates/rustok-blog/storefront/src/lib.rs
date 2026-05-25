@@ -233,7 +233,7 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
         &t(locale.as_deref(), "blog.list.total", "total"),
     );
 
-    let items = match core::published_posts_ready_items(
+    let items = match core::published_posts_ready_typed_view(
         items,
         t(
             locale.as_deref(),
@@ -241,9 +241,8 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
             "No published blog posts are available for storefront rendering yet.",
         ),
     ) {
-        Ok(items) => items,
-        Err(empty_message) => {
-            let empty_state = core::published_posts_empty_state_typed_view(empty_message);
+        core::PublishedPostsReadyView::Items(items) => items,
+        core::PublishedPostsReadyView::Empty(empty_state) => {
             return view! {
                 <article class="rounded-2xl border border-dashed border-border p-6">
                     <p class="text-sm text-muted-foreground">

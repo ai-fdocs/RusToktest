@@ -77,6 +77,11 @@ pub struct PostLinkView {
     pub open_label: String,
 }
 
+pub enum PublishedPostsReadyView<T> {
+    Items(Vec<T>),
+    Empty(PublishedPostsEmptyStateView),
+}
+
 pub fn published_posts_header_typed_view(
     title: String,
     total: u64,
@@ -97,6 +102,16 @@ pub fn selected_post_empty_state_typed_view(
 pub fn published_posts_empty_state_typed_view(message: String) -> PublishedPostsEmptyStateView {
     let (message,) = published_posts_empty_state_view(message);
     PublishedPostsEmptyStateView { message }
+}
+
+pub fn published_posts_ready_typed_view<T>(
+    items: Vec<T>,
+    empty_message: String,
+) -> PublishedPostsReadyView<T> {
+    match published_posts_ready_items(items, empty_message) {
+        Ok(items) => PublishedPostsReadyView::Items(items),
+        Err(message) => PublishedPostsReadyView::Empty(published_posts_empty_state_typed_view(message)),
+    }
 }
 
 pub fn selected_post_meta_view(
@@ -217,6 +232,11 @@ pub fn post_link_typed_view(base: &str, slug: &str, open_label: &str) -> PostLin
     PostLinkView { href, open_label }
 }
 
+pub fn post_link_typed_view(base: &str, slug: &str, open_label: &str) -> PostLinkView {
+    let (href, open_label) = post_link(base, slug, open_label);
+    PostLinkView { href, open_label }
+}
+
 pub fn list_post_summary(
     slug: Option<String>,
     missing_slug_fallback: &str,
@@ -285,6 +305,37 @@ pub fn list_post_card_view(
         resolved_open_label,
         locale_meta,
     )
+}
+
+pub fn published_post_card_view(
+    slug: Option<String>,
+    missing_slug_fallback: &str,
+    excerpt: Option<String>,
+    excerpt_fallback: &str,
+    module_route_base: &str,
+    open_label: &str,
+    locale_label: &str,
+    effective_locale: &str,
+    status: String,
+) -> PublishedPostCardView {
+    let (status, excerpt, href, open_label, locale_meta) = list_post_card_view(
+        slug,
+        missing_slug_fallback,
+        excerpt,
+        excerpt_fallback,
+        module_route_base,
+        open_label,
+        locale_label,
+        effective_locale,
+        status,
+    );
+    PublishedPostCardView {
+        status,
+        excerpt,
+        href,
+        open_label,
+        locale_meta,
+    }
 }
 
 pub fn published_post_card_view(
@@ -574,6 +625,23 @@ mod tests {
         let view = post_link_typed_view("/store/modules/blog", "hello-world", "Open");
         assert_eq!(view.href, "/store/modules/blog?slug=hello-world".to_string());
         assert_eq!(view.open_label, "Open hello-world".to_string());
+    }
+
+    #[test]
+    fn published_posts_ready_typed_view_maps_items_and_empty_state() {
+        let items_view = published_posts_ready_typed_view(vec!["a".to_string()], "empty".to_string());
+        match items_view {
+            PublishedPostsReadyView::Items(items) => assert_eq!(items, vec!["a".to_string()]),
+            PublishedPostsReadyView::Empty(_) => panic!("expected items variant"),
+        }
+
+        let empty_view = published_posts_ready_typed_view::<String>(vec![], "empty".to_string());
+        match empty_view {
+            PublishedPostsReadyView::Items(_) => panic!("expected empty variant"),
+            PublishedPostsReadyView::Empty(empty_state) => {
+                assert_eq!(empty_state.message, "empty".to_string())
+            }
+        }
     }
 
     #[test]
