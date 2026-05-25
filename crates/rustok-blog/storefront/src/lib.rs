@@ -97,7 +97,7 @@ fn BlogShowcase(data: StorefrontBlogData) -> impl IntoView {
 fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
     let locale = use_context::<UiRouteContext>().unwrap_or_default().locale;
     let Some(post) = post else {
-        let (empty_title, empty_body) = core::selected_post_empty_state_view(
+        let empty_state = core::selected_post_empty_state_typed_view(
             t(locale.as_deref(), "blog.selected.emptyTitle", "Pick a published post"),
             t(
                 locale.as_deref(),
@@ -108,10 +108,10 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
         return view! {
             <article class="rounded-2xl border border-dashed border-border p-6">
                 <h3 class="text-lg font-semibold text-card-foreground">
-                    {empty_title}
+                    {empty_state.title}
                 </h3>
                 <p class="mt-2 text-sm text-muted-foreground">
-                    {empty_body}
+                    {empty_state.body}
                 </p>
             </article>
         }
@@ -227,7 +227,7 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
         core::route_segment_or_default(route_context.route_segment.as_ref().cloned(), "blog");
     let module_route_base = route_context.module_route_base(route_segment.as_str());
     let unknown_status_label = t(locale.as_deref(), "blog.list.unknownStatus", "unknown");
-    let (list_title, total_label) = core::published_posts_header_view(
+    let header_view = core::published_posts_header_typed_view(
         t(locale.as_deref(), "blog.list.title", "Published posts"),
         total,
         &t(locale.as_deref(), "blog.list.total", "total"),
@@ -243,11 +243,11 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
     ) {
         Ok(items) => items,
         Err(empty_message) => {
-            let (empty_message,) = core::published_posts_empty_state_view(empty_message);
+            let empty_state = core::published_posts_empty_state_typed_view(empty_message);
             return view! {
                 <article class="rounded-2xl border border-dashed border-border p-6">
                     <p class="text-sm text-muted-foreground">
-                        {empty_message}
+                        {empty_state.message}
                     </p>
                 </article>
             }
@@ -259,10 +259,10 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
         <div class="space-y-3">
             <div class="flex items-center justify-between gap-3">
                 <h3 class="text-lg font-semibold text-card-foreground">
-                    {list_title}
+                    {header_view.title}
                 </h3>
                 <span class="text-sm text-muted-foreground">
-                    {total_label}
+                    {header_view.total_label}
                 </span>
             </div>
             <div class="grid gap-3 md:grid-cols-2">
@@ -317,10 +317,10 @@ fn PublishedPostsList(items: Vec<BlogPostListItem>, total: u64) -> impl IntoView
 
 #[component]
 fn BlogStatusBadge(status: String, unknown_label: String) -> impl IntoView {
-    let (label, badge_css) = core::status_badge_view(status, unknown_label.as_str());
+    let badge_view = core::status_badge_typed_view(status, unknown_label.as_str());
     view! {
-        <span class=badge_css>
-            {label}
+        <span class=badge_view.badge_css>
+            {badge_view.label}
         </span>
     }
 }

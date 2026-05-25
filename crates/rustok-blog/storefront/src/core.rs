@@ -53,6 +53,52 @@ pub struct PublishedPostCardView {
     pub locale_meta: String,
 }
 
+pub struct PublishedPostsHeaderView {
+    pub title: String,
+    pub total_label: String,
+}
+
+pub struct SelectedPostEmptyStateView {
+    pub title: String,
+    pub body: String,
+}
+
+pub struct PublishedPostsEmptyStateView {
+    pub message: String,
+}
+
+pub struct StatusBadgeView {
+    pub label: String,
+    pub badge_css: &'static str,
+}
+
+pub struct PostLinkView {
+    pub href: String,
+    pub open_label: String,
+}
+
+pub fn published_posts_header_typed_view(
+    title: String,
+    total: u64,
+    total_suffix: &str,
+) -> PublishedPostsHeaderView {
+    let (title, total_label) = published_posts_header_view(title, total, total_suffix);
+    PublishedPostsHeaderView { title, total_label }
+}
+
+pub fn selected_post_empty_state_typed_view(
+    title: String,
+    body: String,
+) -> SelectedPostEmptyStateView {
+    let (title, body) = selected_post_empty_state_view(title, body);
+    SelectedPostEmptyStateView { title, body }
+}
+
+pub fn published_posts_empty_state_typed_view(message: String) -> PublishedPostsEmptyStateView {
+    let (message,) = published_posts_empty_state_view(message);
+    PublishedPostsEmptyStateView { message }
+}
+
 pub fn selected_post_meta_view(
     slug_label: &str,
     slug: &str,
@@ -166,6 +212,11 @@ pub fn post_link(base: &str, slug: &str, open_label: &str) -> (String, String) {
     (module_href(base, slug), open_link_label(open_label, slug))
 }
 
+pub fn post_link_typed_view(base: &str, slug: &str, open_label: &str) -> PostLinkView {
+    let (href, open_label) = post_link(base, slug, open_label);
+    PostLinkView { href, open_label }
+}
+
 pub fn list_post_summary(
     slug: Option<String>,
     missing_slug_fallback: &str,
@@ -176,9 +227,8 @@ pub fn list_post_summary(
 ) -> (String, String, String) {
     let resolved_slug = fallback_slug(slug, missing_slug_fallback);
     let resolved_excerpt = list_post_excerpt(excerpt, excerpt_fallback);
-    let (href, resolved_open_label) =
-        post_link(module_route_base, resolved_slug.as_str(), open_label);
-    (resolved_excerpt, href, resolved_open_label)
+    let link_view = post_link_typed_view(module_route_base, resolved_slug.as_str(), open_label);
+    (resolved_excerpt, link_view.href, link_view.open_label)
 }
 
 pub fn list_post_locale_meta(locale_label: &str, effective_locale: &str) -> String {
@@ -235,6 +285,37 @@ pub fn list_post_card_view(
         resolved_open_label,
         locale_meta,
     )
+}
+
+pub fn published_post_card_view(
+    slug: Option<String>,
+    missing_slug_fallback: &str,
+    excerpt: Option<String>,
+    excerpt_fallback: &str,
+    module_route_base: &str,
+    open_label: &str,
+    locale_label: &str,
+    effective_locale: &str,
+    status: String,
+) -> PublishedPostCardView {
+    let (status, excerpt, href, open_label, locale_meta) = list_post_card_view(
+        slug,
+        missing_slug_fallback,
+        excerpt,
+        excerpt_fallback,
+        module_route_base,
+        open_label,
+        locale_label,
+        effective_locale,
+        status,
+    );
+    PublishedPostCardView {
+        status,
+        excerpt,
+        href,
+        open_label,
+        locale_meta,
+    }
 }
 
 pub fn published_post_card_view(
@@ -360,6 +441,11 @@ pub fn status_badge_view(status: String, unknown_label: &str) -> (String, &'stat
     status_presentation(status.as_str(), unknown_label)
 }
 
+pub fn status_badge_typed_view(status: String, unknown_label: &str) -> StatusBadgeView {
+    let (label, badge_css) = status_badge_view(status, unknown_label);
+    StatusBadgeView { label, badge_css }
+}
+
 pub fn selected_post_tag_items(tags: Vec<String>) -> Option<Vec<String>> {
     if has_items(tags.as_slice()) {
         Some(tags)
@@ -437,6 +523,13 @@ mod tests {
     }
 
     #[test]
+    fn published_posts_header_typed_view_builds_struct() {
+        let view = published_posts_header_typed_view("Published posts".to_string(), 3, "total");
+        assert_eq!(view.title, "Published posts".to_string());
+        assert_eq!(view.total_label, "3 total".to_string());
+    }
+
+    #[test]
     fn selected_post_empty_state_view_returns_payload_tuple() {
         assert_eq!(
             selected_post_empty_state_view(
@@ -448,6 +541,39 @@ mod tests {
                 "Open a post from the list below.".to_string(),
             )
         );
+    }
+
+    #[test]
+    fn selected_post_empty_state_typed_view_builds_struct() {
+        let view = selected_post_empty_state_typed_view(
+            "Pick a published post".to_string(),
+            "Open a post from the list below.".to_string(),
+        );
+        assert_eq!(view.title, "Pick a published post".to_string());
+        assert_eq!(view.body, "Open a post from the list below.".to_string());
+    }
+
+    #[test]
+    fn published_posts_empty_state_typed_view_builds_struct() {
+        let view = published_posts_empty_state_typed_view("No items".to_string());
+        assert_eq!(view.message, "No items".to_string());
+    }
+
+    #[test]
+    fn status_badge_typed_view_builds_struct() {
+        let view = status_badge_typed_view(" archived ".to_string(), "unknown");
+        assert_eq!(view.label, "archived".to_string());
+        assert_eq!(
+            view.badge_css,
+            "inline-flex rounded-full border border-border bg-muted px-2.5 py-0.5 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground"
+        );
+    }
+
+    #[test]
+    fn post_link_typed_view_builds_struct() {
+        let view = post_link_typed_view("/store/modules/blog", "hello-world", "Open");
+        assert_eq!(view.href, "/store/modules/blog?slug=hello-world".to_string());
+        assert_eq!(view.open_label, "Open hello-world".to_string());
     }
 
     #[test]
