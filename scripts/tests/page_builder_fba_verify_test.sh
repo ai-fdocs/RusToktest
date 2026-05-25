@@ -15,6 +15,17 @@ slug = "page_builder"
 builder_contract_version = "1.0"
 EOF
 
+
+  mkdir -p "$FIXTURE_ROOT/crates/rustok-pages/docs"
+  cat > "$FIXTURE_ROOT/crates/rustok-pages/docs/implementation-plan.md" <<'EOF'
+# План реализации `rustok-pages`
+
+## Execution checkpoint
+
+- Current phase: fixture
+- Notes: FBA page-builder readiness fixture.
+EOF
+
   cat > "$FIXTURE_ROOT/crates/rustok-pages/rustok-module.toml" <<'EOF'
 [fba.builder_consumer]
 contract_version = "1.0"
@@ -31,30 +42,36 @@ all_on = [
   "builder.preview.enabled=true",
   "builder.properties.enabled=true",
   "builder.publish.enabled=true",
+  "builder.legacy_bridge_readonly=true",
 ]
 publish_off = [
   "builder.enabled=true",
   "builder.preview.enabled=true",
   "builder.properties.enabled=true",
   "builder.publish.enabled=false",
+  "builder.legacy_bridge_readonly=true",
 ]
 preview_off = [
   "builder.enabled=true",
   "builder.preview.enabled=false",
   "builder.properties.enabled=true",
-  "builder.publish.enabled=true",
+  "builder.publish.enabled=false",
+  "builder.legacy_bridge_readonly=true",
 ]
 builder_off = [
   "builder.enabled=false",
   "builder.preview.enabled=false",
   "builder.properties.enabled=false",
   "builder.publish.enabled=false",
+  "builder.legacy_bridge_readonly=true",
 ]
 EOF
 
   cp "$VERIFY_DIR/verify-page-builder-contract-parity.mjs" "$FIXTURE_ROOT/scripts/verify/"
+  cp "$VERIFY_DIR/verify-page-builder-consumer-readiness.mjs" "$FIXTURE_ROOT/scripts/verify/"
   cp "$VERIFY_DIR/verify-page-builder-fallback-profiles.mjs" "$FIXTURE_ROOT/scripts/verify/"
   cp "$VERIFY_DIR/verify-page-builder-toggle-profiles-consistency.mjs" "$FIXTURE_ROOT/scripts/verify/"
+  cp "$VERIFY_DIR/verify-page-builder-terminology.mjs" "$FIXTURE_ROOT/scripts/verify/"
   cp "$VERIFY_DIR/verify-page-builder-fba-baseline.mjs" "$FIXTURE_ROOT/scripts/verify/"
 }
 
@@ -65,10 +82,24 @@ cleanup_fixture_repo() {
 }
 
 test_baseline_passes_on_isolated_fixture() {
-  (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-fba-baseline.mjs)
+  (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-contract-parity.mjs)
+  (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-consumer-readiness.mjs pages)
+  (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-fallback-profiles.mjs)
+  (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-toggle-profiles-consistency.mjs)
 }
 
 test_baseline_fails_on_contract_mismatch_fixture() {
+
+  mkdir -p "$FIXTURE_ROOT/crates/rustok-pages/docs"
+  cat > "$FIXTURE_ROOT/crates/rustok-pages/docs/implementation-plan.md" <<'EOF'
+# План реализации `rustok-pages`
+
+## Execution checkpoint
+
+- Current phase: fixture
+- Notes: FBA page-builder readiness fixture.
+EOF
+
   cat > "$FIXTURE_ROOT/crates/rustok-pages/rustok-module.toml" <<'EOF'
 [fba.builder_consumer]
 contract_version = "1.0"
@@ -85,29 +116,33 @@ all_on = [
   "builder.preview.enabled=true",
   "builder.properties.enabled=true",
   "builder.publish.enabled=true",
+  "builder.legacy_bridge_readonly=true",
 ]
 publish_off = [
   "builder.enabled=true",
   "builder.preview.enabled=true",
   "builder.properties.enabled=true",
   "builder.publish.enabled=false",
+  "builder.legacy_bridge_readonly=true",
 ]
 preview_off = [
   "builder.enabled=true",
   "builder.preview.enabled=false",
   "builder.properties.enabled=true",
-  "builder.publish.enabled=true",
+  "builder.publish.enabled=false",
+  "builder.legacy_bridge_readonly=true",
 ]
 builder_off = [
   "builder.enabled=false",
   "builder.preview.enabled=false",
   "builder.properties.enabled=false",
   "builder.publish.enabled=false",
+  "builder.legacy_bridge_readonly=true",
 ]
 EOF
 
   FAIL_OUTPUT_FILE="$(mktemp)"
-  if (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-fba-baseline.mjs >"$FAIL_OUTPUT_FILE" 2>&1); then
+  if (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-contract-parity.mjs >"$FAIL_OUTPUT_FILE" 2>&1); then
     echo "expected baseline to fail on contract mismatch fixture"
     cat "$FAIL_OUTPUT_FILE"
     exit 1
