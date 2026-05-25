@@ -4,6 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 VERIFY_DIR="$REPO_ROOT/scripts/verify"
+PB_VERIFY_DIR="$REPO_ROOT/crates/rustok-page-builder/scripts/verify"
 
 write_terminology_fixture_files() {
   cat > "$FIXTURE_ROOT/apps/next-admin/src/features/blog/components/post-form.tsx" <<'EOT'
@@ -94,7 +95,7 @@ create_fixture_repo() {
     "$FIXTURE_ROOT/crates/rustok-pages/admin/locales" \
     "$FIXTURE_ROOT/crates/rustok-pages/admin/src" \
     "$FIXTURE_ROOT/crates/rustok-forum/docs" \
-    "$FIXTURE_ROOT/scripts/verify" \
+    "$FIXTURE_ROOT/crates/rustok-page-builder/scripts/verify" \
     "$FIXTURE_ROOT/apps/next-admin/src/features/blog/components" \
     "$FIXTURE_ROOT/apps/next-admin/src/features/blog/api"
 
@@ -129,13 +130,12 @@ contract_version = "1.0"
 builder_contract_version = "1.0"
 EOT
 
-copy_verify_scripts() {
-  cp "$VERIFY_DIR/verify-page-builder-contract-parity.mjs" "$FIXTURE_ROOT/scripts/verify/"
-  cp "$VERIFY_DIR/verify-page-builder-consumer-readiness.mjs" "$FIXTURE_ROOT/scripts/verify/"
-  cp "$VERIFY_DIR/verify-page-builder-fallback-profiles.mjs" "$FIXTURE_ROOT/scripts/verify/"
-  cp "$VERIFY_DIR/verify-page-builder-toggle-profiles-consistency.mjs" "$FIXTURE_ROOT/scripts/verify/"
-  cp "$VERIFY_DIR/verify-page-builder-terminology.mjs" "$FIXTURE_ROOT/scripts/verify/"
-  cp "$VERIFY_DIR/verify-page-builder-fba-baseline.mjs" "$FIXTURE_ROOT/scripts/verify/"
+  cp "$PB_VERIFY_DIR/verify-page-builder-contract-parity.mjs" "$FIXTURE_ROOT/crates/rustok-page-builder/scripts/verify/"
+  cp "$PB_VERIFY_DIR/verify-page-builder-consumer-readiness.mjs" "$FIXTURE_ROOT/crates/rustok-page-builder/scripts/verify/"
+  cp "$PB_VERIFY_DIR/verify-page-builder-fallback-profiles.mjs" "$FIXTURE_ROOT/crates/rustok-page-builder/scripts/verify/"
+  cp "$PB_VERIFY_DIR/verify-page-builder-toggle-profiles-consistency.mjs" "$FIXTURE_ROOT/crates/rustok-page-builder/scripts/verify/"
+  cp "$PB_VERIFY_DIR/verify-page-builder-terminology.mjs" "$FIXTURE_ROOT/crates/rustok-page-builder/scripts/verify/"
+  cp "$PB_VERIFY_DIR/verify-page-builder-fba-baseline.mjs" "$FIXTURE_ROOT/crates/rustok-page-builder/scripts/verify/"
 }
 
 cleanup_fixture_repo() {
@@ -146,12 +146,12 @@ cleanup_fixture_repo() {
 }
 
 test_baseline_passes_on_isolated_fixture() {
-  (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-contract-parity.mjs)
-  (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-consumer-readiness.mjs pages)
-  (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-fallback-profiles.mjs)
-  (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-toggle-profiles-consistency.mjs)
-  (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-consumer-readiness.mjs forum)
-  (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-fba-baseline.mjs pages)
+  (cd "$FIXTURE_ROOT" && node crates/rustok-page-builder/scripts/verify/verify-page-builder-contract-parity.mjs)
+  (cd "$FIXTURE_ROOT" && node crates/rustok-page-builder/scripts/verify/verify-page-builder-consumer-readiness.mjs pages)
+  (cd "$FIXTURE_ROOT" && node crates/rustok-page-builder/scripts/verify/verify-page-builder-fallback-profiles.mjs)
+  (cd "$FIXTURE_ROOT" && node crates/rustok-page-builder/scripts/verify/verify-page-builder-toggle-profiles-consistency.mjs)
+  (cd "$FIXTURE_ROOT" && node crates/rustok-page-builder/scripts/verify/verify-page-builder-consumer-readiness.mjs forum)
+  (cd "$FIXTURE_ROOT" && node crates/rustok-page-builder/scripts/verify/verify-page-builder-fba-baseline.mjs pages)
 }
 
 test_baseline_fails_on_contract_mismatch_fixture() {
@@ -160,7 +160,7 @@ test_baseline_fails_on_contract_mismatch_fixture() {
   write_pages_manifest_fixture "2.0"
 
   FAIL_OUTPUT_FILE="$(mktemp)"
-  if (cd "$FIXTURE_ROOT" && node scripts/verify/verify-page-builder-contract-parity.mjs >"$FAIL_OUTPUT_FILE" 2>&1); then
+  if (cd "$FIXTURE_ROOT" && node crates/rustok-page-builder/scripts/verify/verify-page-builder-contract-parity.mjs >"$FAIL_OUTPUT_FILE" 2>&1); then
     echo "expected baseline to fail on contract mismatch fixture"
     cat "$FAIL_OUTPUT_FILE"
     exit 1

@@ -642,7 +642,7 @@ Notes: <known deviations or waivers>
 
 **Артефакты Sprint 1:**
 - changelog entry по contract freeze;
-- CI отчёт anti-drift check (baseline command: `node scripts/verify/verify-page-builder-contract-parity.mjs`);
+- CI отчёт anti-drift check (baseline command: `node crates/rustok-page-builder/scripts/verify/verify-page-builder-contract-parity.mjs`);
 - обновлённые metadata snapshots provider/consumer.
 
 ### 12.2 Sprint 2 (до 2026-06-30): `rustok-pages` fallback hardening
@@ -652,7 +652,7 @@ Notes: <known deviations or waivers>
 - [ ] Зафиксировать UX-semantic для disabled publish capability (typed error + operator guidance + trace-id).
 
 **Артефакты Sprint 2:**
-- fallback regression report (admin + storefront), включая baseline verify command: `node scripts/verify/verify-page-builder-fallback-profiles.mjs`;
+- fallback regression report (admin + storefront), включая baseline verify command: `node crates/rustok-page-builder/scripts/verify/verify-page-builder-fallback-profiles.mjs`;
 - incidents/alerts dry log по disable-сценариям;
 - обновлённый runbook переключений tenant-by-tenant.
 
@@ -664,10 +664,10 @@ Notes: <known deviations or waivers>
 
 **Артефакты Sprint 3:**
 - audit trail с before/after snapshots;
-- dry-run consistency verify report (baseline command: `node scripts/verify/verify-page-builder-toggle-profiles-consistency.mjs`);
+- dry-run consistency verify report (baseline command: `node crates/rustok-page-builder/scripts/verify/verify-page-builder-toggle-profiles-consistency.mjs`);
 - SLO отчёт (`preview p95`, `publish p95`, sanitize failure rate);
 - подписанный протокол Go/No-Go для pilot tenants.
-- unified baseline gate report (command: `node scripts/verify/verify-page-builder-fba-baseline.mjs`).
+- unified baseline gate report (command: `node crates/rustok-page-builder/scripts/verify/verify-page-builder-fba-baseline.mjs`).
 
 ### 12.4 Как масштабировать после `pages` (дальше по плану)
 
