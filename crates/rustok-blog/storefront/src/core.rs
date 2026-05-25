@@ -29,6 +29,11 @@ pub struct SelectedPostTagsView {
     pub items: Vec<String>,
 }
 
+pub struct SelectedPostContentView {
+    pub excerpt: String,
+    pub body: String,
+}
+
 pub fn selected_post_meta_view(
     slug_label: &str,
     slug: &str,
@@ -55,6 +60,10 @@ pub fn selected_post_meta_view(
 
 pub fn selected_post_tags_view(tags: Vec<String>) -> Option<SelectedPostTagsView> {
     selected_post_tag_items(tags).map(|items| SelectedPostTagsView { items })
+}
+
+pub fn selected_post_content_view(excerpt: String, body: String) -> SelectedPostContentView {
+    SelectedPostContentView { excerpt, body }
 }
 
 pub fn open_link_label(label: &str, slug: &str) -> String {
@@ -393,6 +402,16 @@ mod tests {
         let view = selected_post_tags_view(vec!["news".to_string(), "release".to_string()])
             .expect("expected tags view");
         assert_eq!(view.items, vec!["news".to_string(), "release".to_string()]);
+    }
+
+    #[test]
+    fn selected_post_content_view_returns_excerpt_and_body() {
+        let view = selected_post_content_view(
+            "No excerpt yet.".to_string(),
+            "No body content yet.".to_string(),
+        );
+        assert_eq!(view.excerpt, "No excerpt yet.".to_string());
+        assert_eq!(view.body, "No body content yet.".to_string());
     }
 
     #[test]

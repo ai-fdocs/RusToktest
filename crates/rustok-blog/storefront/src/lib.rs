@@ -166,6 +166,7 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
             "Stored in `{format}` format. Raw body length: {count} characters.",
         ),
     );
+    let selected_post_content = core::selected_post_content_view(excerpt, body);
 
     view! {
         <article class="rounded-2xl border border-border bg-background p-6">
@@ -183,8 +184,8 @@ fn SelectedPostCard(post: Option<BlogPostDetail>) -> impl IntoView {
                     unknown_label=unknown_status_label
                 />
             </div>
-            <p class="mt-3 text-sm text-muted-foreground">{excerpt}</p>
-            <p class="mt-4 whitespace-pre-line text-sm leading-7 text-muted-foreground">{body}</p>
+            <p class="mt-3 text-sm text-muted-foreground">{selected_post_content.excerpt}</p>
+            <p class="mt-4 whitespace-pre-line text-sm leading-7 text-muted-foreground">{selected_post_content.body}</p>
             {if let Some(tags_view) = core::selected_post_tags_view(tags) {
                 view! {
                     <div class="mt-5 flex flex-wrap gap-2">
