@@ -6,7 +6,7 @@
 ## Execution checkpoint
 
 - Current phase: plan_sync
-- Last checkpoint: Phase B pilot slice #10 moved admin relevance editor JSON formatting/profile/preset helpers into `admin/src/core.rs` without changing native/GraphQL transport.
+- Last checkpoint: Phase B pilot slice #11 moved admin analytics metric formatting helpers into `admin/src/core.rs` without changing native/GraphQL transport.
 - Next step: Continue Phase B with the next smallest search UI/state helper extraction while preserving dual-path parity.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
@@ -99,3 +99,4 @@
 - [x] Slice 8: storefront/admin error message composition moved to core (`error_with_context`).
 - [x] Slice 9: storefront/admin score rendering unified to direct core helpers (`score_label`) without template/trim hacks.
 - [x] Slice 10: admin relevance editor JSON formatting and ranking/filter preset extraction moved to core (`pretty_json_string`, `parse_json_for_editor`, `extract_ranking_profile_value`, `extract_surface_presets_json`).
+- [x] Slice 11: admin analytics/diagnostics metric formatting moved to core (`format_days`, `format_percent_fraction`, `format_milliseconds`, `format_decimal_1`, `format_seconds`, `document_source_path`).

@@ -80,6 +80,19 @@ mod tests {
     }
 
     #[test]
+    fn analytics_formatting_helpers_are_stable() {
+        assert_eq!(format_days(14), "14d");
+        assert_eq!(format_percent_fraction(0.1234), "12.3%");
+        assert_eq!(format_milliseconds(12.34), "12.3 ms");
+        assert_eq!(format_decimal_1(7.89), "7.9");
+        assert_eq!(format_seconds(42), "42s");
+        assert_eq!(
+            document_source_path("doc-1", "catalog", "product"),
+            "doc-1 / catalog / product"
+        );
+    }
+
+    #[test]
     fn relevance_editor_json_helpers_are_stable() {
         let config = serde_json::json!({
             "ranking_profiles": {
@@ -155,4 +168,28 @@ pub fn extract_surface_presets_json(config: &serde_json::Value, surface: &str) -
         .and_then(|value| value.get(surface))
         .and_then(|value| serde_json::to_string_pretty(value).ok())
         .unwrap_or_else(|| "[]".to_string())
+}
+
+pub fn format_days(days: u32) -> String {
+    format!("{}d", days)
+}
+
+pub fn format_percent_fraction(value: f64) -> String {
+    format!("{:.1}%", value * 100.0)
+}
+
+pub fn format_milliseconds(value: f64) -> String {
+    format!("{:.1} ms", value)
+}
+
+pub fn format_decimal_1(value: f64) -> String {
+    format!("{:.1}", value)
+}
+
+pub fn format_seconds(seconds: u64) -> String {
+    format!("{}s", seconds)
+}
+
+pub fn document_source_path(document_id: &str, source_module: &str, entity_type: &str) -> String {
+    format!("{} / {} / {}", document_id, source_module, entity_type)
 }

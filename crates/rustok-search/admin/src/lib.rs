@@ -37,7 +37,6 @@ struct SearchPreviewLabels {
     summary_template: String,
     preset_template: String,
     none_label: String,
-    score_template: String,
     no_snippet: String,
     no_target_url: String,
     open_result: String,
@@ -579,7 +578,7 @@ fn overview_view(
                 <InfoCard title=t(locale, "search.overview.staleDocs.title", "Stale docs") value=bootstrap.search_diagnostics.stale_documents.to_string() detail=t(locale, "search.overview.staleDocs.detail", "Documents where indexed_at lags behind source updated_at.") />
                 <InfoCard title=t(locale, "search.overview.missingDocs.title", "Missing docs") value=bootstrap.search_diagnostics.missing_documents.to_string() detail=t(locale, "search.overview.missingDocs.detail", "Source rows that should exist in search_documents but do not.") />
                 <InfoCard title=t(locale, "search.overview.orphanedDocs.title", "Orphaned docs") value=bootstrap.search_diagnostics.orphaned_documents.to_string() detail=t(locale, "search.overview.orphanedDocs.detail", "Search documents that no longer have a matching source row.") />
-                <InfoCard title=t(locale, "search.overview.maxLag.title", "Max lag") value=format!("{}s", bootstrap.search_diagnostics.max_lag_seconds) detail=t(locale, "search.overview.maxLag.detail", "Worst-case lag between source update and search projection.") />
+                <InfoCard title=t(locale, "search.overview.maxLag.title", "Max lag") value=core::format_seconds(bootstrap.search_diagnostics.max_lag_seconds) detail=t(locale, "search.overview.maxLag.detail", "Worst-case lag between source update and search projection.") />
             </div>
             <section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
                 <div class="space-y-1">
@@ -799,7 +798,6 @@ fn playground_view(
         ),
         preset_template: t(locale_ref, "search.preview.preset", "preset = {preset}"),
         none_label: t(locale_ref, "search.common.none", "none"),
-        score_template: t(locale_ref, "search.preview.score", "score {score:.3}"),
         no_snippet: t(
             locale_ref,
             "search.preview.noSnippet",
@@ -913,7 +911,7 @@ fn analytics_view(
                 <InfoCard title=t(locale_ref, "search.analytics.laggingDocs.title", "Lagging docs") value=diagnostics.stale_documents.to_string() detail=t(locale_ref, "search.analytics.laggingDocs.detail", "Documents where projection timestamps are behind source updates.") />
                 <InfoCard title=t(locale_ref, "search.analytics.missingDocs.title", "Missing docs") value=diagnostics.missing_documents.to_string() detail=t(locale_ref, "search.analytics.missingDocs.detail", "Expected projection rows that are absent from search storage.") />
                 <InfoCard title=t(locale_ref, "search.analytics.orphanedDocs.title", "Orphaned docs") value=diagnostics.orphaned_documents.to_string() detail=t(locale_ref, "search.analytics.orphanedDocs.detail", "Projection rows without a matching content/product source row.") />
-                <InfoCard title=t(locale_ref, "search.analytics.maxLag.title", "Max lag") value=format!("{}s", diagnostics.max_lag_seconds) detail=t(locale_ref, "search.analytics.maxLag.detail", "Largest observed lag in seconds.") />
+                <InfoCard title=t(locale_ref, "search.analytics.maxLag.title", "Max lag") value=core::format_seconds(diagnostics.max_lag_seconds) detail=t(locale_ref, "search.analytics.maxLag.detail", "Largest observed lag in seconds.") />
                 <InfoCard title=t(locale_ref, "search.analytics.newestIndexed.title", "Newest indexed") value=diagnostics.newest_indexed_at.unwrap_or_else(|| t(locale_ref, "search.common.notIndexedYet", "not indexed yet")) detail=t(locale_ref, "search.analytics.newestIndexed.detail", "Most recent index write in rustok-search storage.") />
                 <InfoCard title=t(locale_ref, "search.analytics.oldestIndexed.title", "Oldest indexed") value=diagnostics.oldest_indexed_at.unwrap_or_else(|| t(locale_ref, "search.common.notIndexedYet", "not indexed yet")) detail=t(locale_ref, "search.analytics.oldestIndexed.detail", "Oldest surviving indexed document timestamp.") />
             </div>
@@ -963,15 +961,15 @@ fn analytics_panel(analytics: SearchAnalyticsPayload, ui_locale: Option<String>)
     view! {
         <div class="space-y-6">
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                <InfoCard title=t(locale, "search.analytics.summary.window.title", "Window") value=format!("{}d", summary.window_days) detail=t(locale, "search.analytics.summary.window.detail", "Rolling analytics lookback window.") />
+                <InfoCard title=t(locale, "search.analytics.summary.window.title", "Window") value=core::format_days(summary.window_days) detail=t(locale, "search.analytics.summary.window.detail", "Rolling analytics lookback window.") />
                 <InfoCard title=t(locale, "search.analytics.summary.queries.title", "Queries") value=summary.total_queries.to_string() detail=t(locale, "search.analytics.summary.queries.detail", "All logged search queries in the current window.") />
-                <InfoCard title=t(locale, "search.analytics.summary.ctr.title", "CTR") value=format!("{:.1}%", summary.click_through_rate * 100.0) detail=t(locale, "search.analytics.summary.ctr.detail", "Share of eligible successful queries that received at least one click.") />
-                <InfoCard title=t(locale, "search.analytics.summary.abandonment.title", "Abandonment") value=format!("{:.1}%", summary.abandonment_rate * 100.0) detail=t(locale, "search.analytics.summary.abandonment.detail", "Eligible successful queries that ended without any tracked click.") />
-                <InfoCard title=t(locale, "search.analytics.summary.zeroResultRate.title", "Zero-result rate") value=format!("{:.1}%", summary.zero_result_rate * 100.0) detail=t(locale, "search.analytics.summary.zeroResultRate.detail", "Share of successful queries that returned no results.") />
+                <InfoCard title=t(locale, "search.analytics.summary.ctr.title", "CTR") value=core::format_percent_fraction(summary.click_through_rate) detail=t(locale, "search.analytics.summary.ctr.detail", "Share of eligible successful queries that received at least one click.") />
+                <InfoCard title=t(locale, "search.analytics.summary.abandonment.title", "Abandonment") value=core::format_percent_fraction(summary.abandonment_rate) detail=t(locale, "search.analytics.summary.abandonment.detail", "Eligible successful queries that ended without any tracked click.") />
+                <InfoCard title=t(locale, "search.analytics.summary.zeroResultRate.title", "Zero-result rate") value=core::format_percent_fraction(summary.zero_result_rate) detail=t(locale, "search.analytics.summary.zeroResultRate.detail", "Share of successful queries that returned no results.") />
             </div>
             <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-                <InfoCard title=t(locale, "search.analytics.summary.avgLatency.title", "Avg latency") value=format!("{:.1} ms", summary.avg_took_ms) detail=t(locale, "search.analytics.summary.avgLatency.detail", "Average PostgreSQL search execution time.") />
-                <InfoCard title=t(locale, "search.analytics.summary.slowQueryRate.title", "Slow-query rate") value=format!("{:.1}%", summary.slow_query_rate * 100.0) detail=t(locale, "search.analytics.summary.slowQueryRate.detail", "Share of successful queries at or above the current slow-query threshold.") />
+                <InfoCard title=t(locale, "search.analytics.summary.avgLatency.title", "Avg latency") value=core::format_milliseconds(summary.avg_took_ms) detail=t(locale, "search.analytics.summary.avgLatency.detail", "Average PostgreSQL search execution time.") />
+                <InfoCard title=t(locale, "search.analytics.summary.slowQueryRate.title", "Slow-query rate") value=core::format_percent_fraction(summary.slow_query_rate) detail=t(locale, "search.analytics.summary.slowQueryRate.detail", "Share of successful queries at or above the current slow-query threshold.") />
                 <InfoCard title=t(locale, "search.analytics.summary.totalClicks.title", "Total clicks") value=summary.total_clicks.to_string() detail=t(locale, "search.analytics.summary.totalClicks.detail", "All tracked result clicks in the current window.") />
                 <InfoCard title=t(locale, "search.analytics.summary.abandonedQueries.title", "Abandoned queries") value=summary.abandonment_queries.to_string() detail=t(locale, "search.analytics.summary.abandonedQueries.detail", "Successful queries older than the click-eval window with no clicks.") />
                 <InfoCard title=t(locale, "search.analytics.summary.uniqueQueries.title", "Unique queries") value=summary.unique_queries.to_string() detail=t(locale, "search.analytics.summary.uniqueQueries.detail", "Distinct normalized queries observed in the window.") />
@@ -1082,10 +1080,10 @@ fn analytics_rows_table(
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.hits}</td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.zero_result_hits}</td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.clicks}</td>
-                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{format!("{:.1}%", row.click_through_rate * 100.0)}</td>
-                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{format!("{:.1}%", row.abandonment_rate * 100.0)}</td>
-                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{format!("{:.1} ms", row.avg_took_ms)}</td>
-                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{format!("{:.1}", row.avg_results)}</td>
+                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{core::format_percent_fraction(row.click_through_rate)}</td>
+                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{core::format_percent_fraction(row.abandonment_rate)}</td>
+                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{core::format_milliseconds(row.avg_took_ms)}</td>
+                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{core::format_decimal_1(row.avg_results)}</td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.last_seen_at}</td>
             </tr>
         }).collect_view()}</tbody>
@@ -1116,7 +1114,7 @@ fn intelligence_table(
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.hits}</td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.zero_result_hits}</td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.clicks}</td>
-                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{format!("{:.1}%", row.click_through_rate * 100.0)}</td>
+                <td class="px-4 py-3 align-top text-xs text-muted-foreground">{core::format_percent_fraction(row.click_through_rate)}</td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.recommendation}</td>
             </tr>
         }).collect_view()}</tbody>
@@ -1196,7 +1194,7 @@ fn lagging_table(
                 <td class="px-4 py-3 align-top"><div class="font-medium text-card-foreground">{row.title}</div><div class="mt-1 text-xs text-muted-foreground">{row.document_key}</div></td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{core::source_entity_status_label(&row.source_module, &row.entity_type, &row.status)}</td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.locale}</td>
-                <td class="px-4 py-3 align-top"><span class="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">{format!("{}s", row.lag_seconds)}</span></td>
+                <td class="px-4 py-3 align-top"><span class="inline-flex rounded-full border border-amber-200 bg-amber-50 px-2.5 py-0.5 text-xs font-semibold text-amber-700">{core::format_seconds(row.lag_seconds)}</span></td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.indexed_at}</td>
                 <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.updated_at}</td>
             </tr>
@@ -1750,7 +1748,7 @@ fn query_rules_table(
                     </td>
                     <td class="px-4 py-3 align-top">
                         <div class="font-medium text-card-foreground">{row.title}</div>
-                        <div class="mt-1 text-xs text-muted-foreground">{format!("{} / {} / {}", row.document_id, row.source_module, row.entity_type)}</div>
+                        <div class="mt-1 text-xs text-muted-foreground">{core::document_source_path(&row.document_id, &row.source_module, &row.entity_type)}</div>
                     </td>
                     <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.pinned_position}</td>
                     <td class="px-4 py-3 align-top text-xs text-muted-foreground">{row.updated_at}</td>
