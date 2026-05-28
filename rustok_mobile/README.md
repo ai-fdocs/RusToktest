@@ -59,6 +59,16 @@ from the committed manifest/snapshot to the expected deterministic output. The
 snapshot includes normalized `nav_icon` metadata so navigation parity drift is
 visible in codegen checks.
 
+## Check deterministic codegen
+
+```bash
+python3 rustok_mobile/tooling/scripts/check_mobile_codegen.py --repo-root /workspace/RusTok
+```
+
+This command runs the generator into temporary files and compares those outputs
+with the committed manifest and snapshot. Use it when you need a CI-friendly
+signal that exercises the generator CLI itself.
+
 ## Next steps
 
 1. Start first module package (`rustok_auth_mobile`) with real screens.
