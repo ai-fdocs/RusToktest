@@ -1,6 +1,7 @@
 mod bulk;
 mod cross_links;
 mod diagnostics;
+mod events;
 mod meta;
 mod redirects;
 mod robots;

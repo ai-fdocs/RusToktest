@@ -1700,7 +1700,9 @@ impl SeoService {
             }],
         };
 
-        self.upsert_meta(tenant, input).await?;
+        self
+            .upsert_meta_with_transition(tenant, input, Some(format!("job:{job_id}")))
+            .await?;
         if publish_after_write {
             let revision = self
                 .publish_revision(
@@ -1743,7 +1745,9 @@ impl SeoService {
             }],
         };
 
-        self.upsert_meta(tenant, input).await?;
+        self
+            .upsert_meta_with_transition(tenant, input, Some(format!("job:{job_id}")))
+            .await?;
         if publish_after_write {
             let revision = self
                 .publish_revision(
@@ -1766,7 +1770,20 @@ impl SeoService {
         active.last_error = Set(Some(limit_job_message(message)));
         active.completed_at = Set(Some(now));
         active.updated_at = Set(now);
-        active.update(&self.db).await?;
+        let updated = active.update(&self.db).await?;
+
+        self.publish_seo_bulk_completed_event(
+            updated.tenant_id,
+            updated.id,
+            updated.target_kind.as_str(),
+            updated.locale.as_str(),
+            updated.status.as_str(),
+            updated.processed_count,
+            updated.succeeded_count,
+            updated.failed_count,
+        )
+        .await;
+
         Ok(())
     }
 
@@ -1796,7 +1813,20 @@ impl SeoService {
         active.last_error = Set(last_error.map(limit_job_message));
         active.completed_at = Set(Some(now));
         active.updated_at = Set(now);
-        active.update(&self.db).await?;
+        let updated = active.update(&self.db).await?;
+
+        self.publish_seo_bulk_completed_event(
+            updated.tenant_id,
+            updated.id,
+            updated.target_kind.as_str(),
+            updated.locale.as_str(),
+            updated.status.as_str(),
+            updated.processed_count,
+            updated.succeeded_count,
+            updated.failed_count,
+        )
+        .await;
+
         Ok(())
     }
 

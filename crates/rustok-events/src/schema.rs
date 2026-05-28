@@ -241,6 +241,54 @@ const URL_ALIAS_PURGED_FIELDS: &[FieldSchema] = &[
     field!("locale", "string"),
     field!("urls", "array"),
 ];
+const SEO_META_UPSERTED_FIELDS: &[FieldSchema] = &[
+    field!("target_kind", "string"),
+    field!("target_id", "uuid"),
+    field!("locale", "string"),
+    field!("source", "string"),
+    field!("idempotency_key", "string"),
+];
+const SEO_REVISION_FIELDS: &[FieldSchema] = &[
+    field!("target_kind", "string"),
+    field!("target_id", "uuid"),
+    field!("revision", "int32"),
+    field!("idempotency_key", "string"),
+];
+const SEO_REDIRECT_UPSERTED_FIELDS: &[FieldSchema] = &[
+    field!("redirect_id", "uuid"),
+    field!("source_pattern", "string"),
+    field!("target_url", "string"),
+    field!("status_code", "int32"),
+    field!("is_active", "bool"),
+    field!("idempotency_key", "string"),
+];
+const SEO_REDIRECT_DISABLED_FIELDS: &[FieldSchema] = &[
+    field!("redirect_id", "uuid"),
+    field!("source_pattern", "string"),
+    field!("idempotency_key", "string"),
+];
+const SEO_SITEMAP_GENERATED_FIELDS: &[FieldSchema] = &[
+    field!("job_id", "uuid"),
+    field!("file_count", "int32"),
+    field!("idempotency_key", "string"),
+];
+const SEO_SITEMAP_SUBMITTED_FIELDS: &[FieldSchema] = &[
+    field!("job_id", "uuid"),
+    field!("endpoint_count", "int32"),
+    field!("success", "bool"),
+    field!("error", "string", optional),
+    field!("idempotency_key", "string"),
+];
+const SEO_BULK_COMPLETED_FIELDS: &[FieldSchema] = &[
+    field!("job_id", "uuid"),
+    field!("target_kind", "string"),
+    field!("locale", "string"),
+    field!("status", "string"),
+    field!("processed_count", "int32"),
+    field!("succeeded_count", "int32"),
+    field!("failed_count", "int32"),
+    field!("idempotency_key", "string"),
+];
 
 const TENANT_ID_FIELDS: &[FieldSchema] = &[field!("tenant_id", "uuid")];
 const TENANT_MODULE_TOGGLED_FIELDS: &[FieldSchema] = &[
@@ -574,6 +622,54 @@ pub const EVENT_SCHEMAS: &[EventSchema] = &[
         version: 1,
         description: "Legacy URL aliases must be purged from index and cache layers.",
         fields: URL_ALIAS_PURGED_FIELDS,
+    },
+    EventSchema {
+        event_type: "seo.meta.upserted",
+        version: 1,
+        description: "SEO metadata was upserted for a target/locale scope.",
+        fields: SEO_META_UPSERTED_FIELDS,
+    },
+    EventSchema {
+        event_type: "seo.revision.published",
+        version: 1,
+        description: "SEO revision snapshot was published.",
+        fields: SEO_REVISION_FIELDS,
+    },
+    EventSchema {
+        event_type: "seo.revision.rolled_back",
+        version: 1,
+        description: "SEO metadata was rolled back to a prior revision.",
+        fields: SEO_REVISION_FIELDS,
+    },
+    EventSchema {
+        event_type: "seo.redirect.upserted",
+        version: 1,
+        description: "SEO redirect entry was created or updated.",
+        fields: SEO_REDIRECT_UPSERTED_FIELDS,
+    },
+    EventSchema {
+        event_type: "seo.redirect.disabled",
+        version: 1,
+        description: "SEO redirect entry was explicitly disabled.",
+        fields: SEO_REDIRECT_DISABLED_FIELDS,
+    },
+    EventSchema {
+        event_type: "seo.sitemap.generated",
+        version: 1,
+        description: "Sitemap generation job finished writing sitemap artifacts.",
+        fields: SEO_SITEMAP_GENERATED_FIELDS,
+    },
+    EventSchema {
+        event_type: "seo.sitemap.submitted",
+        version: 1,
+        description: "Sitemap submission fan-out to external endpoints finished.",
+        fields: SEO_SITEMAP_SUBMITTED_FIELDS,
+    },
+    EventSchema {
+        event_type: "seo.bulk.completed",
+        version: 1,
+        description: "SEO bulk job reached a terminal state.",
+        fields: SEO_BULK_COMPLETED_FIELDS,
     },
     EventSchema {
         event_type: "tenant.created",

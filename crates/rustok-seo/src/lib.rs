@@ -23,6 +23,7 @@ pub use dto::{
     SeoAlternateLink, SeoBulkApplyInput, SeoBulkApplyMode, SeoBulkArtifactRecord,
     SeoBulkBoolFieldPatch, SeoBulkExportInput, SeoBulkFieldPatchMode, SeoBulkImportInput,
     SeoBulkItem, SeoBulkJobOperationKind, SeoBulkJobRecord, SeoBulkJobStatus,
+    SeoBulkJobStatusRecord,
     SeoBulkJsonFieldPatch, SeoBulkListInput, SeoBulkMetaPatchInput, SeoBulkPage,
     SeoBulkSelectionInput, SeoBulkSelectionMode, SeoBulkSelectionPreviewRecord, SeoBulkSource,
     SeoBulkStringFieldPatch, SeoCrossLinkSuggestionRecord, SeoDiagnosticCountRecord,
@@ -32,7 +33,8 @@ pub use dto::{
     SeoModuleSettings, SeoOpenGraph, SeoPageContext, SeoPagination, SeoRedirectDecision,
     SeoRedirectInput, SeoRedirectMatchType, SeoRedirectRecord, SeoRevisionRecord, SeoRobots,
     SeoRobotsPreviewRecord, SeoRouteContext, SeoSchemaBlockKind, SeoSitemapFileRecord,
-    SeoSitemapStatusRecord, SeoStructuredDataBlock, SeoTemplateRuleSet, SeoTwitterCard,
+    SeoSitemapJobRecord, SeoSitemapStatusRecord, SeoStructuredDataBlock, SeoTemplateRuleSet,
+    SeoTwitterCard,
     SeoVerification, SeoVerificationTag,
 };
 #[cfg(feature = "server")]

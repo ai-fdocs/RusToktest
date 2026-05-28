@@ -424,6 +424,17 @@ pub struct SeoSitemapStatusRecord {
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Debug, Clone)]
+pub struct SeoSitemapJobRecord {
+    pub id: Uuid,
+    pub status: String,
+    pub file_count: i32,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub last_error: Option<String>,
+    pub files: Vec<SeoSitemapFileRecord>,
+}
+
+#[derive(SimpleObject, Serialize, Deserialize, Debug, Clone)]
 pub struct SeoCrossLinkSuggestionRecord {
     pub target_kind: SeoTargetSlug,
     pub target_id: Uuid,
@@ -758,6 +769,19 @@ pub struct SeoBulkJobRecord {
     pub artifacts: Vec<SeoBulkArtifactRecord>,
 }
 
+#[derive(SimpleObject, Serialize, Deserialize, Debug, Clone)]
+pub struct SeoBulkJobStatusRecord {
+    pub id: Uuid,
+    pub status: SeoBulkJobStatus,
+    pub matched_count: i32,
+    pub processed_count: i32,
+    pub succeeded_count: i32,
+    pub failed_count: i32,
+    pub last_error: Option<String>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct SeoModuleSettings {
     #[serde(default = "default_robots")]
@@ -814,6 +838,25 @@ pub enum SeoDiagnosticSeverity {
     Info,
     Warning,
     Error,
+}
+
+impl SeoDiagnosticSeverity {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::Info => "info",
+            Self::Warning => "warning",
+            Self::Error => "error",
+        }
+    }
+
+    pub fn parse(value: &str) -> Option<Self> {
+        match value {
+            "info" => Some(Self::Info),
+            "warning" => Some(Self::Warning),
+            "error" => Some(Self::Error),
+            _ => None,
+        }
+    }
 }
 
 #[derive(SimpleObject, Serialize, Deserialize, Debug, Clone)]

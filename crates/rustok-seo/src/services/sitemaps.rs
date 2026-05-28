@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rustok_seo_targets::{SeoTargetCapabilityKind, SeoTargetSitemapRequest};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, Order, QueryFilter, QueryOrder};
@@ -6,7 +8,9 @@ use uuid::Uuid;
 
 use rustok_api::TenantContext;
 
-use crate::dto::{SeoRobotsPreviewRecord, SeoSitemapFileRecord, SeoSitemapStatusRecord};
+use crate::dto::{
+    SeoRobotsPreviewRecord, SeoSitemapFileRecord, SeoSitemapJobRecord, SeoSitemapStatusRecord,
+};
 use crate::entities::{seo_sitemap_file, seo_sitemap_job};
 use crate::{SeoError, SeoResult};
 
@@ -55,19 +59,39 @@ impl SeoService {
 
         let urls = self.collect_sitemap_urls(tenant).await?;
         let file_models = self.persist_sitemap_files(tenant, &job, &urls, now).await?;
+        let submission_error = match self.submit_sitemap_endpoints(tenant, &settings).await {
+            Ok(()) => None,
+            Err(error) => {
+                tracing::warn!(tenant_id = %tenant.id, error = %error, "SEO sitemap submission failed");
+                Some(error)
+            }
+        };
+
         let mut active_job: seo_sitemap_job::ActiveModel = job.into();
         active_job.status = Set("completed".to_string());
         active_job.file_count = Set(file_models.len() as i32);
         active_job.completed_at = Set(Some(now));
-        active_job.last_error = match self.submit_sitemap_endpoints(tenant, &settings).await {
-            Ok(()) => Set(None),
-            Err(error) => {
-                tracing::warn!(tenant_id = %tenant.id, error = %error, "SEO sitemap submission failed");
-                Set(Some(error))
-            }
-        };
+        active_job.last_error = Set(submission_error.clone());
         active_job.updated_at = Set(now);
-        active_job.update(&self.db).await?;
+        let completed_job = active_job.update(&self.db).await?;
+
+        self.publish_seo_sitemap_generated_event(
+            tenant.id,
+            completed_job.id,
+            completed_job.file_count,
+        )
+        .await;
+
+        if !settings.sitemap_submission_endpoints.is_empty() {
+            self.publish_seo_sitemap_submitted_event(
+                tenant.id,
+                completed_job.id,
+                settings.sitemap_submission_endpoints.len() as i32,
+                submission_error.is_none(),
+                submission_error,
+            )
+            .await;
+        }
 
         self.sitemap_status(tenant).await
     }
@@ -120,6 +144,44 @@ impl SeoService {
                 })
                 .collect(),
         })
+    }
+
+    pub async fn list_sitemap_jobs(
+        &self,
+        tenant_id: Uuid,
+        limit: usize,
+    ) -> SeoResult<Vec<SeoSitemapJobRecord>> {
+        let jobs = seo_sitemap_job::Entity::find()
+            .filter(seo_sitemap_job::Column::TenantId.eq(tenant_id))
+            .order_by_desc(seo_sitemap_job::Column::CreatedAt)
+            .all(&self.db)
+            .await?;
+        let jobs = jobs.into_iter().take(limit.max(1)).collect::<Vec<_>>();
+        let job_ids = jobs.iter().map(|job| job.id).collect::<Vec<_>>();
+        let files_map = self.load_sitemap_files_for_jobs(&job_ids).await?;
+
+        Ok(jobs
+            .into_iter()
+            .map(|job| map_sitemap_job_record(job, &files_map))
+            .collect())
+    }
+
+    pub async fn sitemap_job(
+        &self,
+        tenant_id: Uuid,
+        job_id: Uuid,
+    ) -> SeoResult<Option<SeoSitemapJobRecord>> {
+        let Some(job) = seo_sitemap_job::Entity::find()
+            .filter(seo_sitemap_job::Column::TenantId.eq(tenant_id))
+            .filter(seo_sitemap_job::Column::Id.eq(job_id))
+            .one(&self.db)
+            .await?
+        else {
+            return Ok(None);
+        };
+        let files_map = self.load_sitemap_files_for_jobs(&[job.id]).await?;
+
+        Ok(Some(map_sitemap_job_record(job, &files_map)))
     }
 
     pub async fn render_robots(&self, tenant: &TenantContext) -> SeoResult<String> {
@@ -179,6 +241,32 @@ impl SeoService {
             .one(&self.db)
             .await
             .map_err(Into::into)
+    }
+
+    async fn load_sitemap_files_for_jobs(
+        &self,
+        job_ids: &[Uuid],
+    ) -> SeoResult<HashMap<Uuid, Vec<SeoSitemapFileRecord>>> {
+        if job_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let files = seo_sitemap_file::Entity::find()
+            .filter(seo_sitemap_file::Column::JobId.is_in(job_ids.to_vec()))
+            .order_by_asc(seo_sitemap_file::Column::Path)
+            .all(&self.db)
+            .await?;
+        let mut map = HashMap::<Uuid, Vec<SeoSitemapFileRecord>>::new();
+        for file in files {
+            map.entry(file.job_id).or_default().push(SeoSitemapFileRecord {
+                id: file.id,
+                path: file.path,
+                url_count: file.url_count,
+                created_at: file.created_at.into(),
+            });
+        }
+
+        Ok(map)
     }
 
     async fn persist_sitemap_files(
@@ -338,6 +426,21 @@ impl SeoService {
             }
         }
         summary
+    }
+}
+
+fn map_sitemap_job_record(
+    job: seo_sitemap_job::Model,
+    files_map: &HashMap<Uuid, Vec<SeoSitemapFileRecord>>,
+) -> SeoSitemapJobRecord {
+    SeoSitemapJobRecord {
+        id: job.id,
+        status: job.status,
+        file_count: job.file_count,
+        started_at: job.started_at.map(Into::into),
+        completed_at: job.completed_at.map(Into::into),
+        last_error: job.last_error,
+        files: files_map.get(&job.id).cloned().unwrap_or_default(),
     }
 }
 
