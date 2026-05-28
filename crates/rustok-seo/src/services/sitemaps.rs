@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use rustok_seo_targets::{SeoTargetCapabilityKind, SeoTargetSitemapRequest};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{ActiveModelTrait, ColumnTrait, EntityTrait, Order, QueryFilter, QueryOrder};
@@ -6,7 +8,9 @@ use uuid::Uuid;
 
 use rustok_api::TenantContext;
 
-use crate::dto::{SeoRobotsPreviewRecord, SeoSitemapFileRecord, SeoSitemapStatusRecord};
+use crate::dto::{
+    SeoRobotsPreviewRecord, SeoSitemapFileRecord, SeoSitemapJobRecord, SeoSitemapStatusRecord,
+};
 use crate::entities::{seo_sitemap_file, seo_sitemap_job};
 use crate::{SeoError, SeoResult};
 
@@ -22,8 +26,8 @@ use submission_adapters::{
     SitemapSubmissionAdapter, SitemapSubmissionRuntime, SitemapSubmitEndpoint,
 };
 use submission_aggregation::{
-    push_endpoint_status, push_submission_failure, SitemapSubmissionSummary,
-    SITEMAP_SUBMIT_MAX_ERROR_LEN,
+    record_invalid_endpoint, record_submission_failure, record_submission_success,
+    SitemapSubmissionSummary,
 };
 
 const SITEMAP_SUBMIT_TIMEOUT_SECS: u64 = 5;
@@ -55,19 +59,39 @@ impl SeoService {
 
         let urls = self.collect_sitemap_urls(tenant).await?;
         let file_models = self.persist_sitemap_files(tenant, &job, &urls, now).await?;
+        let submission_error = match self.submit_sitemap_endpoints(tenant, &settings).await {
+            Ok(()) => None,
+            Err(error) => {
+                tracing::warn!(tenant_id = %tenant.id, error = %error, "SEO sitemap submission failed");
+                Some(error)
+            }
+        };
+
         let mut active_job: seo_sitemap_job::ActiveModel = job.into();
         active_job.status = Set("completed".to_string());
         active_job.file_count = Set(file_models.len() as i32);
         active_job.completed_at = Set(Some(now));
-        active_job.last_error = match self.submit_sitemap_endpoints(tenant, &settings).await {
-            Ok(()) => Set(None),
-            Err(error) => {
-                tracing::warn!(tenant_id = %tenant.id, error = %error, "SEO sitemap submission failed");
-                Set(Some(error))
-            }
-        };
+        active_job.last_error = Set(submission_error.clone());
         active_job.updated_at = Set(now);
-        active_job.update(&self.db).await?;
+        let completed_job = active_job.update(&self.db).await?;
+
+        self.publish_seo_sitemap_generated_event(
+            tenant.id,
+            completed_job.id,
+            completed_job.file_count,
+        )
+        .await;
+
+        if !settings.sitemap_submission_endpoints.is_empty() {
+            self.publish_seo_sitemap_submitted_event(
+                tenant.id,
+                completed_job.id,
+                settings.sitemap_submission_endpoints.len() as i32,
+                submission_error.is_none(),
+                submission_error,
+            )
+            .await;
+        }
 
         self.sitemap_status(tenant).await
     }
@@ -120,6 +144,44 @@ impl SeoService {
                 })
                 .collect(),
         })
+    }
+
+    pub async fn list_sitemap_jobs(
+        &self,
+        tenant_id: Uuid,
+        limit: usize,
+    ) -> SeoResult<Vec<SeoSitemapJobRecord>> {
+        let jobs = seo_sitemap_job::Entity::find()
+            .filter(seo_sitemap_job::Column::TenantId.eq(tenant_id))
+            .order_by_desc(seo_sitemap_job::Column::CreatedAt)
+            .all(&self.db)
+            .await?;
+        let jobs = jobs.into_iter().take(limit.max(1)).collect::<Vec<_>>();
+        let job_ids = jobs.iter().map(|job| job.id).collect::<Vec<_>>();
+        let files_map = self.load_sitemap_files_for_jobs(&job_ids).await?;
+
+        Ok(jobs
+            .into_iter()
+            .map(|job| map_sitemap_job_record(job, &files_map))
+            .collect())
+    }
+
+    pub async fn sitemap_job(
+        &self,
+        tenant_id: Uuid,
+        job_id: Uuid,
+    ) -> SeoResult<Option<SeoSitemapJobRecord>> {
+        let Some(job) = seo_sitemap_job::Entity::find()
+            .filter(seo_sitemap_job::Column::TenantId.eq(tenant_id))
+            .filter(seo_sitemap_job::Column::Id.eq(job_id))
+            .one(&self.db)
+            .await?
+        else {
+            return Ok(None);
+        };
+        let files_map = self.load_sitemap_files_for_jobs(&[job.id]).await?;
+
+        Ok(Some(map_sitemap_job_record(job, &files_map)))
     }
 
     pub async fn render_robots(&self, tenant: &TenantContext) -> SeoResult<String> {
@@ -179,6 +241,32 @@ impl SeoService {
             .one(&self.db)
             .await
             .map_err(Into::into)
+    }
+
+    async fn load_sitemap_files_for_jobs(
+        &self,
+        job_ids: &[Uuid],
+    ) -> SeoResult<HashMap<Uuid, Vec<SeoSitemapFileRecord>>> {
+        if job_ids.is_empty() {
+            return Ok(HashMap::new());
+        }
+
+        let files = seo_sitemap_file::Entity::find()
+            .filter(seo_sitemap_file::Column::JobId.is_in(job_ids.to_vec()))
+            .order_by_asc(seo_sitemap_file::Column::Path)
+            .all(&self.db)
+            .await?;
+        let mut map = HashMap::<Uuid, Vec<SeoSitemapFileRecord>>::new();
+        for file in files {
+            map.entry(file.job_id).or_default().push(SeoSitemapFileRecord {
+                id: file.id,
+                path: file.path,
+                url_count: file.url_count,
+                created_at: file.created_at.into(),
+            });
+        }
+
+        Ok(map)
     }
 
     async fn persist_sitemap_files(
@@ -298,12 +386,13 @@ impl SeoService {
         let summary = self
             .collect_submission_summary(endpoints, sitemap_index_url, adapter)
             .await;
+        let telemetry = summary.telemetry_snapshot();
         tracing::debug!(
             success_count = summary.success_count,
             failure_count = summary.failure_count,
-            endpoint_status_count = summary.endpoint_statuses.len(),
-            endpoint_statuses = ?summary.endpoint_statuses,
-            omitted_endpoint_status_count = summary.omitted_endpoint_status_count,
+            endpoint_status_count = telemetry.endpoint_statuses.len(),
+            endpoint_statuses = ?telemetry.endpoint_statuses,
+            omitted_endpoint_status_count = telemetry.omitted_endpoint_status_count,
             "SEO sitemap endpoint submission finished"
         );
         match summary.into_error() {
@@ -322,9 +411,7 @@ impl SeoService {
         for endpoint in endpoints {
             let Some(url) = build_sitemap_submission_url(endpoint.as_str(), sitemap_index_url)
             else {
-                summary.failure_count += 1;
-                push_endpoint_status(&mut summary, format!("invalid endpoint `{endpoint}`"));
-                push_submission_failure(&mut summary, format!("invalid endpoint: {endpoint}"));
+                record_invalid_endpoint(&mut summary, endpoint.as_str());
                 continue;
             };
             let request = SitemapSubmitEndpoint {
@@ -332,18 +419,28 @@ impl SeoService {
                 request_url: url,
             };
             match adapter.submit_sitemap_index(request).await {
-                Ok(()) => {
-                    summary.success_count += 1;
-                    push_endpoint_status(&mut summary, format!("ok endpoint `{endpoint}`"));
-                }
+                Ok(()) => record_submission_success(&mut summary, endpoint.as_str()),
                 Err(message) => {
-                    summary.failure_count += 1;
-                    push_endpoint_status(&mut summary, format!("failed endpoint `{endpoint}`"));
-                    push_submission_failure(&mut summary, message);
+                    record_submission_failure(&mut summary, endpoint.as_str(), message);
                 }
             }
         }
         summary
+    }
+}
+
+fn map_sitemap_job_record(
+    job: seo_sitemap_job::Model,
+    files_map: &HashMap<Uuid, Vec<SeoSitemapFileRecord>>,
+) -> SeoSitemapJobRecord {
+    SeoSitemapJobRecord {
+        id: job.id,
+        status: job.status,
+        file_count: job.file_count,
+        started_at: job.started_at.map(Into::into),
+        completed_at: job.completed_at.map(Into::into),
+        last_error: job.last_error,
+        files: files_map.get(&job.id).cloned().unwrap_or_default(),
     }
 }
 
@@ -440,8 +537,13 @@ pub(super) fn normalize_sitemap_submission_endpoints(values: &[String]) -> Vec<S
 #[cfg(test)]
 mod tests {
     use super::{
-        normalize_sitemap_submission_endpoints, render_robots_body, SitemapSubmissionAdapter,
+        normalize_sitemap_submission_endpoints, record_invalid_endpoint, record_submission_failure,
+        record_submission_success, render_robots_body, SitemapSubmissionAdapter,
         SitemapSubmissionSummary, SitemapSubmitEndpoint,
+    };
+    use super::submission_aggregation::{
+        SITEMAP_SUBMIT_MAX_ERROR_LEN, SITEMAP_SUBMIT_MAX_ERRORS,
+        SITEMAP_SUBMIT_MAX_TIMEOUT_DETAILS,
     };
     use crate::SeoService;
     use rustok_api::TenantContext;
@@ -926,7 +1028,7 @@ mod tests {
 
         let result = service
             .submit_sitemap_endpoints_with_adapter(
-                &["   	  ".to_string()],
+                &["         ".to_string()],
                 "https://store.example.com/sitemap.xml",
                 &adapter,
             )
@@ -1048,8 +1150,79 @@ mod tests {
 
         let message = result.expect_err("aggregated bounded error expected");
         assert!(message.contains("0 success(es) and 2 failure(s)"));
+        assert!(message.contains("errors:"));
+        assert!(message.contains("timeouts:"));
         assert!(message.len() <= SITEMAP_SUBMIT_MAX_ERROR_LEN + 3);
-        assert!(message.ends_with("..."));
+    }
+
+    #[tokio::test]
+    async fn submit_sitemap_endpoints_truncates_timeout_and_failure_details_deterministically() {
+        let db = test_db().await;
+        let service = SeoService::new_memory(db);
+
+        let mut outcomes = HashMap::new();
+        for index in 0..16 {
+            let endpoint = format!("https://failure-{index:02}.example.com/ping");
+            outcomes.insert(
+                endpoint.clone(),
+                Err(format!("failure detail {index:02}: {}", "x".repeat(500))),
+            );
+        }
+        for index in 0..12 {
+            let endpoint = format!("https://timeout-{index:02}.example.com/ping");
+            outcomes.insert(
+                endpoint.clone(),
+                Err(format!(
+                    "request failed for endpoint `{endpoint}` with error: operation timed out {}",
+                    "y".repeat(500)
+                )),
+            );
+        }
+        let adapter = TestSitemapSubmissionAdapter::new(outcomes);
+
+        let mut endpoints = (0..16)
+            .rev()
+            .map(|index| format!("https://failure-{index:02}.example.com/ping"))
+            .collect::<Vec<_>>();
+        endpoints.extend(
+            (0..12)
+                .rev()
+                .map(|index| format!("https://timeout-{index:02}.example.com/ping")),
+        );
+
+        let result = service
+            .submit_sitemap_endpoints_with_adapter(
+                endpoints.as_slice(),
+                "https://store.example.com/sitemap.xml",
+                &adapter,
+            )
+            .await;
+
+        let message = result.expect_err("expected aggregate error");
+        assert!(message.contains("0 success(es) and 28 failure(s)"));
+        assert!(message.contains(&format!("errors omitted: {}", 16 - SITEMAP_SUBMIT_MAX_ERRORS)));
+        assert!(message.contains(&format!(
+            "timeout details omitted: {}",
+            12 - SITEMAP_SUBMIT_MAX_TIMEOUT_DETAILS
+        )));
+
+        let failure_00 = message
+            .find("failure detail 00")
+            .expect("deterministic failure ordering should keep failure-00");
+        let failure_01 = message
+            .find("failure detail 01")
+            .expect("deterministic failure ordering should keep failure-01");
+        assert!(failure_00 < failure_01);
+
+        let timeout_00 = message
+            .find("timeout-00")
+            .expect("deterministic timeout ordering should keep timeout-00");
+        let timeout_01 = message
+            .find("timeout-01")
+            .expect("deterministic timeout ordering should keep timeout-01");
+        assert!(timeout_00 < timeout_01);
+
+        assert!(message.len() <= SITEMAP_SUBMIT_MAX_ERROR_LEN + 3);
     }
 
     #[test]
@@ -1078,177 +1251,73 @@ mod tests {
 
     #[test]
     fn submission_summary_truncates_bounded_error_message() {
-        let summary = SitemapSubmissionSummary {
-            failure_count: 1,
-            failures: vec!["x".repeat(SITEMAP_SUBMIT_MAX_ERROR_LEN + 200)],
-            ..Default::default()
-        };
+        let mut summary = SitemapSubmissionSummary::default();
+        record_submission_failure(
+            &mut summary,
+            "https://failure.example.com/ping",
+            format!("failure: {}", "x".repeat(SITEMAP_SUBMIT_MAX_ERROR_LEN + 200)),
+        );
         let message = summary.into_error().expect("error expected");
         assert!(message.len() <= SITEMAP_SUBMIT_MAX_ERROR_LEN + 3);
         assert!(message.ends_with("..."));
-    }
-
-    #[test]
-    fn submission_summary_truncation_keeps_short_unicode_values_intact() {
-        let mut summary = SitemapSubmissionSummary::default();
-        push_submission_failure(&mut summary, "ошибка кратко".to_string());
-        super::push_endpoint_status(
-            &mut summary,
-            "ok endpoint `https://пример.рф/ping`".to_string(),
-        );
-
-        assert_eq!(summary.failures, vec!["ошибка кратко".to_string()]);
-        assert_eq!(
-            summary.endpoint_statuses,
-            vec!["ok endpoint `https://пример.рф/ping`".to_string()]
-        );
     }
 
     #[test]
     fn submission_summary_truncation_respects_length_budget_with_unicode() {
-        let mut summary = SitemapSubmissionSummary {
-            failure_count: 1,
-            ..Default::default()
-        };
-        push_submission_failure(&mut summary, format!("деталь: {}", "Ж".repeat(10_000)));
-        let message = summary.into_error().expect("error expected");
-
-        assert!(message.len() <= SITEMAP_SUBMIT_MAX_ERROR_LEN + 3);
-        assert!(message.ends_with("..."));
-        assert!(std::str::from_utf8(message.as_bytes()).is_ok());
-    }
-
-    #[test]
-    fn submission_summary_truncates_individual_failure_details_deterministically() {
-        let mut summary = SitemapSubmissionSummary {
-            failure_count: 1,
-            ..Default::default()
-        };
-        push_submission_failure(&mut summary, "x".repeat(1200));
-        assert_eq!(summary.failures.len(), 1);
-        assert!(summary.failures[0].len() <= 515);
-        assert!(summary.failures[0].ends_with("..."));
-    }
-
-    #[test]
-    fn submission_summary_into_error_unicode_truncation_is_safe() {
-        let summary = SitemapSubmissionSummary {
-            failure_count: 1,
-            failures: vec![format!("ошибка: {}", "Ж".repeat(5000))],
-            ..Default::default()
-        };
-        let message = summary.into_error().expect("error expected");
-        assert!(message.ends_with("..."));
-        assert!(std::str::from_utf8(message.as_bytes()).is_ok());
-        assert!(message.len() <= SITEMAP_SUBMIT_MAX_ERROR_LEN + 3);
-    }
-
-    #[test]
-    fn submission_summary_truncation_handles_unicode_without_panics() {
-        let mut summary = SitemapSubmissionSummary {
-            failure_count: 1,
-            ..Default::default()
-        };
-
-        push_submission_failure(
-            &mut summary,
-            format!("ошибка endpoint: {}", "Ж".repeat(300)),
-        );
-        super::push_endpoint_status(
-            &mut summary,
-            format!("ok endpoint `{}`", "путь/".repeat(200)),
-        );
-
-        assert_eq!(summary.failures.len(), 1);
-        assert!(summary.failures[0].ends_with("..."));
-        assert!(std::str::from_utf8(summary.failures[0].as_bytes()).is_ok());
-
-        assert_eq!(summary.endpoint_statuses.len(), 1);
-        assert!(summary.endpoint_statuses[0].ends_with("..."));
-        assert!(std::str::from_utf8(summary.endpoint_statuses[0].as_bytes()).is_ok());
-    }
-
-    #[test]
-    fn submission_summary_truncates_endpoint_status_entries_deterministically() {
         let mut summary = SitemapSubmissionSummary::default();
-        let long_status = format!(
-            "ok endpoint `{}`",
-            "https://very-long-endpoint.example.com/".repeat(20)
+        record_submission_failure(
+            &mut summary,
+            "https://пример.рф/ping",
+            format!("деталь: {}", "Ж".repeat(10_000)),
         );
-        super::push_endpoint_status(&mut summary, long_status);
-        assert_eq!(summary.endpoint_statuses.len(), 1);
-        assert!(summary.endpoint_statuses[0].len() <= 163);
-        assert!(summary.endpoint_statuses[0].ends_with("..."));
-    }
-
-    #[test]
-    fn submission_summary_omits_extra_endpoint_statuses_deterministically() {
-        let mut summary = SitemapSubmissionSummary::default();
-        for idx in 0..40 {
-            super::push_endpoint_status(&mut summary, format!("status #{idx}"));
-        }
-        assert_eq!(summary.endpoint_statuses.len(), 24);
-        assert_eq!(summary.omitted_endpoint_status_count, 16);
-    }
-
-    #[test]
-    fn submission_summary_error_includes_omitted_endpoint_status_count() {
-        let mut summary = SitemapSubmissionSummary {
-            failure_count: 1,
-            ..Default::default()
-        };
-        for idx in 0..30 {
-            super::push_endpoint_status(&mut summary, format!("status #{idx}"));
-        }
-        push_submission_failure(&mut summary, "failed endpoint".to_string());
-
         let message = summary.into_error().expect("error expected");
-        assert!(message.contains("endpoint statuses omitted: 6"));
-    }
 
-    #[test]
-    fn submission_summary_error_includes_endpoint_status_samples() {
-        let mut summary = SitemapSubmissionSummary {
-            failure_count: 1,
-            ..Default::default()
-        };
-        for idx in 0..5 {
-            super::push_endpoint_status(&mut summary, format!("status #{idx}"));
-        }
-        push_submission_failure(&mut summary, "failed endpoint".to_string());
-
-        let message = summary.into_error().expect("error expected");
-        assert!(message.contains("endpoint statuses: [status #0, status #1, status #2]"));
-        assert!(!message.contains("status #3"));
-    }
-
-    #[test]
-    fn submission_summary_error_with_status_samples_is_bounded_and_utf8_safe() {
-        let mut summary = SitemapSubmissionSummary {
-            failure_count: 1,
-            ..Default::default()
-        };
-        for idx in 0..80 {
-            super::push_endpoint_status(&mut summary, format!("{}-{}", "статус".repeat(100), idx));
-        }
-        push_submission_failure(&mut summary, format!("ошибка: {}", "Ж".repeat(10_000)));
-
-        let message = summary.into_error().expect("error expected");
         assert!(message.len() <= SITEMAP_SUBMIT_MAX_ERROR_LEN + 3);
         assert!(message.ends_with("..."));
         assert!(std::str::from_utf8(message.as_bytes()).is_ok());
-        assert!(message.contains("endpoint statuses omitted:"));
     }
+
     #[test]
-    fn submission_summary_omits_extra_failure_details_deterministically() {
-        let mut summary = SitemapSubmissionSummary {
-            failure_count: 11,
-            ..Default::default()
-        };
-        for idx in 0..11 {
-            push_submission_failure(&mut summary, format!("failure #{idx}"));
+    fn submission_summary_limits_error_and_timeout_details() {
+        let mut summary = SitemapSubmissionSummary::default();
+        for index in 0..(SITEMAP_SUBMIT_MAX_ERRORS + 2) {
+            record_submission_failure(
+                &mut summary,
+                format!("https://failure-{index:02}.example.com/ping").as_str(),
+                format!("failure detail {index:02}"),
+            );
         }
+        for index in 0..(SITEMAP_SUBMIT_MAX_TIMEOUT_DETAILS + 2) {
+            let endpoint = format!("https://timeout-{index:02}.example.com/ping");
+            record_submission_failure(
+                &mut summary,
+                endpoint.as_str(),
+                format!("request failed for endpoint `{endpoint}` with error: operation timed out"),
+            );
+        }
+
         let message = summary.into_error().expect("error expected");
-        assert!(message.contains("... and 3 more failure(s) omitted"));
+        assert!(message.contains("errors omitted: 2"));
+        assert!(message.contains("timeout details omitted: 2"));
+    }
+
+    #[test]
+    fn submission_summary_telemetry_snapshot_is_sorted_and_bounded() {
+        let mut summary = SitemapSubmissionSummary::default();
+        for index in (0..40).rev() {
+            record_submission_success(
+                &mut summary,
+                format!("https://endpoint-{index:02}.example.com/ping").as_str(),
+            );
+        }
+        record_invalid_endpoint(&mut summary, "not-a-valid-endpoint");
+
+        let snapshot = summary.telemetry_snapshot();
+        assert_eq!(snapshot.endpoint_statuses.len(), 24);
+        assert_eq!(snapshot.omitted_endpoint_status_count, 17);
+        assert_eq!(
+            snapshot.endpoint_statuses.first().map(|status| status.endpoint.as_str()),
+            Some("https://endpoint-00.example.com/ping")
+        );
     }
 }

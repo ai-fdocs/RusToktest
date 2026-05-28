@@ -235,18 +235,18 @@ graph TD
 | `region` | `rustok-region` | — | Region, country, currency, tax baseline, region-owned admin CRUD UI и storefront discovery UI |
 | `pricing` | `rustok-pricing` | `product` | Pricing domain baseline, pricing-owned admin visibility UI и storefront pricing atlas UI |
 | `inventory` | `rustok-inventory` | `product` | Inventory, stock availability baseline и inventory-owned admin visibility UI |
-| `order` | `rustok-order` | — | Order lifecycle, order snapshots with canonical `seller_id`, typed order adjustments, и order-owned admin operations UI |
+| `order` | `rustok-order` | — | Order lifecycle, order snapshots with canonical `seller_id`, typed order adjustments, order returns lifecycle foundation и order-owned admin operations UI |
 | `payment` | `rustok-payment` | — | Payment collections и payments |
 | `fulfillment` | `rustok-fulfillment` | — | Shipping options, fulfillments и fulfillment-owned shipping-option admin UI |
-| `commerce` | `rustok-commerce` | `cart`, `customer`, `product`, `region`, `pricing`, `inventory`, `order`, `payment`, `fulfillment` | Umbrella/root ecommerce orchestration, typed shipping-profile registry, aggregate cart-promotion operator surface и marketplace foundation вокруг canonical `seller_id` |
+| `commerce` | `rustok-commerce` | `cart`, `customer`, `product`, `region`, `pricing`, `inventory`, `order`, `payment`, `fulfillment` | Umbrella/root ecommerce orchestration, typed shipping-profile registry, aggregate cart-promotion operator surface, admin returns transport parity и marketplace foundation вокруг canonical `seller_id` |
 | `blog` | `rustok-blog` | `content`, `comments`, `taxonomy` | Blog domain, posts, categories, tags, transport/UI |
 | `forum` | `rustok-forum` | `content`, `taxonomy` | Forum domain, topics, replies, moderation, transport/UI |
 | `comments` | `rustok-comments` | — | Generic comments domain |
 | `pages` | `rustok-pages` | `content`, `page_builder` | Pages, menus, page-builder surfaces |
 | `page_builder` | `rustok-page-builder` | — | Standalone FBA reference module for visual builder capabilities (`preview/tree/properties/publish`) |
-| `seo` | `rustok-seo` | `content` | Tenant-aware SEO runtime: explicit metadata overrides, template-generated SEO, bulk remediation modes, redirects, sitemap/robots generation, diagnostics/readiness scoring, shared SEO capability contracts, cross-cutting SEO infrastructure UI, storefront-facing SSR page context and headless REST read path `/api/seo/page-context`; entity SEO authoring belongs to owner modules |
+| `seo` | `rustok-seo` | `content` | Tenant-aware SEO runtime: explicit metadata overrides, template-generated SEO, bulk remediation modes, redirects, sitemap/robots generation, runtime sitemap submission adapters with per-endpoint aggregation, diagnostics/readiness scoring (включая `cross_link_gap`, `missing_image_alt`, `missing_image_size` aggregates), shared SEO capability contracts, cross-cutting SEO infrastructure UI, storefront-facing SSR page context, headless REST read paths `/api/seo/page-context` и `/api/seo/cross-link-suggestions` и GraphQL `seoCrossLinkSuggestions`; image fallback boundary потребляет `rustok-media::MediaImageDescriptor`, entity SEO authoring belongs to owner modules |
 | `taxonomy` | `rustok-taxonomy` | `content` | Shared vocabulary/dictionary layer |
-| `media` | `rustok-media` | — | Media lifecycle, upload, storage-facing API |
+| `media` | `rustok-media` | — | Media lifecycle, upload, storage-facing API и typed image descriptor contract `MediaImageDescriptor` для cross-module SEO/media consumers |
 | `workflow` | `rustok-workflow` | — | Workflow execution, templates, webhook ingress |
 | `alloy` | `alloy` | — | Script execution, scheduler, hook runtime и capability-oriented automation surface |
 | `flex` | `flex` | — | Capability-only ghost module custom fields: attached/standalone orchestration, RBAC/runtime metadata и extension contracts без donor persistence ownership |

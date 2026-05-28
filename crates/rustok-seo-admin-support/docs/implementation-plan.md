@@ -1,19 +1,24 @@
 # План реализации `rustok-seo-admin-support`
 
-Статус: базовый support crate уже введён и используется owner-module admin пакетами.
+Статус: support crate стабилизирован как reusable owner-side SEO UI слой. Следующий execution wave синхронизирован с Phase D SEO-модуля (`D6`, `D8`, `D9`).
 
 ## Execution checkpoint
 
-- Current phase: plan_sync
-- Last checkpoint: Initial bootstrap by registry workflow.
-- Next step: Синхронизировать план с текущим кодом и выбрать первый незавершённый пункт.
-- Open blockers: None.
-- Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
-- Last updated at (UTC): 2026-05-20T00:00:00Z
+- Current phase: `phase_d6_admin_integration_alignment`
+- Last checkpoint: План синхронизирован с текущим состоянием support crate и большим прогоном SEO Phase D; зафиксирован backlog observability/remediation widgets и transport parity для Next admin control-plane.
+- Next step: Закрыть D6.1 — reusable event/delivery status widgets + diagnostics remediation hints для owner-module admin surfaces.
+- Open blockers:
+  - В этой VM отсутствует `cargo` в `PATH`, локальные проверки не запускались.
+  - Для end-to-end transport parity нужен согласованный REST contract из `rustok-seo` Batch D4.
+- Hand-off notes for next agent:
+  - Не переносить ownership entity screens в central SEO hub.
+  - Поддерживать host-locale contract без package-local fallback chains.
+  - Все новые UI виджеты должны работать одинаково для `pages/product/blog/forum`.
+- Last updated at (UTC): 2026-05-28T23:58:00Z
 
 ## Цель
 
-- не дублировать SEO panel logic в `pages`, `product`, `blog` и будущих content-модулях;
+- не дублировать SEO panel logic в `pages`, `product`, `blog`, `forum` и будущих content-модулях;
 - не превращать `rustok-seo-admin` в universal entity editor;
 - держать reusable UI/tooling слой отдельно от SEO runtime и от owner-module screen ownership.
 
@@ -22,27 +27,46 @@
 - [x] создан support crate с root README и local docs;
 - [x] вынесены shared GraphQL helper-ы для `seoMeta`, `upsertSeoMeta`, `publishSeoRevision`;
 - [x] реализован `SeoEntityPanel` для owner-side entity editors;
-- [x] реализован `SeoCapabilityNotice` для модулей, где capability slot нужен раньше, чем runtime target support;
+- [x] реализован `SeoCapabilityNotice` для capability-slot сценариев;
 - [x] встроены owner-side SEO panels в `rustok-pages/admin`, `rustok-product/admin`, `rustok-blog/admin`, `rustok-forum/admin`;
-- [x] убран package-local locale override: support crate читает host effective locale, canonicalizes его и не держит editable locale field в panel UI.
+- [x] убран package-local locale override: support crate читает host effective locale, canonicalizes его и не держит editable locale field;
+- [x] вынесены reusable snippet preview/recommendation/summary widgets;
+- [x] raw `structured_data` textarea заменён на typed schema input contract с сохранением GraphQL write parity.
 
-## Осталось
+## Phase D backlog (SEO integration parity)
 
-- [x] вынести typed snippet preview и diagnostics cards в отдельные reusable subcomponents;
-- [x] добавить targeted tests для panel transport, scoring logic и host-locale wiring.
-- [x] заменить raw `structured_data` textarea на typed schema input contract (`schema type` + JSON object payload) с сохранением текущего GraphQL write contract.
+- [ ] **D6.1 — Observability/remediation widgets**
+  - [ ] Добавить reusable cards для event delivery status (pending/sent/retry/failed) без жёсткой привязки к конкретному owner module layout.
+  - [ ] Добавить remediation hints для diagnostics issue-кодов с явным action mapping (`open_entity_editor`, `open_bulk_job`, `run_reindex`).
+
+- [ ] **D6.2 — Transport helpers parity**
+  - [ ] Расширить shared transport layer под REST parity endpoints из SEO Batch D4 (diagnostics summary, bulk job detail/status, sitemap job detail).
+  - [ ] Сохранить fallback на текущий GraphQL contract, пока rollout-флаг REST parity выключен.
+
+- [ ] **D6.3 — UX consistency gates**
+  - [ ] Выделить единый visual/state contract для loading/error/permission/empty состояний.
+  - [ ] Привязать permission hints к canonical SEO permission model (`seo:read`, `seo:manage`).
+
+- [ ] **D8 — Verification matrix**
+  - [ ] Unit tests для scoring/remediation mapping и locale wiring.
+  - [ ] Integration tests для transport fallback (GraphQL/REST) и error envelope mapping.
+  - [ ] Snapshot/smoke tests для reusable cards в owner layouts.
+
+- [ ] **D9 — Docs/DoD sync**
+  - [ ] Обновить crate README/docs с operational guidance для owner modules.
+  - [ ] Зафиксировать Definition of Done для reusable widget additions.
 
 ## Проверка
 
-- `cargo check -p rustok-seo-admin-support`
-- `cargo check -p rustok-pages-admin`
-- `cargo check -p rustok-blog-admin`
-- `cargo check -p rustok-product-admin`
-- `cargo check -p rustok-forum-admin`
-
+- `cargo check -p rustok-seo-admin-support --tests --config profile.dev.debug=0`
+- `cargo check -p rustok-pages-admin --config profile.dev.debug=0`
+- `cargo check -p rustok-product-admin --config profile.dev.debug=0`
+- `cargo check -p rustok-blog-admin --config profile.dev.debug=0`
+- `cargo check -p rustok-forum-admin --config profile.dev.debug=0`
+- `npm --prefix apps/next-admin run lint && npm --prefix apps/next-admin run typecheck`
 
 ## Quality backlog
 
-- [ ] Актуализировать покрытие тестами по ключевым сценариям модуля.
-- [ ] Проверить полноту и актуальность `README.md` и локальных docs.
-- [ ] Зафиксировать/обновить verification gates для текущего состояния модуля.
+- [ ] Актуализировать test coverage для новых observability/remediation widgets.
+- [ ] Поддерживать transport compatibility matrix GraphQL/REST.
+- [ ] Синхронизировать docs после каждого D6/D8 инкремента.

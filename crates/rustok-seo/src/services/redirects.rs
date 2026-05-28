@@ -75,7 +75,28 @@ impl SeoService {
         };
 
         REDIRECT_CACHE.invalidate(&tenant.id).await;
-        Ok(map_redirect_record(model))
+        let record = map_redirect_record(model);
+
+        if record.is_active {
+            self.publish_seo_redirect_upserted_event(
+                tenant.id,
+                record.id,
+                record.source_pattern.as_str(),
+                record.target_url.as_str(),
+                record.status_code,
+                record.is_active,
+            )
+            .await;
+        } else {
+            self.publish_seo_redirect_disabled_event(
+                tenant.id,
+                record.id,
+                record.source_pattern.as_str(),
+            )
+            .await;
+        }
+
+        Ok(record)
     }
 
     pub(super) async fn load_redirect_models(

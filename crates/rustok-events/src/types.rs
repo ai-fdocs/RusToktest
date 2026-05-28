@@ -343,6 +343,64 @@ pub enum DomainEvent {
     },
 
     // ════════════════════════════════════════════════════════════════
+    // SEO EVENTS
+    // ════════════════════════════════════════════════════════════════
+    SeoMetaUpserted {
+        target_kind: String,
+        target_id: Uuid,
+        locale: String,
+        source: String,
+        idempotency_key: String,
+    },
+    SeoRevisionPublished {
+        target_kind: String,
+        target_id: Uuid,
+        revision: i32,
+        idempotency_key: String,
+    },
+    SeoRevisionRolledBack {
+        target_kind: String,
+        target_id: Uuid,
+        revision: i32,
+        idempotency_key: String,
+    },
+    SeoRedirectUpserted {
+        redirect_id: Uuid,
+        source_pattern: String,
+        target_url: String,
+        status_code: i32,
+        is_active: bool,
+        idempotency_key: String,
+    },
+    SeoRedirectDisabled {
+        redirect_id: Uuid,
+        source_pattern: String,
+        idempotency_key: String,
+    },
+    SeoSitemapGenerated {
+        job_id: Uuid,
+        file_count: i32,
+        idempotency_key: String,
+    },
+    SeoSitemapSubmitted {
+        job_id: Uuid,
+        endpoint_count: i32,
+        success: bool,
+        error: Option<String>,
+        idempotency_key: String,
+    },
+    SeoBulkCompleted {
+        job_id: Uuid,
+        target_kind: String,
+        locale: String,
+        status: String,
+        processed_count: i32,
+        succeeded_count: i32,
+        failed_count: i32,
+        idempotency_key: String,
+    },
+
+    // ════════════════════════════════════════════════════════════════
     // TENANT EVENTS
     // ════════════════════════════════════════════════════════════════
     TenantCreated {
@@ -499,6 +557,15 @@ impl DomainEvent {
             Self::CanonicalUrlChanged { .. } => "content.canonical_url.changed",
             Self::UrlAliasPurged { .. } => "content.url_alias.purged",
 
+            Self::SeoMetaUpserted { .. } => "seo.meta.upserted",
+            Self::SeoRevisionPublished { .. } => "seo.revision.published",
+            Self::SeoRevisionRolledBack { .. } => "seo.revision.rolled_back",
+            Self::SeoRedirectUpserted { .. } => "seo.redirect.upserted",
+            Self::SeoRedirectDisabled { .. } => "seo.redirect.disabled",
+            Self::SeoSitemapGenerated { .. } => "seo.sitemap.generated",
+            Self::SeoSitemapSubmitted { .. } => "seo.sitemap.submitted",
+            Self::SeoBulkCompleted { .. } => "seo.bulk.completed",
+
             Self::TenantCreated { .. } => "tenant.created",
             Self::TenantUpdated { .. } => "tenant.updated",
             Self::TenantModuleToggled { .. } => "tenant.module.toggled",
@@ -602,6 +669,16 @@ impl DomainEvent {
             Self::CanonicalUrlChanged { .. } => 1,
             Self::UrlAliasPurged { .. } => 1,
 
+            // SEO events (v1)
+            Self::SeoMetaUpserted { .. } => 1,
+            Self::SeoRevisionPublished { .. } => 1,
+            Self::SeoRevisionRolledBack { .. } => 1,
+            Self::SeoRedirectUpserted { .. } => 1,
+            Self::SeoRedirectDisabled { .. } => 1,
+            Self::SeoSitemapGenerated { .. } => 1,
+            Self::SeoSitemapSubmitted { .. } => 1,
+            Self::SeoBulkCompleted { .. } => 1,
+
             // Tenant events (v1)
             Self::TenantCreated { .. } => 1,
             Self::TenantUpdated { .. } => 1,
@@ -656,6 +733,14 @@ impl DomainEvent {
                 | Self::ForumTopicStatusChanged { .. }
                 | Self::CanonicalUrlChanged { .. }
                 | Self::UrlAliasPurged { .. }
+                | Self::SeoMetaUpserted { .. }
+                | Self::SeoRevisionPublished { .. }
+                | Self::SeoRevisionRolledBack { .. }
+                | Self::SeoRedirectUpserted { .. }
+                | Self::SeoRedirectDisabled { .. }
+                | Self::SeoSitemapGenerated { .. }
+                | Self::SeoSitemapSubmitted { .. }
+                | Self::SeoBulkCompleted { .. }
         )
     }
 }
@@ -1209,6 +1294,129 @@ impl ValidateEvent for DomainEvent {
                         ));
                     }
                 }
+                Ok(())
+            }
+
+            // ════════════════════════════════════════════════════════════════
+            // SEO EVENTS
+            // ════════════════════════════════════════════════════════════════
+            Self::SeoMetaUpserted {
+                target_kind,
+                target_id,
+                locale,
+                source,
+                idempotency_key,
+            } => {
+                validators::validate_not_empty("target_kind", target_kind)?;
+                validators::validate_max_length("target_kind", target_kind, 64)?;
+                validators::validate_not_nil_uuid("target_id", target_id)?;
+                validators::validate_not_empty("locale", locale)?;
+                validators::validate_max_length("locale", locale, 32)?;
+                validators::validate_not_empty("source", source)?;
+                validators::validate_max_length("source", source, 64)?;
+                validators::validate_not_empty("idempotency_key", idempotency_key)?;
+                validators::validate_max_length("idempotency_key", idempotency_key, 255)?;
+                Ok(())
+            }
+            Self::SeoRevisionPublished {
+                target_kind,
+                target_id,
+                revision,
+                idempotency_key,
+            }
+            | Self::SeoRevisionRolledBack {
+                target_kind,
+                target_id,
+                revision,
+                idempotency_key,
+            } => {
+                validators::validate_not_empty("target_kind", target_kind)?;
+                validators::validate_max_length("target_kind", target_kind, 64)?;
+                validators::validate_not_nil_uuid("target_id", target_id)?;
+                validators::validate_range("revision", *revision as i64, 1, i32::MAX as i64)?;
+                validators::validate_not_empty("idempotency_key", idempotency_key)?;
+                validators::validate_max_length("idempotency_key", idempotency_key, 255)?;
+                Ok(())
+            }
+            Self::SeoRedirectUpserted {
+                redirect_id,
+                source_pattern,
+                target_url,
+                status_code,
+                idempotency_key,
+                ..
+            } => {
+                validators::validate_not_nil_uuid("redirect_id", redirect_id)?;
+                validators::validate_not_empty("source_pattern", source_pattern)?;
+                validators::validate_max_length("source_pattern", source_pattern, 512)?;
+                validators::validate_not_empty("target_url", target_url)?;
+                validators::validate_max_length("target_url", target_url, 2048)?;
+                validators::validate_range("status_code", *status_code as i64, 100, 599)?;
+                validators::validate_not_empty("idempotency_key", idempotency_key)?;
+                validators::validate_max_length("idempotency_key", idempotency_key, 255)?;
+                Ok(())
+            }
+            Self::SeoRedirectDisabled {
+                redirect_id,
+                source_pattern,
+                idempotency_key,
+            } => {
+                validators::validate_not_nil_uuid("redirect_id", redirect_id)?;
+                validators::validate_not_empty("source_pattern", source_pattern)?;
+                validators::validate_max_length("source_pattern", source_pattern, 512)?;
+                validators::validate_not_empty("idempotency_key", idempotency_key)?;
+                validators::validate_max_length("idempotency_key", idempotency_key, 255)?;
+                Ok(())
+            }
+            Self::SeoSitemapGenerated {
+                job_id,
+                file_count,
+                idempotency_key,
+            } => {
+                validators::validate_not_nil_uuid("job_id", job_id)?;
+                validators::validate_range("file_count", *file_count as i64, 0, i32::MAX as i64)?;
+                validators::validate_not_empty("idempotency_key", idempotency_key)?;
+                validators::validate_max_length("idempotency_key", idempotency_key, 255)?;
+                Ok(())
+            }
+            Self::SeoSitemapSubmitted {
+                job_id,
+                endpoint_count,
+                error,
+                idempotency_key,
+                ..
+            } => {
+                validators::validate_not_nil_uuid("job_id", job_id)?;
+                validators::validate_range("endpoint_count", *endpoint_count as i64, 0, i32::MAX as i64)?;
+                if let Some(error) = error {
+                    validators::validate_max_length("error", error, 2048)?;
+                }
+                validators::validate_not_empty("idempotency_key", idempotency_key)?;
+                validators::validate_max_length("idempotency_key", idempotency_key, 255)?;
+                Ok(())
+            }
+            Self::SeoBulkCompleted {
+                job_id,
+                target_kind,
+                locale,
+                status,
+                processed_count,
+                succeeded_count,
+                failed_count,
+                idempotency_key,
+            } => {
+                validators::validate_not_nil_uuid("job_id", job_id)?;
+                validators::validate_not_empty("target_kind", target_kind)?;
+                validators::validate_max_length("target_kind", target_kind, 64)?;
+                validators::validate_not_empty("locale", locale)?;
+                validators::validate_max_length("locale", locale, 32)?;
+                validators::validate_not_empty("status", status)?;
+                validators::validate_max_length("status", status, 32)?;
+                validators::validate_range("processed_count", *processed_count as i64, 0, i32::MAX as i64)?;
+                validators::validate_range("succeeded_count", *succeeded_count as i64, 0, i32::MAX as i64)?;
+                validators::validate_range("failed_count", *failed_count as i64, 0, i32::MAX as i64)?;
+                validators::validate_not_empty("idempotency_key", idempotency_key)?;
+                validators::validate_max_length("idempotency_key", idempotency_key, 255)?;
                 Ok(())
             }
 

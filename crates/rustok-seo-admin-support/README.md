@@ -9,6 +9,7 @@
 - Expose reusable Leptos panels for embedding SEO authoring into owner-module admin routes.
 - Keep shared SEO GraphQL transport helpers out of domain-specific admin packages.
 - Provide lightweight scoring and form helpers for explicit SEO metadata editing.
+- Prepare reusable observability/remediation widgets for the SEO Phase D control-plane expansion.
 - Consume the host-provided effective locale and canonicalize it before read/write flows instead of inventing a package-local locale override.
 - Preserve the ownership rule: content modules own their screens, while `rustok-seo` owns the shared capability contract.
 
@@ -28,3 +29,13 @@
 - `SeoSummaryTile`
 - `SeoEntityForm`
 - `SeoMetaView`
+
+## Current execution wave (Phase D)
+
+The crate is aligned with SEO Phase D for:
+
+- reusable event/delivery-status and remediation UI cards
+- GraphQL/REST transport helper parity for Next and Leptos admin hosts
+- verification and UX consistency checks across owner-module panels
+
+See `docs/implementation-plan.md` for the active backlog.

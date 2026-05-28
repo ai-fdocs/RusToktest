@@ -79,6 +79,15 @@ impl SeoService {
         tenant: &TenantContext,
         input: SeoMetaInput,
     ) -> SeoResult<SeoMetaRecord> {
+        self.upsert_meta_with_transition(tenant, input, None).await
+    }
+
+    pub(super) async fn upsert_meta_with_transition(
+        &self,
+        tenant: &TenantContext,
+        input: SeoMetaInput,
+        transition_ref: Option<String>,
+    ) -> SeoResult<SeoMetaRecord> {
         let response_locale = upsert_response_locale(&input, tenant.default_locale.as_str())?;
 
         if self
@@ -105,6 +114,9 @@ impl SeoService {
         if let Some(structured_data) = input.structured_data.as_ref() {
             validate_structured_data_payload(&structured_data.0)?;
         }
+
+        let target_kind = input.target_kind.clone();
+        let target_id = input.target_id;
 
         let existing = seo_meta::Entity::find()
             .filter(seo_meta::Column::TenantId.eq(tenant.id))
@@ -172,14 +184,27 @@ impl SeoService {
             }
         }
 
-        self.seo_meta(
-            tenant,
-            input.target_kind,
-            input.target_id,
-            Some(response_locale.as_str()),
+        let record = self
+            .seo_meta(
+                tenant,
+                target_kind.clone(),
+                target_id,
+                Some(response_locale.as_str()),
+            )
+            .await?
+            .ok_or(SeoError::NotFound)?;
+
+        self.publish_seo_meta_upserted_event(
+            tenant.id,
+            target_kind.as_str(),
+            target_id,
+            record.effective_locale.as_str(),
+            record.source.as_str(),
+            transition_ref.as_deref(),
         )
-        .await?
-        .ok_or(SeoError::NotFound)
+        .await;
+
+        Ok(record)
     }
 
     pub async fn publish_revision(
@@ -218,14 +243,24 @@ impl SeoService {
         .insert(&self.db)
         .await?;
 
-        Ok(SeoRevisionRecord {
+        let record = SeoRevisionRecord {
             id: revision.id,
             target_kind,
             target_id,
             revision: revision.revision,
             note: revision.note,
             created_at: revision.created_at.into(),
-        })
+        };
+
+        self.publish_seo_revision_published_event(
+            tenant.id,
+            record.target_kind.as_str(),
+            record.target_id,
+            record.revision,
+        )
+        .await;
+
+        Ok(record)
     }
 
     pub async fn rollback_revision(
@@ -246,8 +281,17 @@ impl SeoService {
             return Err(SeoError::NotFound);
         };
 
+        let transition_ref = format!("revision:{revision}");
+        let kind = target_kind.clone();
         let input = snapshot_to_input(snapshot.payload, target_kind, target_id);
-        self.upsert_meta(tenant, input).await
+        let record = self
+            .upsert_meta_with_transition(tenant, input, Some(transition_ref))
+            .await?;
+
+        self.publish_seo_revision_rolled_back_event(tenant.id, kind.as_str(), target_id, revision)
+            .await;
+
+        Ok(record)
     }
 
     pub(super) async fn load_explicit_meta(

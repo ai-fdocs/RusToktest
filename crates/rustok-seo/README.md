@@ -11,13 +11,16 @@
 - keep public forum topic SEO resolution channel-aware when a topic is restricted by forum channel access
 - resolve effective metadata through explicit SEO > template-generated SEO > domain/entity fallback
 - run bulk remediation with safe apply modes for preview, missing-only materialization, generated-only overwrite, and explicit-force overwrite
-- expose diagnostics with readiness scoring, issue aggregates, hreflang gap detection, and canonical redirect chain/loop detection
+- expose diagnostics with readiness scoring, issue aggregates, hreflang gap detection, canonical redirect chain/loop detection, `cross_link_gap` hints, and image descriptor quality checks (`missing_image_alt`, `missing_image_size`) for SEO-critical targets
 - normalize JSON-LD into typed `SeoStructuredDataBlock` records with schema kind, source state, and `@graph` expansion
 - manage manual redirects and canonical overrides
-- generate sitemap files and serve `robots.txt`
+- generate sitemap files, serve `robots.txt`, and submit sitemap indexes via runtime adapters with per-endpoint aggregation and bounded partial-failure summaries
+- prepare Phase D productionization seams for typed SEO events, outbox emission/idempotency, and SEO→index integration without breaking existing public contracts
 - expose a headless REST read path for `SeoPageContext` at `/api/seo/page-context`, reusing canonical request locale/channel context
 - expose registry-backed SEO target descriptors through GraphQL `seoTargets` and REST `/api/seo/targets`
   with the same tenant/module-enabled gate and `seo:manage` admin permission contract
+- expose read-only cross-link suggestions through GraphQL `seoCrossLinkSuggestions` and REST `/api/seo/cross-link-suggestions`
+  with tenant/module checks and `seo:read|seo:manage` parity
 - provide shared SEO capability contracts that owner modules can embed into their own admin UI
 - expose admin and storefront read/write surfaces through GraphQL, HTTP, and Leptos server functions
 - require host runtimes to inject `ModuleRuntimeExtensions` for SEO target registry lookup; built-in registries are test-only helpers, not production fallback behavior
@@ -34,6 +37,7 @@
 
 - reads canonical routing substrate from `rustok-content`
 - reads page/blog/product/forum content from `rustok-pages`, `rustok-blog`, `rustok-product`, and `rustok-forum`
+- consumes `rustok-media::MediaImageDescriptor` as the typed image boundary for OG/Twitter/schema fallback
 - consumes tenant/module settings from `rustok-tenant`
 - is mounted by `apps/server`, consumed by `apps/storefront`, and shared with `apps/next-frontend`
 - reuses host-provided `RequestContext.channel_slug` on REST/GraphQL/Leptos SSR paths so restricted forum topics only resolve SEO in the matching public channel
@@ -42,3 +46,15 @@
 - is expected to integrate with owner-module admin surfaces in `rustok-pages`, `rustok-product`,
   `rustok-blog`, and `rustok-forum`; `rustok-seo/admin` is reserved for cross-cutting SEO
   infrastructure rather than long-term ownership of entity editors
+
+## Current execution wave (Phase D)
+
+Phase D is planned as a productionization and integration-parity wave:
+
+- typed SEO domain events + outbox delivery foundations
+- SEO-to-index consumer seam with bounded retry/dead-letter behavior
+- GraphQL/REST control-plane parity completion (additive `v1` only)
+- expanded admin and storefront/Next host integrations
+- verification matrix and operational runbooks
+
+See `docs/implementation-plan.md` for the batch-by-batch checklist (`D1..D9`).
