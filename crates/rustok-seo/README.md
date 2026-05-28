@@ -15,6 +15,7 @@
 - normalize JSON-LD into typed `SeoStructuredDataBlock` records with schema kind, source state, and `@graph` expansion
 - manage manual redirects and canonical overrides
 - generate sitemap files, serve `robots.txt`, and submit sitemap indexes via runtime adapters with per-endpoint aggregation and bounded partial-failure summaries
+- prepare Phase D productionization seams for typed SEO events, outbox emission/idempotency, and SEO→index integration without breaking existing public contracts
 - expose a headless REST read path for `SeoPageContext` at `/api/seo/page-context`, reusing canonical request locale/channel context
 - expose registry-backed SEO target descriptors through GraphQL `seoTargets` and REST `/api/seo/targets`
   with the same tenant/module-enabled gate and `seo:manage` admin permission contract
@@ -45,3 +46,15 @@
 - is expected to integrate with owner-module admin surfaces in `rustok-pages`, `rustok-product`,
   `rustok-blog`, and `rustok-forum`; `rustok-seo/admin` is reserved for cross-cutting SEO
   infrastructure rather than long-term ownership of entity editors
+
+## Current execution wave (Phase D)
+
+Phase D is planned as a productionization and integration-parity wave:
+
+- typed SEO domain events + outbox delivery foundations
+- SEO-to-index consumer seam with bounded retry/dead-letter behavior
+- GraphQL/REST control-plane parity completion (additive `v1` only)
+- expanded admin and storefront/Next host integrations
+- verification matrix and operational runbooks
+
+See `docs/implementation-plan.md` for the batch-by-batch checklist (`D1..D9`).

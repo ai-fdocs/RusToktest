@@ -24,6 +24,14 @@
 - owner-side panel chrome локализуется от host locale и больше не держит editable locale field внутри SEO panel;
 - не владеет собственным runtime, tenant settings, RBAC policy или central SEO route.
 
+## Phase D alignment
+
+Support crate синхронизируется с SEO Phase D по направлениям:
+
+- reusable observability/remediation widgets для owner-module SEO panels;
+- transport fallback parity (GraphQL/REST) для Leptos и Next admin hosts;
+- verification/UX consistency matrix для shared panel surface.
+
 ## Связанные документы
 
 - [README crate](../README.md)

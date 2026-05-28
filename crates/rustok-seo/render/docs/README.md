@@ -29,6 +29,14 @@
 - `apps/next-frontend` остаётся на TypeScript adapter слое поверх built-in Next Metadata API;
 - canonical SEO contract и дальше живёт в `rustok-seo`.
 
+## Phase D alignment
+
+`rustok-seo-render` участвует в SEO Phase D как parity/hardening слой:
+
+- snapshot coverage для сложных комбинаций head tags;
+- contract fixtures для Rust renderer vs Next metadata adapter parity;
+- drift guardrails, чтобы бизнес-логика оставалась внутри `rustok-seo`.
+
 ## Проверка
 
 - `cargo check -p rustok-seo-render`
