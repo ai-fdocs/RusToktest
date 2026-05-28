@@ -93,6 +93,28 @@ mod tests {
     }
 
     #[test]
+    fn css_class_helpers_are_stable() {
+        assert_eq!(
+            diagnostics_state_badge_class("healthy"),
+            "border-emerald-200 bg-emerald-50 text-emerald-700"
+        );
+        assert_eq!(
+            diagnostics_state_badge_class("unknown"),
+            "border-slate-200 bg-slate-50 text-slate-700"
+        );
+        assert_eq!(
+            consistency_issue_badge_class("missing"),
+            "border-rose-200 bg-rose-50 text-rose-700"
+        );
+        assert_eq!(
+            consistency_issue_badge_class("orphaned"),
+            "border-orange-200 bg-orange-50 text-orange-700"
+        );
+        assert!(tab_class(true).contains("bg-primary"));
+        assert!(tab_class(false).contains("border-border"));
+    }
+
+    #[test]
     fn preview_and_fallback_rendering_helpers_are_stable() {
         assert_eq!(
             render_preview_summary(
@@ -249,4 +271,29 @@ pub fn value_or_fallback(value: Option<String>, fallback: &str) -> String {
 
 pub fn label_value_summary(label: &str, value: &str) -> String {
     format!("{}: {}", label, value)
+}
+
+pub fn diagnostics_state_badge_class(state: &str) -> &'static str {
+    match state {
+        "healthy" => "border-emerald-200 bg-emerald-50 text-emerald-700",
+        "inconsistent" => "border-rose-200 bg-rose-50 text-rose-700",
+        "lagging" => "border-amber-200 bg-amber-50 text-amber-700",
+        _ => "border-slate-200 bg-slate-50 text-slate-700",
+    }
+}
+
+pub fn consistency_issue_badge_class(issue_kind: &str) -> &'static str {
+    if issue_kind == "missing" {
+        "border-rose-200 bg-rose-50 text-rose-700"
+    } else {
+        "border-orange-200 bg-orange-50 text-orange-700"
+    }
+}
+
+pub fn tab_class(active: bool) -> &'static str {
+    if active {
+        "inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
+    } else {
+        "inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
+    }
 }

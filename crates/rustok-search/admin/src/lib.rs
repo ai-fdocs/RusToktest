@@ -312,10 +312,10 @@ pub fn SearchAdmin() -> impl IntoView {
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <A href=format!("/modules/{route_segment}") attr:class=tab_class(!on_playground && !on_diagnostics && !on_dictionaries)>{overview_label.clone()}</A>
-                    <A href=format!("/modules/{route_segment}/playground") attr:class=tab_class(on_playground)>{playground_label.clone()}</A>
-                    <A href=format!("/modules/{route_segment}/analytics") attr:class=tab_class(on_diagnostics)>{analytics_label.clone()}</A>
-                    <A href=format!("/modules/{route_segment}/dictionaries") attr:class=tab_class(on_dictionaries)>{dictionaries_label.clone()}</A>
+                    <A href=format!("/modules/{route_segment}") attr:class=core::tab_class(!on_playground && !on_diagnostics && !on_dictionaries)>{overview_label.clone()}</A>
+                    <A href=format!("/modules/{route_segment}/playground") attr:class=core::tab_class(on_playground)>{playground_label.clone()}</A>
+                    <A href=format!("/modules/{route_segment}/analytics") attr:class=core::tab_class(on_diagnostics)>{analytics_label.clone()}</A>
+                    <A href=format!("/modules/{route_segment}/dictionaries") attr:class=core::tab_class(on_dictionaries)>{dictionaries_label.clone()}</A>
                 </div>
             </header>
 
@@ -1219,11 +1219,7 @@ fn consistency_table(
             <th class="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t(locale, "search.table.indexed", "Indexed")}</th>
         </tr></thead>
         <tbody class="divide-y divide-border">{rows.into_iter().map(|row| {
-            let badge_class = if row.issue_kind == "missing" {
-                "border-rose-200 bg-rose-50 text-rose-700"
-            } else {
-                "border-orange-200 bg-orange-50 text-orange-700"
-            };
+            let badge_class = core::consistency_issue_badge_class(&row.issue_kind);
             let issue_label = if row.issue_kind == "missing" {
                 t(locale, "search.issue.missing", "missing")
             } else {
@@ -1784,12 +1780,7 @@ fn DiagnosticsCard(
     ui_locale: Option<String>,
 ) -> impl IntoView {
     let locale = ui_locale.as_deref();
-    let badge_class = match diagnostics.state.as_str() {
-        "healthy" => "border-emerald-200 bg-emerald-50 text-emerald-700",
-        "inconsistent" => "border-rose-200 bg-rose-50 text-rose-700",
-        "lagging" => "border-amber-200 bg-amber-50 text-amber-700",
-        _ => "border-slate-200 bg-slate-50 text-slate-700",
-    };
+    let badge_class = core::diagnostics_state_badge_class(diagnostics.state.as_str());
     let state_label = match diagnostics.state.as_str() {
         "healthy" => t(locale, "search.state.healthy", "healthy"),
         "inconsistent" => t(locale, "search.state.inconsistent", "inconsistent"),
@@ -1903,12 +1894,4 @@ fn parse_json_array_for_editor(
         .replace("{label}", label));
     }
     Ok(parsed)
-}
-
-fn tab_class(active: bool) -> &'static str {
-    if active {
-        "inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90"
-    } else {
-        "inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground"
-    }
 }
