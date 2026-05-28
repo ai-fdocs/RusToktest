@@ -10,40 +10,54 @@ from rustok_mobile.tooling.scripts.generate_mobile_manifest import (
 )
 
 
+def write_module_manifest(root: pathlib.Path, crate: str, manifest: str) -> None:
+    manifest_path = root / f"crates/{crate}/rustok-module.toml"
+    manifest_path.parent.mkdir(parents=True, exist_ok=True)
+    manifest_path.write_text(textwrap.dedent(manifest).strip(), encoding="utf-8")
+
+
 class GenerateMobileManifestTests(unittest.TestCase):
     def test_scan_modules_filters_and_sorts(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
-            (root / "crates/mod-a").mkdir(parents=True)
-            (root / "crates/mod-b").mkdir(parents=True)
-            (root / "crates/mod-c").mkdir(parents=True)
+            write_module_manifest(
+                root,
+                "mod-a",
+                """
+                [module]
+                slug = "auth"
+                name = "Auth"
 
-            (root / "crates/mod-a/rustok-module.toml").write_text(textwrap.dedent("""
-                    [module]
-                    slug = "auth"
-                    name = "Auth"
+                [provides.admin_ui]
+                route_segment = "Auth"
+                nav_label = "Auth"
 
-                    [provides.admin_ui]
-                    route_segment = "Auth"
-                    nav_label = "Auth"
+                [[provides.admin_ui.child_pages]]
+                subpath = "Users"
+                title = "Users"
+                """,
+            )
+            write_module_manifest(
+                root,
+                "mod-b",
+                """
+                [module]
+                slug = "blog"
+                name = "Blog"
 
-                    [[provides.admin_ui.child_pages]]
-                    subpath = "Users"
-                    title = "Users"
-                    """).strip())
-            (root / "crates/mod-b/rustok-module.toml").write_text(textwrap.dedent("""
-                    [module]
-                    slug = "blog"
-                    name = "Blog"
-
-                    [provides.admin_ui]
-                    route_segment = "blog"
-                    nav_label = "Blog"
-                    """).strip())
-            (root / "crates/mod-c/rustok-module.toml").write_text(textwrap.dedent("""
-                    [module]
-                    slug = "service-only"
-                    """).strip())
+                [provides.admin_ui]
+                route_segment = "blog"
+                nav_label = "Blog"
+                """,
+            )
+            write_module_manifest(
+                root,
+                "mod-c",
+                """
+                [module]
+                slug = "service-only"
+                """,
+            )
 
             modules = scan_modules(root)
             self.assertEqual([m["route_segment"] for m in modules], ["auth", "blog"])
@@ -102,23 +116,28 @@ class GenerateMobileManifestTests(unittest.TestCase):
     def test_scan_modules_raises_on_duplicate_route_segment(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
-            (root / "crates/mod-a").mkdir(parents=True)
-            (root / "crates/mod-b").mkdir(parents=True)
+            write_module_manifest(
+                root,
+                "mod-a",
+                """
+                [module]
+                slug = "blog"
 
-            (root / "crates/mod-a/rustok-module.toml").write_text(textwrap.dedent("""
-                    [module]
-                    slug = "blog"
+                [provides.admin_ui]
+                route_segment = "content"
+                """,
+            )
+            write_module_manifest(
+                root,
+                "mod-b",
+                """
+                [module]
+                slug = "forum"
 
-                    [provides.admin_ui]
-                    route_segment = "content"
-                    """).strip())
-            (root / "crates/mod-b/rustok-module.toml").write_text(textwrap.dedent("""
-                    [module]
-                    slug = "forum"
-
-                    [provides.admin_ui]
-                    route_segment = "content"
-                    """).strip())
+                [provides.admin_ui]
+                route_segment = "content"
+                """,
+            )
 
             with self.assertRaises(ValueError) as ctx:
                 scan_modules(root)
@@ -128,17 +147,19 @@ class GenerateMobileManifestTests(unittest.TestCase):
     def test_scan_modules_includes_permissions_and_locale_namespace(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
-            (root / "crates/mod-a").mkdir(parents=True)
+            write_module_manifest(
+                root,
+                "mod-a",
+                """
+                [module]
+                slug = "blog"
 
-            (root / "crates/mod-a/rustok-module.toml").write_text(textwrap.dedent("""
-                    [module]
-                    slug = "blog"
-
-                    [provides.admin_ui]
-                    route_segment = "blog"
-                    locale_namespace = "content_blog"
-                    permissions = ["modules.read", "modules.read", " "]
-                    """).strip())
+                [provides.admin_ui]
+                route_segment = "blog"
+                locale_namespace = "content_blog"
+                permissions = ["modules.read", "modules.read", " "]
+                """,
+            )
 
             modules = scan_modules(root)
             self.assertEqual(modules[0]["locale_namespace"], "content_blog")
@@ -165,17 +186,19 @@ class GenerateMobileManifestTests(unittest.TestCase):
     def test_scan_modules_normalizes_locale_namespace_and_sorts_permissions(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
-            (root / "crates/mod-a").mkdir(parents=True)
+            write_module_manifest(
+                root,
+                "mod-a",
+                """
+                [module]
+                slug = "blog"
 
-            (root / "crates/mod-a/rustok-module.toml").write_text(textwrap.dedent("""
-                    [module]
-                    slug = "blog"
-
-                    [provides.admin_ui]
-                    route_segment = "blog"
-                    locale_namespace = "Content Blog"
-                    permissions = ["z.read", "a.read", "z.read"]
-                    """).strip())
+                [provides.admin_ui]
+                route_segment = "blog"
+                locale_namespace = "Content Blog"
+                permissions = ["z.read", "a.read", "z.read"]
+                """,
+            )
 
             modules = scan_modules(root)
             self.assertEqual(modules[0]["locale_namespace"], "content_blog")
@@ -184,16 +207,18 @@ class GenerateMobileManifestTests(unittest.TestCase):
     def test_scan_modules_normalizes_permissions_to_lowercase(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
-            (root / "crates/mod-a").mkdir(parents=True)
+            write_module_manifest(
+                root,
+                "mod-a",
+                """
+                [module]
+                slug = "blog"
 
-            (root / "crates/mod-a/rustok-module.toml").write_text(textwrap.dedent("""
-                    [module]
-                    slug = "blog"
-
-                    [provides.admin_ui]
-                    route_segment = "blog"
-                    permissions = ["Blog.Read", "BLOG.READ", "blog.write"]
-                    """).strip())
+                [provides.admin_ui]
+                route_segment = "blog"
+                permissions = ["Blog.Read", "BLOG.READ", "blog.write"]
+                """,
+            )
 
             modules = scan_modules(root)
             self.assertEqual(modules[0]["permissions"], ["blog.read", "blog.write"])
@@ -201,16 +226,18 @@ class GenerateMobileManifestTests(unittest.TestCase):
     def test_scan_modules_drops_permissions_with_invalid_format(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
-            (root / "crates/mod-a").mkdir(parents=True)
+            write_module_manifest(
+                root,
+                "mod-a",
+                """
+                [module]
+                slug = "blog"
 
-            (root / "crates/mod-a/rustok-module.toml").write_text(textwrap.dedent("""
-                    [module]
-                    slug = "blog"
-
-                    [provides.admin_ui]
-                    route_segment = "blog"
-                    permissions = ["blog.read", "blog/read", "bad space", "ok:perm"]
-                    """).strip())
+                [provides.admin_ui]
+                route_segment = "blog"
+                permissions = ["blog.read", "blog/read", "bad space", "ok:perm"]
+                """,
+            )
 
             modules = scan_modules(root)
             self.assertEqual(modules[0]["permissions"], ["blog.read", "ok:perm"])
@@ -218,16 +245,18 @@ class GenerateMobileManifestTests(unittest.TestCase):
     def test_scan_modules_falls_back_locale_namespace_when_normalized_empty(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = pathlib.Path(tmp)
-            (root / "crates/mod-a").mkdir(parents=True)
+            write_module_manifest(
+                root,
+                "mod-a",
+                """
+                [module]
+                slug = "blog"
 
-            (root / "crates/mod-a/rustok-module.toml").write_text(textwrap.dedent("""
-                    [module]
-                    slug = "blog"
-
-                    [provides.admin_ui]
-                    route_segment = "blog"
-                    locale_namespace = "!!!"
-                    """).strip())
+                [provides.admin_ui]
+                route_segment = "blog"
+                locale_namespace = "!!!"
+                """,
+            )
 
             modules = scan_modules(root)
             self.assertEqual(modules[0]["locale_namespace"], "blog")
