@@ -32,10 +32,6 @@ pub fn score_label(score: f64) -> String {
     format!("score {:.3}", score)
 }
 
-pub fn score_value(score: f64) -> String {
-    format!("{:.3}", score)
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -73,7 +69,6 @@ mod tests {
         assert_eq!(facet_display_name("source_module"), "source module");
         assert_eq!(facet_bucket_label("product", 42), "product (42)");
         assert_eq!(score_label(0.12345), "score 0.123");
-        assert_eq!(score_value(0.12345), "0.123");
         assert_eq!(
             snippet_or_fallback(None, "fallback"),
             "fallback".to_string()
@@ -82,6 +77,41 @@ mod tests {
             error_with_context("load failed", "timeout"),
             "load failed: timeout"
         );
+    }
+
+    #[test]
+    fn relevance_editor_json_helpers_are_stable() {
+        let config = serde_json::json!({
+            "ranking_profiles": {
+                "search_preview": "freshness",
+                "admin_global_search": "operator"
+            },
+            "filter_presets": {
+                "search_preview": [
+                    {"key": "published", "label": "Published"}
+                ]
+            }
+        });
+
+        assert_eq!(
+            extract_ranking_profile_value(&config, "search_preview"),
+            "freshness"
+        );
+        assert_eq!(
+            extract_ranking_profile_value(&config, "storefront_search"),
+            "balanced"
+        );
+        assert_eq!(
+            extract_ranking_profile_value(&serde_json::json!({}), "admin_global_search"),
+            "exact"
+        );
+        assert_eq!(
+            extract_surface_presets_json(&config, "search_preview"),
+            "[\n  {\n    \"key\": \"published\",\n    \"label\": \"Published\"\n  }\n]"
+        );
+        assert_eq!(extract_surface_presets_json(&config, "missing"), "[]");
+        assert_eq!(pretty_json_string("{\"a\":1}"), "{\n  \"a\": 1\n}");
+        assert_eq!(pretty_json_string("not-json"), "not-json");
     }
 }
 
@@ -95,4 +125,34 @@ pub fn source_entity_status_label(source_module: &str, entity_type: &str, status
 
 pub fn error_with_context(context: &str, error: &str) -> String {
     format!("{}: {}", context, error)
+}
+
+pub fn pretty_json_string(value: &str) -> String {
+    parse_json_for_editor(value)
+        .and_then(|json| serde_json::to_string_pretty(&json).ok())
+        .unwrap_or_else(|| value.to_string())
+}
+
+pub fn parse_json_for_editor(value: &str) -> Option<serde_json::Value> {
+    serde_json::from_str(value).ok()
+}
+
+pub fn extract_ranking_profile_value(config: &serde_json::Value, surface: &str) -> String {
+    config
+        .get("ranking_profiles")
+        .and_then(|value| value.get(surface))
+        .and_then(serde_json::Value::as_str)
+        .unwrap_or(match surface {
+            "admin_global_search" => "exact",
+            _ => "balanced",
+        })
+        .to_string()
+}
+
+pub fn extract_surface_presets_json(config: &serde_json::Value, surface: &str) -> String {
+    config
+        .get("filter_presets")
+        .and_then(|value| value.get(surface))
+        .and_then(|value| serde_json::to_string_pretty(value).ok())
+        .unwrap_or_else(|| "[]".to_string())
 }

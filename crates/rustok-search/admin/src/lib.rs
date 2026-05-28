@@ -181,23 +181,34 @@ pub fn SearchAdmin() -> impl IntoView {
             set_settings_active_engine.set(bootstrap.search_settings_preview.active_engine.clone());
             set_settings_fallback_engine
                 .set(bootstrap.search_settings_preview.fallback_engine.clone());
-            set_settings_config.set(pretty_json_string(
+            set_settings_config.set(core::pretty_json_string(
                 &bootstrap.search_settings_preview.config,
             ));
-            if let Some(config) = parse_json_for_editor(&bootstrap.search_settings_preview.config) {
-                set_ranking_default_profile.set(extract_ranking_profile_value(&config, "default"));
-                set_ranking_preview_profile
-                    .set(extract_ranking_profile_value(&config, "search_preview"));
-                set_ranking_storefront_profile
-                    .set(extract_ranking_profile_value(&config, "storefront_search"));
-                set_ranking_admin_global_profile.set(extract_ranking_profile_value(
+            if let Some(config) =
+                core::parse_json_for_editor(&bootstrap.search_settings_preview.config)
+            {
+                set_ranking_default_profile
+                    .set(core::extract_ranking_profile_value(&config, "default"));
+                set_ranking_preview_profile.set(core::extract_ranking_profile_value(
+                    &config,
+                    "search_preview",
+                ));
+                set_ranking_storefront_profile.set(core::extract_ranking_profile_value(
+                    &config,
+                    "storefront_search",
+                ));
+                set_ranking_admin_global_profile.set(core::extract_ranking_profile_value(
                     &config,
                     "admin_global_search",
                 ));
-                set_preview_presets_config
-                    .set(extract_surface_presets_json(&config, "search_preview"));
-                set_storefront_presets_config
-                    .set(extract_surface_presets_json(&config, "storefront_search"));
+                set_preview_presets_config.set(core::extract_surface_presets_json(
+                    &config,
+                    "search_preview",
+                ));
+                set_storefront_presets_config.set(core::extract_surface_presets_json(
+                    &config,
+                    "storefront_search",
+                ));
             }
         }
     });
@@ -375,7 +386,7 @@ pub fn SearchAdmin() -> impl IntoView {
                                             return;
                                         }
                                     };
-                                    if parse_json_for_editor(&merged_config).is_none() {
+                                    if core::parse_json_for_editor(&merged_config).is_none() {
                                         set_settings_feedback
                                             .set(Some(invalid_settings_json_label.clone()));
                                         return;
@@ -411,43 +422,43 @@ pub fn SearchAdmin() -> impl IntoView {
                                                         .set(settings.active_engine.clone());
                                                     set_settings_fallback_engine
                                                         .set(settings.fallback_engine.clone());
-                                                    set_settings_config.set(pretty_json_string(
+                                                    set_settings_config.set(core::pretty_json_string(
                                                         &settings.config,
                                                     ));
                                                     if let Some(config) =
-                                                        parse_json_for_editor(&settings.config)
+                                                        core::parse_json_for_editor(&settings.config)
                                                     {
                                                         set_ranking_default_profile.set(
-                                                            extract_ranking_profile_value(
+                                                            core::extract_ranking_profile_value(
                                                                 &config, "default",
                                                             ),
                                                         );
                                                         set_ranking_preview_profile.set(
-                                                            extract_ranking_profile_value(
+                                                            core::extract_ranking_profile_value(
                                                                 &config,
                                                                 "search_preview",
                                                             ),
                                                         );
                                                         set_ranking_storefront_profile.set(
-                                                            extract_ranking_profile_value(
+                                                            core::extract_ranking_profile_value(
                                                                 &config,
                                                                 "storefront_search",
                                                             ),
                                                         );
                                                         set_ranking_admin_global_profile.set(
-                                                            extract_ranking_profile_value(
+                                                            core::extract_ranking_profile_value(
                                                                 &config,
                                                                 "admin_global_search",
                                                             ),
                                                         );
                                                         set_preview_presets_config.set(
-                                                            extract_surface_presets_json(
+                                                            core::extract_surface_presets_json(
                                                                 &config,
                                                                 "search_preview",
                                                             ),
                                                         );
                                                         set_storefront_presets_config.set(
-                                                            extract_surface_presets_json(
+                                                            core::extract_surface_presets_json(
                                                                 &config,
                                                                 "storefront_search",
                                                             ),
@@ -1791,36 +1802,6 @@ fn FacetCard(facet: SearchFacetGroup) -> impl IntoView {
     view! { <article class="rounded-xl border border-border bg-background p-4"><div class="text-sm font-semibold capitalize text-card-foreground">{core::facet_display_name(&facet.name)}</div><div class="mt-3 flex flex-wrap gap-2">{facet.buckets.into_iter().map(|bucket| view! { <span class="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">{core::facet_bucket_label(&bucket.value, bucket.count)}</span> }).collect_view()}</div></article> }
 }
 
-fn pretty_json_string(value: &str) -> String {
-    parse_json_for_editor(value)
-        .and_then(|json| serde_json::to_string_pretty(&json).ok())
-        .unwrap_or_else(|| value.to_string())
-}
-
-fn parse_json_for_editor(value: &str) -> Option<serde_json::Value> {
-    serde_json::from_str(value).ok()
-}
-
-fn extract_ranking_profile_value(config: &serde_json::Value, surface: &str) -> String {
-    config
-        .get("ranking_profiles")
-        .and_then(|value| value.get(surface))
-        .and_then(serde_json::Value::as_str)
-        .unwrap_or(match surface {
-            "admin_global_search" => "exact",
-            _ => "balanced",
-        })
-        .to_string()
-}
-
-fn extract_surface_presets_json(config: &serde_json::Value, surface: &str) -> String {
-    config
-        .get("filter_presets")
-        .and_then(|value| value.get(surface))
-        .and_then(|value| serde_json::to_string_pretty(value).ok())
-        .unwrap_or_else(|| "[]".to_string())
-}
-
 #[allow(clippy::too_many_arguments)]
 fn merge_relevance_editor_config(
     locale: Option<&str>,
@@ -1832,7 +1813,7 @@ fn merge_relevance_editor_config(
     preview_presets: &str,
     storefront_presets: &str,
 ) -> Result<String, String> {
-    let mut config = parse_json_for_editor(config_text).ok_or_else(|| {
+    let mut config = core::parse_json_for_editor(config_text).ok_or_else(|| {
         t(
             locale,
             "search.error.invalidSettingsJson",

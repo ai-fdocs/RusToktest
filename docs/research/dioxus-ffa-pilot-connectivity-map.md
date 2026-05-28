@@ -191,3 +191,4 @@
 ### Additional iteration evidence
 
 - blog slice #1 evidence: `crates/rustok-blog/storefront/src/core.rs` используется `crates/rustok-blog/storefront/src/lib.rs`; transport split (`native #[server]` + GraphQL fallback) не менялся.
+- `rustok-search` slice #10 evidence: admin relevance editor JSON formatting/profile/preset extraction moved from Leptos render module to `admin/src/core.rs`; transport split (`native #[server]` + GraphQL fallback) не менялся.

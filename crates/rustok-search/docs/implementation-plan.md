@@ -6,11 +6,11 @@
 ## Execution checkpoint
 
 - Current phase: plan_sync
-- Last checkpoint: Initial bootstrap by registry workflow.
-- Next step: Phase B pilot slice #1 — выделить первый `core` use-case в storefront/admin surfaces без изменения dual-path transport contract.
+- Last checkpoint: Phase B pilot slice #10 moved admin relevance editor JSON formatting/profile/preset helpers into `admin/src/core.rs` without changing native/GraphQL transport.
+- Next step: Continue Phase B with the next smallest search UI/state helper extraction while preserving dual-path parity.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
-- Last updated at (UTC): 2026-05-23T00:00:00Z
+- Last updated at (UTC): 2026-05-28T00:00:00Z
 
 
 ## FFA/FBA status
@@ -20,7 +20,7 @@
 - Evidence:
   - module plan синхронизирован с central FFA/FBA readiness board;
   - дальнейшее повышение статуса выполняется только вместе с verification evidence и обновлением local+central docs.
-- Last verified at (UTC): 2026-05-24T00:00:00Z
+- Last verified at (UTC): 2026-05-28T00:00:00Z
 - Owner: `rustok-search` module team
 
 ## Область работ
@@ -97,4 +97,5 @@
 - [x] Slice 6: storefront/admin entity-source/status label formatting moved to core (`entity_source_label`, `source_entity_status_label`).
 - [x] Slice 7: admin preview score-template value extraction switched to dedicated core helper (`score_value`).
 - [x] Slice 8: storefront/admin error message composition moved to core (`error_with_context`).
-- [x] Slice 9: storefront/admin score rendering unified to direct core helpers (`score_label`, `score_value`) without template/trim hacks.
+- [x] Slice 9: storefront/admin score rendering unified to direct core helpers (`score_label`) without template/trim hacks.
+- [x] Slice 10: admin relevance editor JSON formatting and ranking/filter preset extraction moved to core (`pretty_json_string`, `parse_json_for_editor`, `extract_ranking_profile_value`, `extract_surface_presets_json`).
