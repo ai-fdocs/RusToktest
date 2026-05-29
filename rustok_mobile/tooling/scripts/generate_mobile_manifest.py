@@ -104,6 +104,8 @@ def _parse_locale_namespace(admin_ui: dict[str, object], module_slug: str) -> st
 def _parse_child_pages(admin_ui: dict[str, object]) -> list[dict[str, str]]:
     pages_raw = admin_ui.get("child_pages")
     if not isinstance(pages_raw, list):
+        pages_raw = admin_ui.get("pages")
+    if not isinstance(pages_raw, list):
         return []
 
     pages: list[dict[str, str]] = []
