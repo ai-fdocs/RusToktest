@@ -6,8 +6,8 @@
 ## Execution checkpoint
 
 - Current phase: plan_sync
-- Last checkpoint: Phase B pilot slice #18 replaced the weak empty-state helper with a framework-agnostic admin preview request builder in `admin/src/core.rs` without changing native/GraphQL transport.
-- Next step: Continue Phase B with the next smallest search UI/state helper extraction while preserving dual-path parity.
+- Last checkpoint: Phase B pilot slice #19 moved reusable UI text/CSV and route-query update semantics to shared `rustok-api`, with `leptos-ui-routing` applying the shared intent.
+- Next step: Continue Phase B by extracting the next preview view-model/state helper while reusing shared FFA UI contracts instead of package-local duplicates.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
 - Last updated at (UTC): 2026-05-29T00:00:00Z
@@ -20,7 +20,8 @@
 - Evidence:
   - module plan синхронизирован с central FFA/FBA readiness board;
   - дальнейшее повышение статуса выполняется только вместе с verification evidence и обновлением local+central docs;
-  - Phase B slices #17-18 extracted admin route-query update semantics and preview form/request normalization into `admin/src/core.rs`; native/GraphQL transport was not modified.
+  - Phase B slices #17-18 extracted admin route-query update semantics and preview form/request normalization into `admin/src/core.rs`; native/GraphQL transport was not modified;
+  - Phase B slice #19 promoted reusable UI text/CSV and route-query update semantics to `rustok-api`, consumed by `leptos-ui-routing` and search admin core.
 - Last verified at (UTC): 2026-05-29T00:00:00Z
 - Owner: `rustok-search` module team
 
@@ -108,3 +109,4 @@
 - [x] Slice 16: admin relevance editor merge and JSON-array validation moved to core (`RelevanceEditorConfigInput`, `RelevanceEditorMessages`, `merge_relevance_editor_config`, `parse_json_array_for_editor`).
 - [x] Slice 17: admin preview route-query update semantics moved to core (`RouteQueryUpdate`, `route_query_update`) without native/GraphQL transport changes.
 - [x] Slice 18: admin preview form/request normalization moved to core (`SearchPreviewFormInput`, `SearchPreviewRequest`, `build_search_preview_request`), replacing the weak empty-state helper slice.
+- [x] Slice 19: reusable UI text/CSV normalization and route-query update intent promoted to `rustok-api` (`normalize_ui_text`, `parse_ui_csv`, `UiRouteQueryUpdate`) and applied by `leptos-ui-routing`.

@@ -245,14 +245,8 @@ pub fn SearchAdmin() -> impl IntoView {
                     filters,
                     route_query_update,
                 } = preview_request;
-                match route_query_update {
-                    core::RouteQueryUpdate::Clear => {
-                        preview_query_writer.clear_key(AdminQueryKey::Query.as_str());
-                    }
-                    core::RouteQueryUpdate::Replace(value) => {
-                        preview_query_writer.replace_value(AdminQueryKey::Query.as_str(), value);
-                    }
-                }
+                preview_query_writer
+                    .replace_query_update(AdminQueryKey::Query.as_str(), route_query_update);
                 match api::fetch_search_preview(
                     token_value,
                     tenant_value,

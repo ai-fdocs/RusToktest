@@ -1,21 +1,15 @@
+use rustok_api::{
+    normalize_ui_text, parse_ui_csv, route_query_update_for_text, UiRouteQueryUpdate,
+};
+
 use crate::model::SearchPreviewFilters;
 
 pub fn parse_csv(value: &str) -> Vec<String> {
-    value
-        .split(',')
-        .map(str::trim)
-        .filter(|segment| !segment.is_empty())
-        .map(ToOwned::to_owned)
-        .collect()
+    parse_ui_csv(value)
 }
 
 pub fn optional_text(value: &str) -> Option<String> {
-    let trimmed = value.trim();
-    if trimmed.is_empty() {
-        None
-    } else {
-        Some(trimmed.to_string())
-    }
+    normalize_ui_text(value)
 }
 
 pub fn facet_display_name(raw_name: &str) -> String {
@@ -34,11 +28,7 @@ pub fn score_label(score: f64) -> String {
     format!("score {:.3}", score)
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum RouteQueryUpdate {
-    Clear,
-    Replace(String),
-}
+pub type RouteQueryUpdate = UiRouteQueryUpdate;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SearchPreviewFormInput<'a> {
@@ -62,11 +52,7 @@ pub struct SearchPreviewRequest {
 }
 
 pub fn route_query_update(query: &str) -> RouteQueryUpdate {
-    if query.trim().is_empty() {
-        RouteQueryUpdate::Clear
-    } else {
-        RouteQueryUpdate::Replace(query.to_string())
-    }
+    route_query_update_for_text(query)
 }
 
 pub fn build_search_preview_request(input: SearchPreviewFormInput<'_>) -> SearchPreviewRequest {

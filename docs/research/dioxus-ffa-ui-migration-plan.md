@@ -80,7 +80,8 @@
 Отдельно подготовить portability-порт для route/query plumbing:
 
 - текущий Leptos implementation остаётся;
-- добавляется transport/framework-agnostic контракт для будущего Dioxus routing adapter.
+- добавляется transport/framework-agnostic контракт для будущего Dioxus routing adapter;
+- shared foundation для первых wave вынесен в `rustok-api`: `normalize_ui_text`, `parse_ui_csv`, `UiRouteQueryUpdate`, а Leptos adapter применяет эти intents через `leptos-ui-routing`.
 
 ## Phase D — Wave rollout по остальным UI пакетам (3–6 недель)
 
