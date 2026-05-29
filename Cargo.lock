@@ -857,9 +857,9 @@ dependencies = [
 
 [[package]]
 name = "aws-sdk-s3"
-version = "1.133.0"
+version = "1.134.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "237aba2985e3c0a83e199cc7aa9a64a16c599875bc98170f00932f6199f19922"
+checksum = "be06bdfdf00371318253d74776567512d1229d1f3cd5546d27d333c89e013b84"
 dependencies = [
  "aws-credential-types",
  "aws-runtime",
@@ -9777,6 +9777,7 @@ dependencies = [
  "rustok-content",
  "rustok-core",
  "rustok-events",
+ "rustok-media",
  "rustok-outbox",
  "rustok-profiles",
  "rustok-seo-targets",
@@ -10215,6 +10216,7 @@ dependencies = [
  "rustok-content",
  "rustok-core",
  "rustok-events",
+ "rustok-media",
  "rustok-outbox",
  "rustok-profiles",
  "rustok-seo-targets",
@@ -10568,6 +10570,7 @@ dependencies = [
  "rustok-content",
  "rustok-core",
  "rustok-events",
+ "rustok-media",
  "rustok-outbox",
  "rustok-seo-targets",
  "rustok-telemetry",
@@ -10722,6 +10725,7 @@ dependencies = [
  "rustok-commerce-foundation",
  "rustok-core",
  "rustok-events",
+ "rustok-media",
  "rustok-outbox",
  "rustok-seo-targets",
  "rustok-taxonomy",
@@ -11012,6 +11016,7 @@ dependencies = [
  "async-graphql",
  "async-trait",
  "rustok-core",
+ "rustok-media",
  "rustok-outbox",
  "sea-orm",
  "serde",
