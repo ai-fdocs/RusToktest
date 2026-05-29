@@ -32,6 +32,24 @@ pub fn score_label(score: f64) -> String {
     format!("score {:.3}", score)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RouteQueryUpdate {
+    Clear,
+    Replace(String),
+}
+
+pub fn route_query_update(query: &str) -> RouteQueryUpdate {
+    if query.trim().is_empty() {
+        RouteQueryUpdate::Clear
+    } else {
+        RouteQueryUpdate::Replace(query.to_string())
+    }
+}
+
+pub fn has_items<T>(items: &[T]) -> bool {
+    !items.is_empty()
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -77,6 +95,21 @@ mod tests {
             error_with_context("load failed", "timeout"),
             "load failed: timeout"
         );
+    }
+
+    #[test]
+    fn route_query_update_preserves_non_empty_preview_query() {
+        assert_eq!(route_query_update("   "), RouteQueryUpdate::Clear);
+        assert_eq!(
+            route_query_update("  botas "),
+            RouteQueryUpdate::Replace("  botas ".to_string())
+        );
+    }
+
+    #[test]
+    fn has_items_reports_empty_state_without_ui_runtime() {
+        assert!(!has_items::<String>(&[]));
+        assert!(has_items(&["row"]));
     }
 
     #[test]

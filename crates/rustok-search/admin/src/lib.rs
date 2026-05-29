@@ -231,11 +231,13 @@ pub fn SearchAdmin() -> impl IntoView {
             let preview_error_label = preview_error_label.clone();
             let preview_query_writer = preview_query_writer.clone();
             async move {
-                if query_value.trim().is_empty() {
-                    preview_query_writer.clear_key(AdminQueryKey::Query.as_str());
-                } else {
-                    preview_query_writer
-                        .replace_value(AdminQueryKey::Query.as_str(), query_value.clone());
+                match core::route_query_update(&query_value) {
+                    core::RouteQueryUpdate::Clear => {
+                        preview_query_writer.clear_key(AdminQueryKey::Query.as_str());
+                    }
+                    core::RouteQueryUpdate::Replace(value) => {
+                        preview_query_writer.replace_value(AdminQueryKey::Query.as_str(), value);
+                    }
                 }
                 match api::fetch_search_preview(
                     token_value,
