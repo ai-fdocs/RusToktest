@@ -31,6 +31,7 @@ else:
 
 _SNAKE_CASE_RE = re.compile(r"^[a-z0-9_]+$")
 _PERMISSION_RE = re.compile(r"^[a-z0-9_.:]+$")
+_CAPABILITY_RE = re.compile(r"^[a-z0-9_.:-]+$")
 
 
 def _is_snake_case(value: str) -> bool:
@@ -76,6 +77,7 @@ def _validate_snapshot_schema(entries: object) -> str | None:
         "locale_namespace",
         "child_pages",
     }
+    optional_keys = {"builder_surface"}
     seen_route_segments: set[str] = set()
     seen_module_slugs: set[str] = set()
     previous_route_segment: str | None = None
@@ -87,7 +89,7 @@ def _validate_snapshot_schema(entries: object) -> str | None:
         missing = required_keys.difference(item.keys())
         if missing:
             return f"snapshot entry #{index} missing keys: {sorted(missing)}"
-        unknown = set(item.keys()).difference(required_keys)
+        unknown = set(item.keys()).difference(required_keys | optional_keys)
         if unknown:
             return f"snapshot entry #{index} has unknown keys: {sorted(unknown)}"
 
@@ -98,6 +100,7 @@ def _validate_snapshot_schema(entries: object) -> str | None:
         locale_namespace = item["locale_namespace"]
         permissions = item["permissions"]
         child_pages = item["child_pages"]
+        builder_surface = item.get("builder_surface")
 
         if not isinstance(module_slug, str) or not module_slug.strip():
             return f"snapshot entry #{index} has invalid module_slug"
@@ -191,6 +194,122 @@ def _validate_snapshot_schema(entries: object) -> str | None:
                 return f"snapshot entry #{index} child_pages must be sorted by subpath"
             seen_subpaths.add(subpath)
             previous_subpath = subpath
+
+        builder_surface_error = _validate_builder_surface(index, builder_surface)
+        if builder_surface_error is not None:
+            return builder_surface_error
+
+    return None
+
+
+def _validate_builder_surface(index: int, builder_surface: object) -> str | None:
+    if builder_surface is None:
+        return None
+    if not isinstance(builder_surface, dict):
+        return f"snapshot entry #{index} builder_surface must be null or an object"
+
+    required_keys = {
+        "provider_module",
+        "contract",
+        "contract_version",
+        "builder_contract_version",
+        "capabilities",
+        "degraded_modes",
+        "toggle_profiles",
+    }
+    missing = required_keys.difference(builder_surface.keys())
+    if missing:
+        return (
+            f"snapshot entry #{index} builder_surface missing keys: {sorted(missing)}"
+        )
+    unknown = set(builder_surface.keys()).difference(required_keys)
+    if unknown:
+        return f"snapshot entry #{index} builder_surface has unknown keys: {sorted(unknown)}"
+
+    for key in ("provider_module", "contract_version", "builder_contract_version"):
+        value = builder_surface.get(key)
+        if not isinstance(value, str) or not value.strip():
+            return f"snapshot entry #{index} builder_surface has invalid {key}"
+        if value != value.strip():
+            return f"snapshot entry #{index} builder_surface {key} must be trimmed"
+
+    contract = builder_surface.get("contract")
+    if not isinstance(contract, str) or contract != contract.strip():
+        return (
+            f"snapshot entry #{index} builder_surface contract must be a trimmed string"
+        )
+
+    capabilities = builder_surface.get("capabilities")
+    if not isinstance(capabilities, list):
+        return f"snapshot entry #{index} builder_surface capabilities must be an array"
+    previous_capability: str | None = None
+    seen_capabilities: set[str] = set()
+    for capability_index, capability in enumerate(capabilities):
+        if not isinstance(capability, str) or not capability.strip():
+            return (
+                f"snapshot entry #{index} builder_surface capability "
+                f"#{capability_index} is invalid"
+            )
+        if capability != capability.strip() or not _CAPABILITY_RE.fullmatch(capability):
+            return (
+                f"snapshot entry #{index} builder_surface capability "
+                f"#{capability_index} must use [a-z0-9_.:-]"
+            )
+        if capability in seen_capabilities:
+            return (
+                f"snapshot entry #{index} builder_surface duplicates "
+                f"capability '{capability}'"
+            )
+        if previous_capability is not None and capability < previous_capability:
+            return f"snapshot entry #{index} builder_surface capabilities must be sorted ascending"
+        seen_capabilities.add(capability)
+        previous_capability = capability
+
+    degraded_modes = builder_surface.get("degraded_modes")
+    if not isinstance(degraded_modes, dict):
+        return (
+            f"snapshot entry #{index} builder_surface degraded_modes must be an object"
+        )
+    for key, value in degraded_modes.items():
+        if not isinstance(key, str) or not _is_snake_case(key):
+            return f"snapshot entry #{index} builder_surface degraded_modes key must be snake_case"
+        if not isinstance(value, str) or not value.strip() or value != value.strip():
+            return f"snapshot entry #{index} builder_surface degraded_modes value is invalid"
+
+    toggle_profiles = builder_surface.get("toggle_profiles")
+    if not isinstance(toggle_profiles, dict):
+        return (
+            f"snapshot entry #{index} builder_surface toggle_profiles must be an object"
+        )
+    for key, values in toggle_profiles.items():
+        if not isinstance(key, str) or not _is_snake_case(key):
+            return f"snapshot entry #{index} builder_surface toggle_profiles key must be snake_case"
+        if not isinstance(values, list) or not values:
+            return f"snapshot entry #{index} builder_surface toggle profile '{key}' must be a non-empty array"
+        previous_value: str | None = None
+        seen_values: set[str] = set()
+        for value_index, value in enumerate(values):
+            if (
+                not isinstance(value, str)
+                or not value.strip()
+                or value != value.strip()
+            ):
+                return (
+                    f"snapshot entry #{index} builder_surface toggle profile "
+                    f"'{key}' value #{value_index} is invalid"
+                )
+            if value in seen_values:
+                return (
+                    f"snapshot entry #{index} builder_surface toggle profile "
+                    f"'{key}' duplicates value '{value}'"
+                )
+            if previous_value is not None and value < previous_value:
+                return (
+                    f"snapshot entry #{index} builder_surface toggle profile "
+                    f"'{key}' values must be sorted ascending"
+                )
+            seen_values.add(value)
+            previous_value = value
 
     return None
 

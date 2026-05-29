@@ -547,6 +547,57 @@ class VerifyMobileManifestTests(unittest.TestCase):
         self.assertIsNotNone(error)
         self.assertIn("has unknown keys", error)
 
+    def test_validate_snapshot_schema_accepts_builder_surface_metadata(self):
+        error = _validate_snapshot_schema(
+            [
+                {
+                    "module_slug": "pages",
+                    "surface_kind": "admin_mobile",
+                    "route_segment": "pages",
+                    "nav_icon": "module",
+                    "permissions": [],
+                    "locale_namespace": "pages",
+                    "child_pages": [],
+                    "builder_surface": {
+                        "provider_module": "page-builder",
+                        "contract": "grapesjs_v1",
+                        "contract_version": "1.0",
+                        "builder_contract_version": "1.0",
+                        "capabilities": ["preview", "publish"],
+                        "degraded_modes": {"builder_disabled": "readonly"},
+                        "toggle_profiles": {"builder_off": ["builder.enabled=false"]},
+                    },
+                }
+            ]
+        )
+        self.assertIsNone(error)
+
+    def test_validate_snapshot_schema_rejects_unsorted_builder_capabilities(self):
+        error = _validate_snapshot_schema(
+            [
+                {
+                    "module_slug": "pages",
+                    "surface_kind": "admin_mobile",
+                    "route_segment": "pages",
+                    "nav_icon": "module",
+                    "permissions": [],
+                    "locale_namespace": "pages",
+                    "child_pages": [],
+                    "builder_surface": {
+                        "provider_module": "page-builder",
+                        "contract": "grapesjs_v1",
+                        "contract_version": "1.0",
+                        "builder_contract_version": "1.0",
+                        "capabilities": ["tree", "preview"],
+                        "degraded_modes": {},
+                        "toggle_profiles": {},
+                    },
+                }
+            ]
+        )
+        self.assertIsNotNone(error)
+        self.assertIn("capabilities must be sorted", error)
+
 
 if __name__ == "__main__":
     unittest.main()

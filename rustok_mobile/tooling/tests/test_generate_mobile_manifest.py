@@ -77,7 +77,7 @@ class GenerateMobileManifestTests(unittest.TestCase):
         )
         self.assertIn("Owner\\'s", content)
 
-    def test_render_includes_child_pages(self):
+    def test_render_includes_child_pages_and_contract_metadata(self):
         content = render(
             [
                 {
@@ -85,12 +85,17 @@ class GenerateMobileManifestTests(unittest.TestCase):
                     "route_segment": "test",
                     "nav_label": "Test",
                     "icon": "module",
+                    "locale_namespace": "test_module",
+                    "permissions": ["test.read"],
                     "child_pages": [
                         {"subpath": "items", "title": "Items", "nav_label": "All items"}
                     ],
                 }
             ]
         )
+        self.assertIn("localeNamespace: 'test_module'", content)
+        self.assertIn("permissions: <String>[", content)
+        self.assertIn("'test.read'", content)
         self.assertIn("childPages: <MobileChildPage>[", content)
         self.assertIn("subpath: 'items'", content)
         self.assertIn("navLabel: 'All items'", content)
@@ -112,6 +117,100 @@ class GenerateMobileManifestTests(unittest.TestCase):
         self.assertIn('"route_segment": "blog"', payload)
         self.assertIn('"nav_icon": "article"', payload)
         self.assertIn('"child_pages"', payload)
+
+    def test_scan_modules_includes_builder_surface_metadata(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = pathlib.Path(tmp)
+            write_module_manifest(
+                root,
+                "mod-a",
+                """
+                [module]
+                slug = "pages"
+
+                [dependencies.page_builder]
+                module = "page-builder"
+                contract = "grapesjs_v1"
+                contract_version = "1.0"
+                required_capabilities = ["preview", "tree", "preview"]
+
+                [provides.admin_ui]
+                route_segment = "pages"
+
+                [fba.builder_consumer]
+                builder_contract_version = "1.0"
+
+                [fba.builder_consumer.degraded_modes]
+                builder_disabled = "readonly"
+
+                [fba.builder_consumer.toggle_profiles]
+                builder_off = ["builder.enabled=false", "builder.enabled=false"]
+                """,
+            )
+
+            modules = scan_modules(root)
+            builder_surface = modules[0]["builder_surface"]
+            self.assertEqual(builder_surface["provider_module"], "page-builder")
+            self.assertEqual(builder_surface["contract"], "grapesjs_v1")
+            self.assertEqual(builder_surface["capabilities"], ["preview", "tree"])
+            self.assertEqual(
+                builder_surface["degraded_modes"], {"builder_disabled": "readonly"}
+            )
+            self.assertEqual(
+                builder_surface["toggle_profiles"],
+                {"builder_off": ["builder.enabled=false"]},
+            )
+
+    def test_render_includes_builder_surface_metadata(self):
+        content = render(
+            [
+                {
+                    "module_key": "rustok_pages",
+                    "route_segment": "pages",
+                    "nav_label": "Pages",
+                    "icon": "module",
+                    "builder_surface": {
+                        "provider_module": "page-builder",
+                        "contract": "grapesjs_v1",
+                        "contract_version": "1.0",
+                        "builder_contract_version": "1.0",
+                        "capabilities": ["preview"],
+                        "degraded_modes": {"builder_disabled": "readonly"},
+                        "toggle_profiles": {"builder_off": ["builder.enabled=false"]},
+                    },
+                }
+            ]
+        )
+        self.assertIn("builderSurface: MobileBuilderSurfaceMeta(", content)
+        self.assertIn("providerModule: 'page-builder'", content)
+        self.assertIn("capabilities: <String>[", content)
+        self.assertIn("'builder_off': <String>[", content)
+
+    def test_render_snapshot_includes_builder_surface_metadata(self):
+        payload = render_snapshot_json(
+            [
+                {
+                    "module_key": "rustok_pages",
+                    "module_slug": "pages",
+                    "route_segment": "pages",
+                    "nav_label": "Pages",
+                    "icon": "module",
+                    "child_pages": [],
+                    "builder_surface": {
+                        "provider_module": "page-builder",
+                        "contract": "grapesjs_v1",
+                        "contract_version": "1.0",
+                        "builder_contract_version": "1.0",
+                        "capabilities": ["preview"],
+                        "degraded_modes": {"builder_disabled": "readonly"},
+                        "toggle_profiles": {"builder_off": ["builder.enabled=false"]},
+                    },
+                }
+            ]
+        )
+        self.assertIn('"builder_surface": {', payload)
+        self.assertIn('"provider_module": "page-builder"', payload)
+        self.assertIn('"builder_contract_version": "1.0"', payload)
 
     def test_scan_modules_raises_on_duplicate_route_segment(self):
         with tempfile.TemporaryDirectory() as tmp:
