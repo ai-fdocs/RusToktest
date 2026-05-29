@@ -10,6 +10,7 @@ Flutter workspace scaffold based on `docs/research/flutter.md`.
 - `packages/app_graphql` — GraphQL transport wiring.
 - `packages/app_route_contracts` — typed route/query contracts.
 - `packages/app_module_contracts` — interfaces for module-owned mobile packages.
+- `packages/rustok_modules_mobile` — Phase 1 pilot package for the modules registry mobile surface.
 
 ## Implemented now
 
@@ -21,6 +22,7 @@ Flutter workspace scaffold based on `docs/research/flutter.md`.
 - GraphQL client factory with HTTP/WebSocket split transport and subscription support.
 - Auth session scaffolding (`AuthSessionStore`, `AuthSessionManager`, in-memory store, refresh service contract).
 - Manifest generator script from `crates/*/rustok-module.toml`.
+- Phase 1 pilot modules package with GraphQL-backed list/detail shell navigation evidence.
 
 
 Host-level providers now resolve sessions via `AuthSessionManager` and `RefreshTokenService` before building the authenticated GraphQL client. The refresh flow uses an HTTP-only GraphQL client to avoid unnecessary WebSocket initialization during bootstrap. Provider wiring is isolated in `apps/rustok_admin_mobile/lib/app_shell/auth_bootstrap.dart`.
@@ -71,6 +73,6 @@ signal that exercises the generator CLI itself.
 
 ## Next steps
 
-1. Start first module package (`rustok_auth_mobile`) with real screens.
-2. Replace in-memory auth session store with secure storage and connect refresh flow to sign-in lifecycle.
+1. Replace in-memory auth session store with secure storage and connect refresh flow to sign-in lifecycle.
+2. Expand the modules pilot from list/detail shell navigation to the first mutation-backed operator action.
 3. Add deterministic generated-file checks to the mobile CI pipeline.

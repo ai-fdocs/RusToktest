@@ -1116,25 +1116,25 @@ _Легенда статусов: `⬜ Planned` — не начато, `🟡 In 
 | Статус | Фаза | Объём работ | На что опираемся в этом документе | Definition of Done |
 |---|---|---|---|---|
 | 🟡 In progress | **Phase 0 — Foundation** | Создать `host app`, app shell, тему, auth session store, GraphQL client factory, route contracts и сразу зафиксировать FFA-baseline для Flutter (единый product/capability contract без Flutter-specific API). | [Базовый каркас приложения](#базовый-каркас-приложения), [Маршрутизация](#маршрутизация), [Стандартное подключение GraphQL для RusTok](#стандартное-подключение-graphql-для-rustok), [Авторизация и refresh](#авторизация-и-refresh) | Работают login + `me` + `currentTenant`, есть базовый shell и deep-link вход в защищённый экран; FFA-baseline зафиксирован с начала разработки. |
-| ⬜ Planned | **Phase 1 — Pilot module** | Внедрить один module-owned пакет (рекомендовано: `modules` или `blog`) с реальным E2E флоу. | [Файловая структура и размещение UI-компонентов](#файловая-структура-и-размещение-ui-компонентов), [DI и registry-driven подключение модулей](#di-и-registry-driven-подключение-модулей), [Шаблоны экранов и виджетов](#шаблоны-экранов-и-виджетов) | Один бизнес-сценарий модуля проходит end-to-end в мобильном host без feature-local transport-клиентов. |
+| 🟡 In progress | **Phase 1 — Pilot module** | Внедрить один module-owned пакет (рекомендовано: `modules` или `blog`) с реальным E2E флоу. | [Файловая структура и размещение UI-компонентов](#файловая-структура-и-размещение-ui-компонентов), [DI и registry-driven подключение модулей](#di-и-registry-driven-подключение-модулей), [Шаблоны экранов и виджетов](#шаблоны-экранов-и-виджетов) | Один бизнес-сценарий модуля проходит end-to-end в мобильном host без feature-local transport-клиентов. |
 | 🟡 In progress | **Phase 2 — Registry/codegen** | Подключить generated mobile registry из manifest/export и убрать ручное wiring в host. Заранее заложить расширяемость registry под сложные модульные поверхности (в т.ч. page builder: child pages/typed surface metadata), без отдельного «плана-повтора». | [Предлагаемый registry-driven поток подключения модулей](#предлагаемый-registry-driven-поток-подключения-модулей), [Предлагаемые самописные библиотеки и модули](#предлагаемые-самописные-библиотеки-и-модули) | Новый модуль подключается через manifest/codegen без правок в навигационном каркасе host; контракты registry готовы к page-builder сценариям (nested routes и surface metadata). |
 | ⬜ Planned | **Phase 3 — Parity expansion** | Перенести остальные high-value модули, закрепить route/i18n/permission parity и единые error/loading/empty паттерны. | [Где размещать UI-компоненты и как дублировать UI модулей платформы](#где-размещать-ui-компоненты-и-как-дублировать-ui-модулей-платформы), [Кэширование, обработка ошибок и subscriptions](#кэширование-обработка-ошибок-и-subscriptions) | Покрыты основные operator flows; контракты query keys/locale/permissions не расходятся с web-host правилами. |
 | ⬜ Planned | **Phase 4 — Hardening & release** | E2E, performance, observability, crash reporting, release pipeline (Android/iOS), rollout gates. | [Рекомендуемый pipeline для Flutter](#рекомендуемый-pipeline-для-flutter), [Шаблон GitHub Actions](#шаблон-github-actions), [Риски и митигации](#риски-и-митигации) | Готовы alpha/beta релизы, pipeline стабилен, критичные риски закрыты митигациями. |
 | ⬜ Planned | **Phase 5 — Offline/advanced sync (optional)** | Добавить офлайн-сценарии только после продуктового подтверждения требований. | [Open questions и ограничения](#open-questions-и-ограничения), [Риски и митигации](#риски-и-митигации) | Есть утверждённые offline requirements и реализована целевая стратегия sync/outbox. |
 
 
-#### Операционный статус плана (обновлено: 2026-05-28, FFA continuation)
+#### Операционный статус плана (обновлено: 2026-05-29, Phase 1 pilot continuation)
 
 - **FFA в плане отмечен:** ✅ Да. FFA-baseline явно зафиксирован в `Phase 0 — Foundation` и отдельно закреплён в anti-drift guardrail разделе.
-- **Текущий фокус выполнения:** `Phase 2 — Registry/codegen` (статус `🟡 In progress`) без изменения platform contract.
-- **Следующая точка контроля:** закрыть FFA-safe входные критерии `Phase 1` (registry freeze + codegen reproducibility + host adapter seam) и в этом же треке перевести `Phase 1 — Pilot module` в `🟡 In progress`.
+- **Текущий фокус выполнения:** `Phase 1 — Pilot module` (статус `🟡 In progress`) поверх закрытого host adapter seam; `Phase 2 — Registry/codegen` остаётся в поддерживающем режиме без изменения platform contract.
+- **Следующая точка контроля:** расширить pilot-флоу `modules` от list/detail shell navigation к первому mutation-backed operator action, не добавляя feature-local transport-клиентов.
 
-#### Ближайший execution backlog (Phase 2 → Phase 1)
+#### Ближайший execution backlog (Phase 1 pilot)
 
 1. **Registry schema freeze (FFA-safe):** зафиксировать минимальный mobile registry contract (`module_slug`, `surface_kind`, `route_segment`, `child_pages`, `permissions`, `locale_namespace`) без Flutter-only полей.
 2. **Codegen pipeline:** добавить reproducible генерацию `mobile_manifest.g.dart` из manifest snapshot + CI-проверку diff generated-файлов (в работе: локальная verify-команда уже фиксирует stale-state для manifest + snapshot).
 3. **Host integration seam:** подключить registry через единый adapter-слой (`module_entry_adapter`) и убрать ручное перечисление модулей в shell routing/nav.
-4. **Pilot gate:** после стабилизации registry перевести `Phase 1 — Pilot module` в `🟡 In progress` и взять один модульный E2E-флоу (`modules` или `blog`) как контроль parity.
+4. **Pilot gate:** `Phase 1 — Pilot module` переведён в `🟡 In progress`; следующий шаг — расширить `modules` pilot до первого mutation-backed operator action как контроль parity.
 
 
 
@@ -1166,7 +1166,20 @@ _Легенда статусов: `⬜ Planned` — не начато, `🟡 In 
 | Generated-file diff diagnostics | `rustok_mobile/tooling/scripts/verify_mobile_manifest.py` | stale manifest/snapshot failures print unified diff + regeneration command | ✅ Done |
 | Host adapter seam (`module_entry_adapter`) | `apps/rustok_admin_mobile` | registry подключается без ручного списка модулей в shell-router | ✅ Done |
 | Manifest-driven nav icon mapping | `apps/rustok_admin_mobile` | host nav использует `nav.icon` из generated manifest и fallback по module metadata без ручного списка routes | ✅ Done |
-| Pilot E2E evidence (modules/blog) | integration tests / manual evidence | login → module list/detail → shell back | ⬜ Planned |
+| Pilot E2E evidence (modules/blog) | `rustok_mobile/apps/rustok_admin_mobile/test/pilot_modules_flow_test.dart` | authenticated shell → GraphQL-backed module list → module detail route → shell back | 🟡 In progress |
+
+#### PR-C evidence pack (Phase 1 pilot modules flow)
+
+**Pilot package:** `rustok_mobile/packages/rustok_modules_mobile`.
+
+Минимальный Phase 1 pilot теперь закреплён как module-owned mobile package для surface `modules`:
+- data boundary — `ModulesRepository`, где host обязан передать shared GraphQL client;
+- transport implementation — `GraphQlModulesRepository` использует существующий platform query `moduleRegistry`;
+- UI entry point — `ModulesMobileScreen` с loading/error/empty состояниями и переходом в generated host route;
+- host seam — `apps/rustok_admin_mobile` overrides `modulesRepositoryProvider` через `graphQlClientProvider`, сохраняя auth/tenant/locale context на host-слое;
+- evidence — widget E2E `pilot_modules_flow_test.dart` проверяет authenticated shell → module list → generated detail route → return to `/modules`.
+
+FFA-ограничение для этого шага: пакет `rustok_modules_mobile` не создаёт собственный GraphQL client, auth/session store, tenant resolver или locale fallback chain. Он только потребляет host-provided repository и existing GraphQL surface.
 
 #### PR-A evidence pack (registry contract freeze)
 
@@ -1204,9 +1217,9 @@ _Легенда статусов: `⬜ Planned` — не начато, `🟡 In 
 
 #### FFA-проверка для каждого PR в этом треке
 
-- [ ] Нет Flutter-specific API-контрактов поверх платформы (только consumption существующих platform contracts).
-- [ ] Route/query keys соответствуют canonical `snake_case` правилам RusTok.
-- [ ] Locale/tenant/auth context собирается host-слоем централизованно (без feature-local fallback chains).
+- [x] Нет Flutter-specific API-контрактов поверх платформы (только consumption существующих platform contracts).
+- [x] Route/query keys соответствуют canonical `snake_case` правилам RusTok.
+- [x] Locale/tenant/auth context собирается host-слоем централизованно (без feature-local fallback chains).
 - [x] Registry/codegen изменения не ломают возможность module-owned surfaces подключаться декларативно.
 
 #### Чек-лист anti-duplication для PR
