@@ -32,6 +32,8 @@ else:
 _SNAKE_CASE_RE = re.compile(r"^[a-z0-9_]+$")
 _PERMISSION_RE = re.compile(r"^[a-z0-9_.:]+$")
 _CAPABILITY_RE = re.compile(r"^[a-z0-9_.:-]+$")
+_MODULE_REF_RE = re.compile(r"^[a-z0-9_-]+$")
+_CONTRACT_RE = re.compile(r"^[a-z0-9_.-]+$")
 
 
 def _is_snake_case(value: str) -> bool:
@@ -226,7 +228,17 @@ def _validate_builder_surface(index: int, builder_surface: object) -> str | None
     if unknown:
         return f"snapshot entry #{index} builder_surface has unknown keys: {sorted(unknown)}"
 
-    for key in ("provider_module", "contract_version", "builder_contract_version"):
+    provider_module = builder_surface.get("provider_module")
+    if not isinstance(provider_module, str) or not provider_module.strip():
+        return f"snapshot entry #{index} builder_surface has invalid provider_module"
+    if provider_module != provider_module.strip():
+        return (
+            f"snapshot entry #{index} builder_surface provider_module must be trimmed"
+        )
+    if not _MODULE_REF_RE.fullmatch(provider_module):
+        return f"snapshot entry #{index} builder_surface provider_module must use [a-z0-9_-]"
+
+    for key in ("contract_version", "builder_contract_version"):
         value = builder_surface.get(key)
         if not isinstance(value, str) or not value.strip():
             return f"snapshot entry #{index} builder_surface has invalid {key}"
@@ -234,14 +246,16 @@ def _validate_builder_surface(index: int, builder_surface: object) -> str | None
             return f"snapshot entry #{index} builder_surface {key} must be trimmed"
 
     contract = builder_surface.get("contract")
-    if not isinstance(contract, str) or contract != contract.strip():
-        return (
-            f"snapshot entry #{index} builder_surface contract must be a trimmed string"
-        )
+    if not isinstance(contract, str) or not contract.strip():
+        return f"snapshot entry #{index} builder_surface has invalid contract"
+    if contract != contract.strip():
+        return f"snapshot entry #{index} builder_surface contract must be trimmed"
+    if not _CONTRACT_RE.fullmatch(contract):
+        return f"snapshot entry #{index} builder_surface contract must use [a-z0-9_.-]"
 
     capabilities = builder_surface.get("capabilities")
-    if not isinstance(capabilities, list):
-        return f"snapshot entry #{index} builder_surface capabilities must be an array"
+    if not isinstance(capabilities, list) or not capabilities:
+        return f"snapshot entry #{index} builder_surface capabilities must be a non-empty array"
     previous_capability: str | None = None
     seen_capabilities: set[str] = set()
     for capability_index, capability in enumerate(capabilities):
@@ -266,10 +280,8 @@ def _validate_builder_surface(index: int, builder_surface: object) -> str | None
         previous_capability = capability
 
     degraded_modes = builder_surface.get("degraded_modes")
-    if not isinstance(degraded_modes, dict):
-        return (
-            f"snapshot entry #{index} builder_surface degraded_modes must be an object"
-        )
+    if not isinstance(degraded_modes, dict) or not degraded_modes:
+        return f"snapshot entry #{index} builder_surface degraded_modes must be a non-empty object"
     for key, value in degraded_modes.items():
         if not isinstance(key, str) or not _is_snake_case(key):
             return f"snapshot entry #{index} builder_surface degraded_modes key must be snake_case"
@@ -277,10 +289,8 @@ def _validate_builder_surface(index: int, builder_surface: object) -> str | None
             return f"snapshot entry #{index} builder_surface degraded_modes value is invalid"
 
     toggle_profiles = builder_surface.get("toggle_profiles")
-    if not isinstance(toggle_profiles, dict):
-        return (
-            f"snapshot entry #{index} builder_surface toggle_profiles must be an object"
-        )
+    if not isinstance(toggle_profiles, dict) or not toggle_profiles:
+        return f"snapshot entry #{index} builder_surface toggle_profiles must be a non-empty object"
     for key, values in toggle_profiles.items():
         if not isinstance(key, str) or not _is_snake_case(key):
             return f"snapshot entry #{index} builder_surface toggle_profiles key must be snake_case"

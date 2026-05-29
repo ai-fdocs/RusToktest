@@ -61,7 +61,8 @@ python3 rustok_mobile/tooling/scripts/verify_mobile_manifest.py --repo-root /wor
 The verification command fails on stale generated files and prints a unified diff
 from the committed manifest/snapshot to the expected deterministic output. The
 snapshot includes normalized `nav_icon`, locale, permissions, child-page, and
-complete page-builder consumer metadata so navigation/capability parity drift is visible in
+complete page-builder consumer metadata (contract, capabilities, degraded
+modes, and toggle profiles) so navigation/capability parity drift is visible in
 codegen checks.
 
 ## Check deterministic codegen

@@ -18,6 +18,30 @@ from rustok_mobile.tooling.scripts.verify_mobile_manifest import (
 
 
 class VerifyMobileManifestTests(unittest.TestCase):
+    def _valid_builder_surface_entry(self, **builder_overrides):
+        builder_surface = {
+            "provider_module": "page-builder",
+            "contract": "grapesjs_v1",
+            "contract_version": "1.0",
+            "builder_contract_version": "1.0",
+            "capabilities": ["preview", "publish"],
+            "degraded_modes": {"builder_disabled": "readonly"},
+            "toggle_profiles": {"builder_off": ["builder.enabled=false"]},
+        }
+        builder_surface.update(builder_overrides)
+        return [
+            {
+                "module_slug": "pages",
+                "surface_kind": "admin_mobile",
+                "route_segment": "pages",
+                "nav_icon": "module",
+                "permissions": [],
+                "locale_namespace": "pages",
+                "child_pages": [],
+                "builder_surface": builder_surface,
+            }
+        ]
+
     def _run_verify(
         self, root: pathlib.Path, manifest: pathlib.Path, snapshot: pathlib.Path
     ):
@@ -548,52 +572,47 @@ class VerifyMobileManifestTests(unittest.TestCase):
         self.assertIn("has unknown keys", error)
 
     def test_validate_snapshot_schema_accepts_builder_surface_metadata(self):
-        error = _validate_snapshot_schema(
-            [
-                {
-                    "module_slug": "pages",
-                    "surface_kind": "admin_mobile",
-                    "route_segment": "pages",
-                    "nav_icon": "module",
-                    "permissions": [],
-                    "locale_namespace": "pages",
-                    "child_pages": [],
-                    "builder_surface": {
-                        "provider_module": "page-builder",
-                        "contract": "grapesjs_v1",
-                        "contract_version": "1.0",
-                        "builder_contract_version": "1.0",
-                        "capabilities": ["preview", "publish"],
-                        "degraded_modes": {"builder_disabled": "readonly"},
-                        "toggle_profiles": {"builder_off": ["builder.enabled=false"]},
-                    },
-                }
-            ]
-        )
+        error = _validate_snapshot_schema(self._valid_builder_surface_entry())
         self.assertIsNone(error)
+
+    def test_validate_snapshot_schema_rejects_empty_builder_contract(self):
+        error = _validate_snapshot_schema(
+            self._valid_builder_surface_entry(contract="")
+        )
+        self.assertIsNotNone(error)
+        self.assertIn("invalid contract", error)
+
+    def test_validate_snapshot_schema_rejects_invalid_builder_provider_module(self):
+        error = _validate_snapshot_schema(
+            self._valid_builder_surface_entry(provider_module="Page Builder")
+        )
+        self.assertIsNotNone(error)
+        self.assertIn("provider_module must use [a-z0-9_-]", error)
+
+    def test_validate_snapshot_schema_rejects_empty_builder_capabilities(self):
+        error = _validate_snapshot_schema(
+            self._valid_builder_surface_entry(capabilities=[])
+        )
+        self.assertIsNotNone(error)
+        self.assertIn("capabilities must be a non-empty array", error)
+
+    def test_validate_snapshot_schema_rejects_empty_builder_degraded_modes(self):
+        error = _validate_snapshot_schema(
+            self._valid_builder_surface_entry(degraded_modes={})
+        )
+        self.assertIsNotNone(error)
+        self.assertIn("degraded_modes must be a non-empty object", error)
+
+    def test_validate_snapshot_schema_rejects_empty_builder_toggle_profiles(self):
+        error = _validate_snapshot_schema(
+            self._valid_builder_surface_entry(toggle_profiles={})
+        )
+        self.assertIsNotNone(error)
+        self.assertIn("toggle_profiles must be a non-empty object", error)
 
     def test_validate_snapshot_schema_rejects_unsorted_builder_capabilities(self):
         error = _validate_snapshot_schema(
-            [
-                {
-                    "module_slug": "pages",
-                    "surface_kind": "admin_mobile",
-                    "route_segment": "pages",
-                    "nav_icon": "module",
-                    "permissions": [],
-                    "locale_namespace": "pages",
-                    "child_pages": [],
-                    "builder_surface": {
-                        "provider_module": "page-builder",
-                        "contract": "grapesjs_v1",
-                        "contract_version": "1.0",
-                        "builder_contract_version": "1.0",
-                        "capabilities": ["tree", "preview"],
-                        "degraded_modes": {},
-                        "toggle_profiles": {},
-                    },
-                }
-            ]
+            self._valid_builder_surface_entry(capabilities=["tree", "preview"])
         )
         self.assertIsNotNone(error)
         self.assertIn("capabilities must be sorted", error)

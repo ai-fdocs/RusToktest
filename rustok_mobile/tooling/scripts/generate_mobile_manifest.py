@@ -158,6 +158,8 @@ def _parse_builder_surface(data: dict[str, object]) -> dict[str, object] | None:
         and contract_version
         and builder_contract_version
         and capabilities
+        and degraded_modes
+        and toggle_profiles
     ):
         return None
 
