@@ -289,13 +289,13 @@ fn RegionRail(items: Vec<StorefrontRegion>, total: usize) -> impl IntoView {
                                     <p class="text-xs text-muted-foreground">{view_model.tax_summary.clone()}</p>
                                 </div>
                                 <a
-    class="inline-flex text-sm font-medium text-primary hover:underline"
-    href=view_model.href
-    data-region-route-query-key=view_model.query_key
-    data-region-route-query-value=view_model.query_value.clone().unwrap_or_default()
->
-    {t(locale.as_deref(), "region.list.open", "Open")}
-</a>
+                                    class="inline-flex text-sm font-medium text-primary hover:underline"
+                                    href=view_model.href
+                                    data-region-route-query-key=view_model.query_key
+                                    data-region-route-query-value=view_model.query_value.clone().unwrap_or_default()
+                                >
+                                    {t(locale.as_deref(), "region.list.open", "Open")}
+                                </a>
                             </div>
                         </article>
                     }
@@ -344,6 +344,39 @@ mod ssr_tests {
                 r#"data-region-error-locale-key="region.error.status.fallbackUnavailable""#
             ),
             "rendered error message should expose status locale key: {html}"
+        );
+    }
+
+    #[test]
+    fn region_rail_ssr_exposes_route_query_dom_evidence() {
+        let region = StorefrontRegion {
+            id: "eu".to_string(),
+            name: "Europe".to_string(),
+            currency_code: "EUR".to_string(),
+            tax_provider_id: Some("default".to_string()),
+            tax_rate: "20".to_string(),
+            tax_included: true,
+            country_tax_policies: vec![crate::model::StorefrontRegionCountryTaxPolicy {
+                country_code: "DE".to_string(),
+                tax_rate: "19".to_string(),
+                tax_included: false,
+            }],
+            countries: vec!["DE".to_string(), "FR".to_string()],
+        };
+
+        let html = view! { <RegionRail items=vec![region] total=1 /> }.to_html();
+
+        assert!(
+            html.contains(r#"href="/modules/regions?region=eu""#),
+            "rendered rail link should use core route/query href: {html}"
+        );
+        assert!(
+            html.contains(r#"data-region-route-query-key="region""#),
+            "rendered rail link should expose selected-region query key: {html}"
+        );
+        assert!(
+            html.contains(r#"data-region-route-query-value="eu""#),
+            "rendered rail link should expose selected-region query value: {html}"
         );
     }
 }

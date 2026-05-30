@@ -6,8 +6,8 @@
 
 ## Execution checkpoint
 
-- Current phase: ffa_storefront_route_query_evidence_slice
-- Last checkpoint: FFA slice #12 расширила rail item view-model route/query evidence (`query_key`, `query_value`), Leptos rail links публикуют `data-region-route-query-key` / `data-region-route-query-value`, а verifier проверяет core route/query contract и README evidence.
+- Current phase: ffa_storefront_route_query_ssr_smoke_slice
+- Last checkpoint: FFA slice #13 добавила SSR smoke-тест rail adapter: `RegionRail` рендерится без host runtime и проверяет href плюс `data-region-route-query-key` / `data-region-route-query-value`, построенные из core route/query contract.
 - Next step: Продолжить FFA-first sequencing к thin host-adapter smoke для route/query writer или вынести следующий storefront render fragment из Leptos-only слоя в core view-model.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок; при изменении status code/locale key/DOM evidence сначала обновлять verify script и его test fixture.
@@ -32,7 +32,8 @@
   - FFA slice #9 добавила automated guard в `verify-ffa-ui-migration-contract.mjs` и test fixture для status descriptors, locale keys, DOM attributes и README evidence;
   - FFA slice #10 добавила `RegionErrorDomEvidence` как переносимый output для DOM status attributes и SSR smoke-тест Leptos error adapter, который подтверждает rendered attributes;
   - FFA slice #11 добавила core-owned route/query state contract (`RegionRouteState`, `RegionRouteSelectionUpdate`, `SELECTED_REGION_QUERY_KEY`) для selected-region navigation без Leptos-owned query policy;
-  - FFA slice #12 добавила host-visible route/query DOM evidence на rail links и verifier guard для route/query core contract + README evidence.
+  - FFA slice #12 добавила host-visible route/query DOM evidence на rail links и verifier guard для route/query core contract + README evidence;
+  - FFA slice #13 добавила SSR smoke-тест Leptos rail adapter, который подтверждает rendered href и route/query DOM evidence без полноценного host runtime.
 - Last verified at (UTC): 2026-05-30T07:00:00Z
 - Owner: `rustok-region` module team
 
@@ -111,3 +112,4 @@
 - [x] Slice 10: `RegionErrorDomEvidence` фиксирует переносимый output для DOM status attributes, а SSR smoke-тест Leptos adapter рендерит `RegionErrorMessage` и проверяет `data-region-error-status` / `data-region-error-locale-key`; проверка: `cargo test -p rustok-region-storefront --lib --features ssr region_error_message_ssr_exposes_host_visible_dom_evidence`.
 - [x] Slice 11: `RegionRouteState` / `RegionRouteSelectionUpdate` и `SELECTED_REGION_QUERY_KEY` фиксируют переносимый route/query contract для selected-region navigation; Leptos adapter читает query key из core, нормализует selected id через core и строит rail href через core `selected_region_query_update`; проверка: `cargo test -p rustok-region-storefront --lib region_route_state_normalizes_host_route_query_contract`.
 - [x] Slice 12: `RegionRailItemViewModel` включает `query_key` / `query_value`, Leptos rail links публикуют `data-region-route-query-key` / `data-region-route-query-value`, а `verify-ffa-ui-migration-contract.mjs` проверяет route/query contract и README evidence; проверка: `npm run verify:ffa:ui:migration`.
+- [x] Slice 13: SSR smoke-тест `region_rail_ssr_exposes_route_query_dom_evidence` рендерит Leptos rail adapter и проверяет href + `data-region-route-query-key` / `data-region-route-query-value`; проверка: `cargo test -p rustok-region-storefront --lib --features ssr region_rail_ssr_exposes_route_query_dom_evidence`.
