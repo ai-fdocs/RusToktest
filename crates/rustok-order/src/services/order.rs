@@ -991,6 +991,51 @@ fn normalize_return_resolution_type(value: Option<String>) -> OrderResult<Option
     }
 }
 
+fn validate_return_resolution_links(
+    resolution_type: Option<&str>,
+    refund_id: Option<Uuid>,
+    order_change_id: Option<Uuid>,
+) -> OrderResult<()> {
+    match resolution_type {
+        None => {
+            if refund_id.is_some() || order_change_id.is_some() {
+                return Err(OrderError::Validation(
+                    "return resolution links require resolution_type".to_string(),
+                ));
+            }
+        }
+        Some(RETURN_RESOLUTION_REFUND) => {
+            if refund_id.is_none() {
+                return Err(OrderError::Validation(
+                    "refund return resolution requires refund_id".to_string(),
+                ));
+            }
+            if order_change_id.is_some() {
+                return Err(OrderError::Validation(
+                    "refund return resolution must not include order_change_id".to_string(),
+                ));
+            }
+        }
+        Some(RETURN_RESOLUTION_EXCHANGE) => {
+            if order_change_id.is_none() {
+                return Err(OrderError::Validation(
+                    "exchange return resolution requires order_change_id".to_string(),
+                ));
+            }
+        }
+        Some(RETURN_RESOLUTION_STORE_CREDIT) => {
+            if refund_id.is_some() || order_change_id.is_some() {
+                return Err(OrderError::Validation(
+                    "store_credit return resolution must not include refund_id or order_change_id"
+                        .to_string(),
+                ));
+            }
+        }
+        Some(_) => unreachable!("resolution_type is normalized before link validation"),
+    }
+    Ok(())
+}
+
 fn map_order_return_item_response(
     value: entities::order_return_item::Model,
 ) -> OrderReturnItemResponse {
@@ -1686,6 +1731,11 @@ impl OrderService {
             .validate()
             .map_err(|error| OrderError::Validation(error.to_string()))?;
         let resolution_type = normalize_return_resolution_type(input.resolution_type)?;
+        validate_return_resolution_links(
+            resolution_type.as_deref(),
+            input.refund_id,
+            input.order_change_id,
+        )?;
         self.transition_return(
             tenant_id,
             return_id,

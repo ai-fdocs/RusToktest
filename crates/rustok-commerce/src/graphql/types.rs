@@ -1024,7 +1024,17 @@ pub struct CompleteOrderReturnInputObject {
     pub resolution_type: Option<String>,
     pub refund_id: Option<Uuid>,
     pub order_change_id: Option<Uuid>,
+    pub refund: Option<CompleteOrderReturnRefundInputObject>,
     pub metadata: Option<String>,
+}
+
+#[derive(InputObject)]
+pub struct CompleteOrderReturnRefundInputObject {
+    pub payment_collection_id: Option<Uuid>,
+    pub amount: String,
+    pub reason: Option<String>,
+    pub metadata: Option<String>,
+    pub complete: Option<bool>,
 }
 
 #[derive(InputObject)]

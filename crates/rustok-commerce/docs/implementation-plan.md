@@ -3,11 +3,11 @@
 ## Execution checkpoint
 
 - Current phase: returns_refund_exchange_coupling
-- Last checkpoint: Phase 10.1/10.3 продолжен: umbrella GraphQL/REST return completion теперь видит order-owned `resolution_type/refund_id/order_change_id`, а `rustok-order` хранит resolution-ссылки завершённого возврата без host-owned payment/exchange side effects.
-- Next step: добавить orchestration helper в `rustok-commerce`, который создаёт refund или exchange order-change и передаёт ссылки в `complete_return` через профильные services.
+- Last checkpoint: Phase 10.1 продолжен: umbrella REST/GraphQL complete-return теперь умеет создать optional refund через `PaymentService`, проверить payment collection against order, optionally complete refund и передать `refund_id` в order-owned return resolution без host-owned payment logic.
+- Next step: добавить аналогичный exchange helper, который создаёт order-change skeleton и связывает его с completed return через `order_change_id`, затем принять claims scope decision.
 - Open blockers: OpenAPI contract test под default server features ранее блокировался существующими compile errors вне commerce (`rustok-pages-admin` Fn/FnOnce и server build/lifecycle/graphql ошибки); targeted `rustok-order` lifecycle tests и `cargo check -p rustok-commerce` проходят.
 - Hand-off notes for next agent: После каждого returns/order-change инкремента обновлять этот блок и central readiness/registry evidence.
-- Last updated at (UTC): 2026-05-30T00:00:00Z
+- Last updated at (UTC): 2026-05-30T01:00:00Z
 
 
 ## FFA/FBA status
@@ -17,7 +17,7 @@
 - Evidence:
   - module plan синхронизирован с central FFA/FBA readiness board; UI surface уже опубликован и ведётся в migration/backlog ритме;
   - дальнейшее повышение статуса выполняется только вместе с verification evidence и обновлением local+central docs.
-- Last verified at (UTC): 2026-05-30T00:00:00Z
+- Last verified at (UTC): 2026-05-30T01:00:00Z
 - Owner: `rustok-commerce` module team
 
 ## Статус документа
@@ -574,7 +574,7 @@ Deliverables:
 
 Execution slices (Phase 10):
 
-- [~] Slice 10.1: returns foundation (`rustok-order` storage + service lifecycle + admin REST/GraphQL read/write transport). Storage/read baseline был начат ранее; текущий срез добавил show/read, complete/cancel lifecycle, REST routes `/admin/returns/{id}`, `/admin/returns/{id}/complete`, `/admin/returns/{id}/cancel`, GraphQL `orderReturn(s)` + `create/complete/cancelOrderReturn`, OpenAPI registration и targeted lifecycle tests. Item-level return lines закрыты в текущем срезе через `order_return_items`; добавлены resolution-ссылки завершённого возврата (`resolution_type/refund_id/order_change_id`); остаётся автоматизировать refund/exchange orchestration helper в umbrella layer.
+- [~] Slice 10.1: returns foundation (`rustok-order` storage + service lifecycle + admin REST/GraphQL read/write transport). Storage/read baseline был начат ранее; текущий срез добавил show/read, complete/cancel lifecycle, REST routes `/admin/returns/{id}`, `/admin/returns/{id}/complete`, `/admin/returns/{id}/cancel`, GraphQL `orderReturn(s)` + `create/complete/cancelOrderReturn`, OpenAPI registration и targeted lifecycle tests. Item-level return lines закрыты в текущем срезе через `order_return_items`; добавлены resolution-ссылки завершённого возврата (`resolution_type/refund_id/order_change_id`), а umbrella complete-return REST/GraphQL helper уже создаёт/опционально completes refund через `PaymentService` и передаёт `refund_id`; остаётся автоматизировать exchange helper.
 - [x] Slice 10.2: refund transport parity expansion (store/customer-safe read-side + ownership/RBAC contract tests).
 - [~] Slice 10.3: order-change groundwork (draft edit snapshot + preview/apply contract skeleton without host-owned logic). Started in `rustok-order`: `order_changes` storage/service skeleton with `pending -> applied|cancelled` lifecycle and service tests. Текущий срез добавил umbrella admin REST routes `/admin/orders/{id}/changes`, `/admin/order-changes*`, lifecycle routes `apply/cancel`, OpenAPI contract registration и GraphQL parity roots `orderChange(s)` + mutations `create/apply/cancelOrderChange`; остаётся связать changes с refund/exchange orchestration.
 - [ ] Slice 10.4: exchanges/claims scope decision + parity matrix update in this plan and module docs.
