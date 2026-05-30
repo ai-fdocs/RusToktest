@@ -1,6 +1,6 @@
 use crate::model::{CreatePageDraft, PageBlock, PageDetail};
-use rustok_api::{WritePathIssue, WritePathIssueKind, normalize_ui_text, parse_ui_csv};
-use serde_json::{Value, json};
+use rustok_api::{normalize_ui_text, parse_ui_csv, WritePathIssue, WritePathIssueKind};
+use serde_json::{json, Value};
 
 pub const GRAPESJS_FORMAT: &str = "grapesjs_v1";
 

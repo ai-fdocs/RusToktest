@@ -11,7 +11,23 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(OrderReturns::Table)
                     .add_column(ColumnDef::new(OrderReturns::ResolutionType).string_len(64))
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(OrderReturns::Table)
                     .add_column(ColumnDef::new(OrderReturns::RefundId).uuid())
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(OrderReturns::Table)
                     .add_column(ColumnDef::new(OrderReturns::OrderChangeId).uuid())
                     .to_owned(),
             )
@@ -24,7 +40,23 @@ impl MigrationTrait for Migration {
                 Table::alter()
                     .table(OrderReturns::Table)
                     .drop_column(OrderReturns::OrderChangeId)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(OrderReturns::Table)
                     .drop_column(OrderReturns::RefundId)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .alter_table(
+                Table::alter()
+                    .table(OrderReturns::Table)
                     .drop_column(OrderReturns::ResolutionType)
                     .to_owned(),
             )

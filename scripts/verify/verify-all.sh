@@ -44,7 +44,6 @@ usage() {
     echo "  page-builder-toggle-profiles-consistency  Verify page-builder toggle profile flag combinations"
     echo "  page-builder-fba-baseline  Run full page-builder FBA baseline gate (parity + fallback + toggle consistency)"
     echo "  page-builder-consumer-readiness  Verify module-level consumer readiness for page-builder (uses PBC_MODULE)"
-    echo "  control-plane-remediation-minimal  Run control-plane remediation minimal verification bundle"
     echo ""
     echo "Without arguments, runs all scripts."
 }
@@ -78,7 +77,6 @@ SCRIPTS=(
     "../../crates/rustok-page-builder/scripts/verify/verify-page-builder-toggle-profiles-consistency.mjs:Page Builder Toggle Profiles Consistency"
     "../../crates/rustok-page-builder/scripts/verify/verify-page-builder-fba-baseline.mjs:Page Builder FBA Baseline Gate"
     "../../crates/rustok-page-builder/scripts/verify/verify-page-builder-consumer-readiness.mjs:Page Builder Consumer Readiness"
-    "run-control-plane-remediation-minimal.sh:Control Plane Remediation Minimal"
 )
 
 # Filter to selected script if specified

@@ -96,5 +96,5 @@ WHERE tenant_id = '<TENANT_UUID>'
 
 - `apps/server/src/services/module_lifecycle.rs`
 - `apps/server/src/models/_entities/module_operations.rs`
-- `docs/research/control-plane-module-lifecycle-remediation-plan.md`
+- `docs/architecture/modules.md`
 - `DECISIONS/2026-05-22-module-lifecycle-hook-phases-and-retry-contract.md`

@@ -23,10 +23,9 @@ pub use dto::{
     SeoAlternateLink, SeoBulkApplyInput, SeoBulkApplyMode, SeoBulkArtifactRecord,
     SeoBulkBoolFieldPatch, SeoBulkExportInput, SeoBulkFieldPatchMode, SeoBulkImportInput,
     SeoBulkItem, SeoBulkJobOperationKind, SeoBulkJobRecord, SeoBulkJobStatus,
-    SeoBulkJobStatusRecord,
-    SeoBulkJsonFieldPatch, SeoBulkListInput, SeoBulkMetaPatchInput, SeoBulkPage,
-    SeoBulkSelectionInput, SeoBulkSelectionMode, SeoBulkSelectionPreviewRecord, SeoBulkSource,
-    SeoBulkStringFieldPatch, SeoCrossLinkSuggestionRecord, SeoDiagnosticCountRecord,
+    SeoBulkJobStatusRecord, SeoBulkJsonFieldPatch, SeoBulkListInput, SeoBulkMetaPatchInput,
+    SeoBulkPage, SeoBulkSelectionInput, SeoBulkSelectionMode, SeoBulkSelectionPreviewRecord,
+    SeoBulkSource, SeoBulkStringFieldPatch, SeoCrossLinkSuggestionRecord, SeoDiagnosticCountRecord,
     SeoDiagnosticIssueRecord, SeoDiagnosticSeverity, SeoDiagnosticsSummaryRecord, SeoDocument,
     SeoDocumentEffectiveState, SeoFieldSource, SeoFieldState, SeoImageAsset, SeoLinkTag,
     SeoMetaInput, SeoMetaRecord, SeoMetaTag, SeoMetaTranslationInput, SeoMetaTranslationRecord,
@@ -34,8 +33,7 @@ pub use dto::{
     SeoRedirectInput, SeoRedirectMatchType, SeoRedirectRecord, SeoRevisionRecord, SeoRobots,
     SeoRobotsPreviewRecord, SeoRouteContext, SeoSchemaBlockKind, SeoSitemapFileRecord,
     SeoSitemapJobRecord, SeoSitemapStatusRecord, SeoStructuredDataBlock, SeoTemplateRuleSet,
-    SeoTwitterCard,
-    SeoVerification, SeoVerificationTag,
+    SeoTwitterCard, SeoVerification, SeoVerificationTag,
 };
 #[cfg(feature = "server")]
 pub use error::{SeoError, SeoResult};

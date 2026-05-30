@@ -383,10 +383,7 @@ impl SeoService {
             .await
         {
             Ok(outbox_event_id) => {
-                if let Err(error) = self
-                    .mark_delivery_sent(delivery.id, outbox_event_id)
-                    .await
-                {
+                if let Err(error) = self.mark_delivery_sent(delivery.id, outbox_event_id).await {
                     tracing::warn!(
                         tenant_id = %tenant_id,
                         event_type = %event_type,
@@ -421,7 +418,11 @@ impl SeoService {
         }
     }
 
-    async fn publish_seo_event_without_delivery_tracking(&self, tenant_id: Uuid, event: DomainEvent) {
+    async fn publish_seo_event_without_delivery_tracking(
+        &self,
+        tenant_id: Uuid,
+        event: DomainEvent,
+    ) {
         if let Err(error) = self.event_bus.publish(tenant_id, None, event.clone()).await {
             tracing::warn!(
                 tenant_id = %tenant_id,
@@ -469,7 +470,11 @@ impl SeoService {
         .await
     }
 
-    async fn mark_delivery_sent(&self, delivery_id: Uuid, outbox_event_id: Uuid) -> Result<(), DbErr> {
+    async fn mark_delivery_sent(
+        &self,
+        delivery_id: Uuid,
+        outbox_event_id: Uuid,
+    ) -> Result<(), DbErr> {
         let Some(delivery) = seo_event_delivery::Entity::find_by_id(delivery_id)
             .one(&self.db)
             .await?
@@ -607,7 +612,9 @@ fn is_duplicate_delivery_insert_error(error: &DbErr) -> bool {
 mod tests {
     use std::sync::Arc;
 
-    use rustok_outbox::{entity as outbox_entity, OutboxTransport, SysEventsMigration, TransactionalEventBus};
+    use rustok_outbox::{
+        entity as outbox_entity, OutboxTransport, SysEventsMigration, TransactionalEventBus,
+    };
     use rustok_seo_targets::SeoTargetRegistry;
     use sea_orm::{
         ColumnTrait, ConnectOptions, Database, DatabaseConnection, EntityTrait, QueryFilter,
@@ -619,7 +626,10 @@ mod tests {
     use super::*;
 
     async fn test_db() -> DatabaseConnection {
-        let db_url = format!("sqlite:file:seo_events_{}?mode=memory&cache=shared", Uuid::new_v4());
+        let db_url = format!(
+            "sqlite:file:seo_events_{}?mode=memory&cache=shared",
+            Uuid::new_v4()
+        );
         let mut opts = ConnectOptions::new(db_url);
         opts.max_connections(5)
             .min_connections(1)
@@ -747,12 +757,26 @@ mod tests {
 
         service
             .publish_seo_bulk_completed_event(
-                tenant_id, job_id, "product", "en-US", "completed", 10, 10, 0,
+                tenant_id,
+                job_id,
+                "product",
+                "en-US",
+                "completed",
+                10,
+                10,
+                0,
             )
             .await;
         service
             .publish_seo_bulk_completed_event(
-                tenant_id, job_id, "product", "en-US", "completed", 10, 10, 0,
+                tenant_id,
+                job_id,
+                "product",
+                "en-US",
+                "completed",
+                10,
+                10,
+                0,
             )
             .await;
 
@@ -784,7 +808,14 @@ mod tests {
 
         service
             .publish_seo_bulk_completed_event(
-                tenant_id, job_id, "product", "en-US", "completed", 10, 8, 2,
+                tenant_id,
+                job_id,
+                "product",
+                "en-US",
+                "completed",
+                10,
+                8,
+                2,
             )
             .await;
         service

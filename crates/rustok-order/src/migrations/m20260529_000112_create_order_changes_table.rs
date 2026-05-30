@@ -65,18 +65,28 @@ impl MigrationTrait for Migration {
                             .to(Orders::Table, Orders::Id)
                             .on_delete(ForeignKeyAction::Cascade),
                     )
-                    .index(
-                        Index::create()
-                            .name("idx_order_changes_tenant_order")
-                            .col(OrderChanges::TenantId)
-                            .col(OrderChanges::OrderId),
-                    )
-                    .index(
-                        Index::create()
-                            .name("idx_order_changes_status")
-                            .col(OrderChanges::TenantId)
-                            .col(OrderChanges::Status),
-                    )
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_order_changes_tenant_order")
+                    .table(OrderChanges::Table)
+                    .col(OrderChanges::TenantId)
+                    .col(OrderChanges::OrderId)
+                    .to_owned(),
+            )
+            .await?;
+
+        manager
+            .create_index(
+                Index::create()
+                    .name("idx_order_changes_status")
+                    .table(OrderChanges::Table)
+                    .col(OrderChanges::TenantId)
+                    .col(OrderChanges::Status)
                     .to_owned(),
             )
             .await

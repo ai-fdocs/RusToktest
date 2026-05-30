@@ -205,7 +205,11 @@ fn validate_required_uuid(
             }
             normalized.insert(field.to_string(), Value::String(trimmed.to_string()));
         }
-        None => issues.push(validation_issue(field, "missing_field", "Required field is missing")),
+        None => issues.push(validation_issue(
+            field,
+            "missing_field",
+            "Required field is missing",
+        )),
     }
 }
 
@@ -225,7 +229,11 @@ fn validate_optional_uuid(
     };
 
     let Some(raw) = raw.as_str() else {
-        issues.push(validation_issue(field, "invalid_type", "Field must be a string"));
+        issues.push(validation_issue(
+            field,
+            "invalid_type",
+            "Field must be a string",
+        ));
         return;
     };
 
@@ -292,7 +300,11 @@ fn validate_bool(
                 normalized.insert(field.to_string(), Value::Bool(value));
             }
             None => {
-                issues.push(validation_issue(field, "invalid_type", "Field must be boolean"));
+                issues.push(validation_issue(
+                    field,
+                    "invalid_type",
+                    "Field must be boolean",
+                ));
                 normalized.insert(field.to_string(), Value::Bool(default));
             }
         },
@@ -518,7 +530,10 @@ mod tests {
             json!("550e8400-e29b-41d4-a716-446655440000")
         );
         assert_eq!(response.normalized_props["sort"], json!("newest"));
-        assert!(response.issues.iter().any(|issue| issue.class == "sanitize"));
+        assert!(response
+            .issues
+            .iter()
+            .any(|issue| issue.class == "sanitize"));
     }
 
     #[test]

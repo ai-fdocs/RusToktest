@@ -71,7 +71,10 @@ fn module_manifest_declares_forum_widget_catalog_contract() {
         .expect("fba.builder_consumer.error_mapping is required");
     for key in ["validation", "sanitize", "rbac", "runtime"] {
         assert!(
-            error_mapping.get(key).and_then(toml::Value::as_str).is_some(),
+            error_mapping
+                .get(key)
+                .and_then(toml::Value::as_str)
+                .is_some(),
             "missing error mapping: {key}"
         );
     }

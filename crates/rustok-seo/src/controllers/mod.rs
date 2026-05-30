@@ -20,9 +20,9 @@ use uuid::Uuid;
 
 use crate::{
     SeoBulkJobRecord, SeoBulkJobStatus, SeoCrossLinkSuggestionRecord, SeoDiagnosticCountRecord,
-    SeoDiagnosticIssueRecord, SeoDiagnosticSeverity, SeoDiagnosticsSummaryRecord, SeoError,
-    SeoPageContext, SeoService, SeoSitemapJobRecord, SeoSitemapStatusRecord,
-    SeoTargetCapabilityKind, SeoTargetRegistryEntry, SeoTargetSlug,
+    SeoDiagnosticSeverity, SeoDiagnosticsSummaryRecord, SeoError, SeoPageContext, SeoService,
+    SeoSitemapJobRecord, SeoSitemapStatusRecord, SeoTargetCapabilityKind, SeoTargetRegistryEntry,
+    SeoTargetSlug,
 };
 
 #[derive(Debug, Deserialize)]
@@ -501,14 +501,19 @@ fn count_issue_keys<'a>(keys: impl Iterator<Item = &'a str>) -> Vec<SeoDiagnosti
         .into_iter()
         .map(|(key, count)| SeoDiagnosticCountRecord { key, count })
         .collect::<Vec<_>>();
-    result.sort_by(|left, right| right.count.cmp(&left.count).then_with(|| left.key.cmp(&right.key)));
+    result.sort_by(|left, right| {
+        right
+            .count
+            .cmp(&left.count)
+            .then_with(|| left.key.cmp(&right.key))
+    });
     result
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::SeoTargetSlug;
+    use crate::{SeoDiagnosticIssueRecord, SeoTargetSlug};
 
     #[test]
     fn apply_diagnostics_filters_recomputes_issue_aggregates() {

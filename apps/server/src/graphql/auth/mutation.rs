@@ -1,13 +1,13 @@
 use async_graphql::{Context, FieldError, Object, Result};
 use loco_rs::app::AppContext;
-use rustok_core::{Locale, i18n::translate};
+use rustok_core::{i18n::translate, Locale};
 
 use crate::auth::{auth_config_from_ctx, decode_invite_token, encode_password_reset_token};
-use crate::context::{TenantContext, infer_user_role_from_permissions};
+use crate::context::{infer_user_role_from_permissions, TenantContext};
 use crate::graphql::errors::{ErrorCode, GraphQLError};
 use crate::models::users;
 use crate::services::auth_lifecycle::{AuthLifecycleError, AuthLifecycleService};
-use crate::services::email::{PasswordResetEmail, email_service_from_ctx, password_reset_url};
+use crate::services::email::{email_service_from_ctx, password_reset_url, PasswordResetEmail};
 use crate::services::rbac_service::RbacService;
 
 use crate::context::AuthContext;
@@ -409,7 +409,7 @@ impl AuthMutation {
 
 #[cfg(test)]
 mod tests {
-    use super::{AuthLifecycleError, map_auth_lifecycle_error};
+    use super::{map_auth_lifecycle_error, AuthLifecycleError};
     use rustok_core::i18n::Locale;
 
     #[test]
