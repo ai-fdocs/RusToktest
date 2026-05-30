@@ -1086,6 +1086,8 @@ fn module_recovery_helpers_use_canonical_graphql_surface() {
     let crate_root = Path::new(env!("CARGO_MANIFEST_DIR"));
     let api_path = crate_root.join("src/features/modules/api.rs");
     let content = fs::read_to_string(&api_path).expect("read api.rs");
+    let modules_list_path = crate_root.join("src/features/modules/components/modules_list.rs");
+    let modules_list = fs::read_to_string(&modules_list_path).expect("read modules_list.rs");
 
     for required in [
         "pub const MODULE_OPERATION_RECOVERY_PLAN_QUERY",
@@ -1119,6 +1121,25 @@ fn module_recovery_helpers_use_canonical_graphql_surface() {
         assert!(
             !content.contains(forbidden),
             "module recovery helpers must not reintroduce native/raw-SQL path `{forbidden}`"
+        );
+        assert!(
+            !modules_list.contains(forbidden),
+            "module recovery UI must not reintroduce native/raw-SQL path `{forbidden}`"
+        );
+    }
+
+    for required_ui_fragment in [
+        "failed_module_operation_recovery_plans(",
+        "Some(10)",
+        "retry_failed_module_operation_post_hook(",
+        "compensate_failed_module_operation(",
+        "Lifecycle recovery",
+        "Recovery retry processed",
+        "Compensation applied",
+    ] {
+        assert!(
+            modules_list.contains(required_ui_fragment),
+            "module recovery UI must consume canonical GraphQL helper fragment `{required_ui_fragment}`"
         );
     }
 }
