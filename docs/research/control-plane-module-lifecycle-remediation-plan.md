@@ -964,3 +964,9 @@ rollback-стратегии и Definition of Done по итерациям.
 - Следующий bounded прогон `cargo test -p rustok-server module_lifecycle` продвинулся дальше cold compile и выявил реальный admin compile-blocker в Lifecycle Recovery UI: `Callback::new` требует `Fn`, а compensation handler пытался переместить `EnabledModulesContext` внутрь async task без per-invocation clone.
 - Handler исправлен: `EnabledModulesContext` клонируется перед `spawn_local`, поэтому callback остаётся reusable `Fn`, а compensation action по-прежнему обновляет host-owned enabled-modules context только после canonical GraphQL compensation response.
 - Повторные bounded проверки (`timeout 900s cargo test -p rustok-server module_lifecycle`, затем `timeout 240s cargo check -p rustok-admin`) не дошли до зелёного результата из-за compile-time timeout в холодном dependency graph. Чекбоксы minimal verification остаются открытыми до завершённого server/admin compile+test window.
+
+### Актуализация 2026-05-30 (итерация 84)
+
+- Сделан ещё один bounded прогон `timeout 600s cargo test -p rustok-server module_lifecycle` именно как error-discovery pass после исправления admin callback ownership.
+- Новых compile/test ошибок в этом окне не выявлено: команда снова завершилась `124` на cold compile phase до сборки `rustok-server`/запуска `module_lifecycle` тестов, поэтому исправлять по результату нечего.
+- Чекбоксы minimal verification остаются открытыми: следующий безопасный шаг — не продолжать локально длинную компиляцию без лимита, а закрывать план только после завершённого CI/long-window прогона `scripts/verify/run-control-plane-remediation-minimal.sh` и зелёного `--fail-on-open`.
