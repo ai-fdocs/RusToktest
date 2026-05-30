@@ -939,6 +939,7 @@ pub fn ModulesList(
         set_form_state.set(FormState::idle());
         set_success_message.set(None);
         set_recovery_action_operation_id.set(Some(operation_id.clone()));
+        let enabled_modules_for_compensation = enabled_modules_for_compensation.clone();
         spawn_local(async move {
             match api::compensate_failed_module_operation(
                 operation_id_for_call.clone(),
