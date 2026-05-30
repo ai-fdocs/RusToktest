@@ -7,7 +7,7 @@ context snapshot, а orchestration над checkout живёт в umbrella `rusto
 
 - Current phase: phase_b_in_progress
 - Last checkpoint: Storefront cart UI получил следующий FFA slice: framework-agnostic `core/` теперь разделён на отдельные подмодули и владеет display/view-model mapping для cart summary, adjustments, delivery groups и line items; Leptos layer вынесен в `storefront/src/ui/leptos.rs` и остаётся render/bind adapter поверх thin `transport` facade.
-- Next step: Расширить parity evidence для SSR native path, GraphQL fallback и headless cart mutation contracts перед повышением FFA/FBA статуса.
+- Next step: Расширить parity evidence для SSR native path, GraphQL fallback и headless cart mutation contracts; следующий verification slice должен покрыть transport fallback execution, а не только fallback eligibility policy.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок и central readiness board.
 - Last updated at (UTC): 2026-05-30T00:00:00Z
@@ -20,7 +20,7 @@ context snapshot, а orchestration над checkout живёт в umbrella `rusto
 - Evidence:
   - module plan синхронизирован с central FFA/FBA readiness board; UI surface уже опубликован и ведётся в migration/backlog ритме;
   - storefront slice выделяет `core/` helpers для route/input normalization, UUID validation, adjustment metadata mapping, channel-slug normalization, decrement policy и display/view-model mapping;
-  - `ui/leptos::CartView` теперь вызывает thin `transport` facade и получает prepared view-model values из `core/`, а native `#[server]` + GraphQL fallback остаются внутри API adapter layer;
+  - `ui/leptos::CartView` теперь вызывает thin `transport` facade и получает prepared view-model values из `core/`; transport facade сохраняет validation errors без GraphQL retry, а native `#[server]` + GraphQL adapter calls остаются внутри API adapter layer;
   - дальнейшее повышение статуса выполняется только вместе с full parity evidence и обновлением local+central docs.
 - Last verified at (UTC): 2026-05-30T00:00:00Z
 - Owner: `rustok-cart` module team

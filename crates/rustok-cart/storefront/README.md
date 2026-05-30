@@ -18,9 +18,9 @@ Leptos storefront UI package for the `rustok-cart` module.
 
 - `CartView` - root storefront view re-exported from `ui::leptos` and rendered from the host storefront slot registry.
 - `core::view_model` helpers re-exported from `core` - framework-agnostic display mapping for cart summary, adjustments, delivery groups, and line items.
-- `transport::fetch_cart` - thin UI-facing facade for native-first cart reads with GraphQL fallback.
-- `transport::decrement_line_item` - thin UI-facing facade for safe line-item decrement.
-- `transport::remove_line_item` - thin UI-facing facade for safe line-item removal.
+- `transport::fetch_cart` - thin UI-facing facade for native-first cart reads with GraphQL fallback, while preserving core validation errors without retry.
+- `transport::decrement_line_item` - thin UI-facing facade for safe line-item decrement with the same validation-vs-fallback policy.
+- `transport::remove_line_item` - thin UI-facing facade for safe line-item removal with the same validation-vs-fallback policy.
 - `transport/{native_server_adapter,graphql_adapter}.rs` internals - native `#[server]` and GraphQL fallback adapter calls behind the facade.
 
 ## Interactions
