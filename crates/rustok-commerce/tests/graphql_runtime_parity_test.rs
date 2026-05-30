@@ -888,6 +888,65 @@ fn storefront_refunds_query_with_status(tenant_id: Uuid, order_id: Uuid, status:
     )
 }
 
+fn admin_return_claim_decision_mutation(
+    tenant_id: Uuid,
+    order_id: Uuid,
+    line_item_id: Uuid,
+) -> String {
+    format!(
+        r#"
+        mutation {{
+          createOrderReturnDecision(
+            tenantId: "{tenant_id}"
+            orderId: "{order_id}"
+            input: {{
+              returnRequest: {{
+                reason: "damaged"
+                note: "claim reviewed through GraphQL"
+                items: [{{
+                  lineItemId: "{line_item_id}"
+                  quantity: 1
+                  reason: "damaged"
+                  metadata: "{{\"source\":\"graphql-return-claim-decision\",\"scope\":\"item\"}}"
+                }}]
+                metadata: "{{\"source\":\"graphql-return-claim-decision\",\"scope\":\"return\"}}"
+              }}
+              decision: {{
+                action: "claim"
+                claim: {{
+                  description: "Operator claim review"
+                  preview: "{{\"claim_type\":\"damaged_item\",\"resolution\":\"review\"}}"
+                  metadata: "{{\"operator\":\"claims-desk\"}}"
+                }}
+                metadata: "{{\"flow\":\"claim\"}}"
+              }}
+            }}
+          ) {{
+            action
+            metadata
+            orderReturn {{
+              id
+              orderId
+              status
+              resolutionType
+              orderChangeId
+              metadata
+            }}
+            orderChange {{
+              id
+              orderId
+              changeType
+              description
+              preview
+              metadata
+            }}
+            refund {{ id }}
+          }}
+        }}
+        "#
+    )
+}
+
 fn admin_create_fulfillment_mutation(
     tenant_id: Uuid,
     order_id: Uuid,
@@ -4296,6 +4355,130 @@ async fn admin_graphql_order_query_exposes_tax_breakdown_with_provider_ids() {
     assert!(tax_lines
         .iter()
         .any(|line| line["lineItemId"].is_null() && line["shippingOptionId"].is_null()));
+}
+
+#[tokio::test]
+async fn admin_graphql_return_decision_creates_completed_claim_order_change() {
+    let db = setup_test_db().await;
+    support::ensure_commerce_schema(&db).await;
+    let tenant_id = Uuid::new_v4();
+    let actor_id = Uuid::new_v4();
+    let customer_id = Uuid::new_v4();
+    seed_tenant_context(&db, tenant_id).await;
+
+    let order = OrderService::new(db.clone(), mock_transactional_event_bus())
+        .create_order(
+            tenant_id,
+            actor_id,
+            CreateOrderInput {
+                customer_id: Some(customer_id),
+                currency_code: "eur".to_string(),
+                shipping_total: Decimal::ZERO,
+                line_items: vec![CreateOrderLineItemInput {
+                    product_id: Some(Uuid::new_v4()),
+                    variant_id: Some(Uuid::new_v4()),
+                    shipping_profile_slug: "default".to_string(),
+                    seller_id: Some("merchant-claim-id".to_string()),
+                    sku: Some("GRAPHQL-RETURN-CLAIM-1".to_string()),
+                    title: "GraphQL Return Claim Order".to_string(),
+                    quantity: 1,
+                    unit_price: Decimal::from_str("27.00").expect("valid decimal"),
+                    metadata: serde_json::json!({ "source": "graphql-return-claim-decision" }),
+                }],
+                adjustments: Vec::new(),
+                tax_lines: Vec::new(),
+                metadata: serde_json::json!({ "source": "graphql-return-claim-decision" }),
+            },
+        )
+        .await
+        .expect("order should be created");
+
+    let schema = build_schema(
+        &db,
+        tenant_context(tenant_id),
+        request_context(tenant_id, "en"),
+        Some(admin_order_auth_context(tenant_id)),
+    );
+    let response = schema
+        .execute(Request::new(admin_return_claim_decision_mutation(
+            tenant_id,
+            order.id,
+            order.line_items[0].id,
+        )))
+        .await;
+    assert!(
+        response.errors.is_empty(),
+        "unexpected admin GraphQL return claim decision errors: {:?}",
+        response.errors
+    );
+    let json = response
+        .data
+        .into_json()
+        .expect("GraphQL response must serialize");
+    let decision = &json["createOrderReturnDecision"];
+    let order_return = &decision["orderReturn"];
+    let order_change = &decision["orderChange"];
+    let order_return_id = order_return["id"]
+        .as_str()
+        .expect("return id should be a string");
+    let order_change_id = order_change["id"]
+        .as_str()
+        .expect("order change id should be a string");
+    let decision_metadata: Value = serde_json::from_str(
+        decision["metadata"]
+            .as_str()
+            .expect("decision metadata should be a JSON string"),
+    )
+    .expect("decision metadata should parse");
+    let return_metadata: Value = serde_json::from_str(
+        order_return["metadata"]
+            .as_str()
+            .expect("return metadata should be a JSON string"),
+    )
+    .expect("return metadata should parse");
+    let change_metadata: Value = serde_json::from_str(
+        order_change["metadata"]
+            .as_str()
+            .expect("order change metadata should be a JSON string"),
+    )
+    .expect("order change metadata should parse");
+    let change_preview: Value = serde_json::from_str(
+        order_change["preview"]
+            .as_str()
+            .expect("order change preview should be a JSON string"),
+    )
+    .expect("order change preview should parse");
+
+    assert_eq!(decision["action"], Value::from("claim"));
+    assert_eq!(decision_metadata["flow"], Value::from("claim"));
+    assert_eq!(order_return["orderId"], Value::from(order.id.to_string()));
+    assert_eq!(order_return["status"], Value::from("completed"));
+    assert_eq!(order_return["resolutionType"], Value::from("claim"));
+    assert_eq!(
+        order_return["orderChangeId"],
+        Value::from(order_change_id.to_string())
+    );
+    assert_eq!(
+        return_metadata["source"],
+        Value::from("graphql-return-claim-decision")
+    );
+    assert_eq!(order_change["orderId"], Value::from(order.id.to_string()));
+    assert_eq!(order_change["changeType"], Value::from("claim"));
+    assert_eq!(
+        order_change["description"],
+        Value::from("Operator claim review")
+    );
+    assert_eq!(change_metadata["operator"], Value::from("claims-desk"));
+    assert_eq!(
+        change_metadata["order_return_id"],
+        Value::from(order_return_id)
+    );
+    assert_eq!(
+        change_preview["order_return_id"],
+        Value::from(order_return_id)
+    );
+    assert_eq!(change_preview["claim_type"], Value::from("damaged_item"));
+    assert!(decision["refund"].is_null());
 }
 
 #[tokio::test]

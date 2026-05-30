@@ -3,11 +3,11 @@
 ## Execution checkpoint
 
 - Current phase: post_order_transport_publication
-- Last checkpoint: Phase 10.4 claim/exchange decision coupling доведён до return completion semantics: `PostOrderOrchestrationService` теперь завершает созданный return и проставляет `resolution_type/refund_id/order_change_id` для `return_only/refund/exchange/claim`, а `rustok-order` принимает `claim` как order-change-backed resolution без payment side effects.
+- Last checkpoint: Phase 10.4 claim/exchange decision coupling доведён до return completion semantics и GraphQL runtime parity: `PostOrderOrchestrationService` завершает созданный return и проставляет `resolution_type/refund_id/order_change_id` для `return_only/refund/exchange/claim`, `rustok-order` принимает `claim` как order-change-backed resolution без payment side effects, а `createOrderReturnDecision` покрыт live GraphQL claim-тестом.
 - Next step: расширить post-order operator UX поверх decision-tree контракта и связать `exchange/claim` order-change lifecycle (`apply/cancel`) с operator actions без переноса domain logic в umbrella UI.
-- Open blockers: OpenAPI contract test под default server features блокируется существующими compile errors вне commerce (`rustok-pages-admin` Fn/FnOnce и server build/lifecycle/graphql ошибки); targeted order claim-resolution, commerce bridge и `cargo check -p rustok-commerce` проходят.
+- Open blockers: OpenAPI contract test под default server features блокируется существующими compile errors вне commerce (`rustok-pages-admin` Fn/FnOnce и server build/lifecycle/graphql ошибки); targeted order claim-resolution, commerce bridge, admin GraphQL claim parity и `cargo check -p rustok-commerce` проходят.
 - Hand-off notes for next agent: После каждого returns/order-change инкремента обновлять этот блок и central readiness/registry evidence.
-- Last updated at (UTC): 2026-05-30T11:28:55Z
+- Last updated at (UTC): 2026-05-30T11:59:50Z
 
 
 ## FFA/FBA status
@@ -16,9 +16,9 @@
 - FBA status: `in_progress`
 - Evidence:
   - module plan синхронизирован с central FFA/FBA readiness board; UI surface уже опубликован и ведётся в migration/backlog ритме;
-  - admin return decision tree теперь имеет transport parity (`/admin/orders/{id}/returns/decision` ↔ `createOrderReturnDecision`) над единым `PostOrderOrchestrationService`, включая completion semantics для `return_only/refund/exchange/claim`, без дублирования rules в host/UI adapters;
+  - admin return decision tree теперь имеет transport parity (`/admin/orders/{id}/returns/decision` ↔ `createOrderReturnDecision`) над единым `PostOrderOrchestrationService`, включая completion semantics для `return_only/refund/exchange/claim`, без дублирования rules в host/UI adapters; live GraphQL parity test фиксирует claim → completed return + `order_change(change_type=claim)`;
   - дальнейшее повышение статуса выполняется только вместе с verification evidence и обновлением local+central docs.
-- Last verified at (UTC): 2026-05-30T11:28:55Z
+- Last verified at (UTC): 2026-05-30T11:59:50Z
 - Owner: `rustok-commerce` module team
 
 ## Статус документа
@@ -579,7 +579,7 @@ Execution slices (Phase 10):
 - [~] Slice 10.1: returns foundation (`rustok-order` storage + service lifecycle + admin REST/GraphQL read/write transport). Storage/read baseline был начат ранее; текущий срез добавил show/read, complete/cancel lifecycle, REST routes `/admin/returns/{id}`, `/admin/returns/{id}/complete`, `/admin/returns/{id}/cancel`, GraphQL `orderReturn(s)` + `create/complete/cancelOrderReturn`, OpenAPI registration и targeted lifecycle tests. Item-level return lines закрыты в текущем срезе через `order_return_items`; добавлены resolution-ссылки завершённого возврата (`resolution_type/refund_id/order_change_id`), а umbrella complete-return REST/GraphQL helper уже создаёт/опционально completes refund через `PaymentService` и передаёт `refund_id`; остаётся автоматизировать exchange helper.
 - [x] Slice 10.2: refund transport parity expansion (store/customer-safe read-side + ownership/RBAC contract tests).
 - [~] Slice 10.3: order-change groundwork (draft edit snapshot + preview/apply contract skeleton without host-owned logic). Started in `rustok-order`: `order_changes` storage/service skeleton with `pending -> applied|cancelled` lifecycle and service tests. Текущий срез добавил umbrella admin REST routes `/admin/orders/{id}/changes`, `/admin/order-changes*`, lifecycle routes `apply/cancel`, OpenAPI contract registration и GraphQL parity roots `orderChange(s)` + mutations `create/apply/cancelOrderChange`; остаётся связать changes с refund/exchange orchestration.
-- [~] Slice 10.4: exchanges/claims scope decision + parity matrix update in this plan and module docs. Decision tree доведён до transport-level parity: admin REST `POST /admin/orders/{id}/returns/decision` и admin GraphQL `createOrderReturnDecision` используют тот же `PostOrderOrchestrationService` и публикуют unified `ReturnDecisionResponse` (`return_only/refund/exchange/claim`) без host-owned logic. Claims scope decision зафиксирован как order-change-backed claim (`change_type=claim`) с `order_return_id` в preview/metadata и completed return `resolution_type=claim/order_change_id`; отдельный claim storage/API остаётся вне текущего scope, пока не появится dedicated bounded context.
+- [~] Slice 10.4: exchanges/claims scope decision + parity matrix update in this plan and module docs. Decision tree доведён до transport-level parity: admin REST `POST /admin/orders/{id}/returns/decision` и admin GraphQL `createOrderReturnDecision` используют тот же `PostOrderOrchestrationService` и публикуют unified `ReturnDecisionResponse` (`return_only/refund/exchange/claim`) без host-owned logic. Claims scope decision зафиксирован как order-change-backed claim (`change_type=claim`) с `order_return_id` в preview/metadata и completed return `resolution_type=claim/order_change_id`; live GraphQL runtime parity дополнительно проверяет claim mutation output (`orderReturn`, `orderChange`, `refund=null`) против runtime service semantics. Отдельный claim storage/API остаётся вне текущего scope, пока не появится dedicated bounded context.
 
 Обязательные проверки:
 
