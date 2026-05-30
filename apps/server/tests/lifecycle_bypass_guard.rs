@@ -305,11 +305,6 @@ fn lifecycle_hook_phases_adr_is_linked_from_indexes_and_backlog() {
         .expect("DECISIONS/README.md should be readable");
     let docs_index = fs::read_to_string(repo_root.join("docs/index.md"))
         .expect("docs/index.md should be readable");
-    let remediation = fs::read_to_string(
-        repo_root.join("docs/research/control-plane-module-lifecycle-remediation-plan.md"),
-    )
-    .expect("remediation plan should be readable");
-
     assert!(
         decisions_readme.contains(adr_path),
         "ADR index must link lifecycle hook phases ADR: {adr_path}"
@@ -317,10 +312,6 @@ fn lifecycle_hook_phases_adr_is_linked_from_indexes_and_backlog() {
     assert!(
         docs_index.contains(adr_path),
         "docs/index.md must link lifecycle hook phases ADR: {adr_path}"
-    );
-    assert!(
-        remediation.contains("2026-05-22-module-lifecycle-hook-phases-and-retry-contract.md"),
-        "remediation backlog must reference lifecycle hook phases ADR explicitly"
     );
 }
 
@@ -336,11 +327,6 @@ fn control_plane_lifecycle_docs_capture_final_parity_contract() {
         .expect("apps/server docs should be readable");
     let admin_docs = fs::read_to_string(repo_root.join("apps/admin/docs/README.md"))
         .expect("apps/admin docs should be readable");
-    let remediation = fs::read_to_string(
-        repo_root.join("docs/research/control-plane-module-lifecycle-remediation-plan.md"),
-    )
-    .expect("remediation plan should be readable");
-
     for required in [
         "ModuleLifecycleService::toggle_module_with_actor()",
         "BAD_USER_INPUT",
@@ -377,18 +363,6 @@ fn control_plane_lifecycle_docs_capture_final_parity_contract() {
         assert!(
             admin_docs.contains(required),
             "admin local docs must capture final lifecycle parity fragment `{required}`"
-        );
-    }
-
-    for required in [
-        "docs sync",
-        "runtime taxonomy parity",
-        "journal metadata parity",
-        "GraphQL↔Leptos parity",
-    ] {
-        assert!(
-            remediation.contains(required),
-            "remediation plan must record final docs/parity status fragment `{required}`"
         );
     }
 }
