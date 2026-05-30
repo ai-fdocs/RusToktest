@@ -1,12 +1,15 @@
 mod api;
+mod core;
 mod i18n;
 mod model;
+mod transport;
 
 use leptos::prelude::*;
 use leptos::task::spawn_local;
 use leptos_ui_routing::read_route_query_value;
 use rustok_api::UiRouteContext;
 
+use crate::core::error_with_context;
 use crate::i18n::t;
 use crate::model::{
     StorefrontCart, StorefrontCartAdjustment, StorefrontCartData, StorefrontCartDeliveryGroup,
@@ -52,7 +55,7 @@ pub fn CartView() -> impl IntoView {
                 refresh_nonce.get(),
             )
         },
-        move |(cart_id, locale, _)| async move { api::fetch_storefront_cart(cart_id, locale).await },
+        move |(cart_id, locale, _)| async move { transport::fetch_cart(cart_id, locale).await },
     );
 
     let on_decrement = {
@@ -63,11 +66,10 @@ pub fn CartView() -> impl IntoView {
                 set_mutation_busy.set(true);
                 set_mutation_error.set(None);
                 spawn_local(async move {
-                    match api::decrement_storefront_cart_line_item(cart_id, line_item_id, quantity)
-                        .await
-                    {
+                    match transport::decrement_line_item(cart_id, line_item_id, quantity).await {
                         Ok(()) => set_refresh_nonce.update(|value| *value += 1),
-                        Err(err) => set_mutation_error.set(Some(format!("{update_error}: {err}"))),
+                        Err(err) => set_mutation_error
+                            .set(Some(error_with_context(&update_error, &err.to_string()))),
                     }
                     set_mutation_busy.set(false);
                 });
@@ -82,9 +84,10 @@ pub fn CartView() -> impl IntoView {
             set_mutation_busy.set(true);
             set_mutation_error.set(None);
             spawn_local(async move {
-                match api::remove_storefront_cart_line_item(cart_id, line_item_id).await {
+                match transport::remove_line_item(cart_id, line_item_id).await {
                     Ok(()) => set_refresh_nonce.update(|value| *value += 1),
-                    Err(err) => set_mutation_error.set(Some(format!("{update_error}: {err}"))),
+                    Err(err) => set_mutation_error
+                        .set(Some(error_with_context(&update_error, &err.to_string()))),
                 }
                 set_mutation_busy.set(false);
             });
@@ -125,7 +128,7 @@ pub fn CartView() -> impl IntoView {
                                     />
                                 }
                                 .into_any(),
-                                Err(err) => view! { <div class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{format!("{}: {err}", load_error)}</div> }.into_any(),
+                                Err(err) => view! { <div class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{error_with_context(&load_error, &err.to_string())}</div> }.into_any(),
                             }
                         })
                     }}
