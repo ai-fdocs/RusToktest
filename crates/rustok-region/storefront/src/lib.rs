@@ -73,6 +73,16 @@ pub fn RegionView() -> impl IntoView {
                                             "region.error.fallbackUnavailable",
                                             "Both native and GraphQL region data paths are unavailable for this request.",
                                         ),
+                                        t(
+                                            error_locale.as_deref(),
+                                            "region.error.status.nativeUnavailable",
+                                            "Native unavailable",
+                                        ),
+                                        t(
+                                            error_locale.as_deref(),
+                                            "region.error.status.fallbackUnavailable",
+                                            "Fallback unavailable",
+                                        ),
                                         t(error_locale.as_deref(), "region.error.nativeLabel", "native"),
                                         t(error_locale.as_deref(), "region.error.graphqlLabel", "graphql"),
                                     );
@@ -91,7 +101,11 @@ pub fn RegionView() -> impl IntoView {
 fn RegionErrorMessage(error: core::RegionErrorViewModel) -> impl IntoView {
     view! {
         <div class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-            <p class="font-medium">{error.title}</p>
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="rounded-full border border-destructive/30 px-2 py-0.5 font-mono text-[0.68rem] uppercase tracking-[0.16em]">{error.status_code.as_str()}</span>
+                <span class="text-xs font-medium uppercase tracking-[0.16em]">{error.status_label}</span>
+            </div>
+            <p class="mt-2 font-medium">{error.title}</p>
             <p class="mt-1">{error.body}</p>
             {error.technical_detail.map(|detail| view! {
                 <p class="mt-2 font-mono text-xs opacity-80">{detail}</p>
