@@ -37,6 +37,9 @@ const STATUS_CANCELLED: &str = "cancelled";
 const RETURN_STATUS_PENDING: &str = "pending";
 const RETURN_STATUS_COMPLETED: &str = "completed";
 const RETURN_STATUS_CANCELLED: &str = "cancelled";
+const RETURN_RESOLUTION_REFUND: &str = "refund";
+const RETURN_RESOLUTION_EXCHANGE: &str = "exchange";
+const RETURN_RESOLUTION_STORE_CREDIT: &str = "store_credit";
 const ORDER_CHANGE_STATUS_PENDING: &str = "pending";
 const ORDER_CHANGE_STATUS_APPLIED: &str = "applied";
 const ORDER_CHANGE_STATUS_CANCELLED: &str = "cancelled";
@@ -958,6 +961,9 @@ fn map_order_return_response(
         reason: value.reason,
         note: value.note,
         status: value.status,
+        resolution_type: value.resolution_type,
+        refund_id: value.refund_id,
+        order_change_id: value.order_change_id,
         metadata: value.metadata,
         items: items
             .into_iter()
@@ -967,6 +973,21 @@ fn map_order_return_response(
         updated_at: value.updated_at.with_timezone(&Utc),
         completed_at: value.completed_at.map(|ts| ts.with_timezone(&Utc)),
         cancelled_at: value.cancelled_at.map(|ts| ts.with_timezone(&Utc)),
+    }
+}
+
+fn normalize_return_resolution_type(value: Option<String>) -> OrderResult<Option<String>> {
+    let Some(value) = trim_optional_text(value) else {
+        return Ok(None);
+    };
+    let normalized = value.to_ascii_lowercase();
+    match normalized.as_str() {
+        RETURN_RESOLUTION_REFUND | RETURN_RESOLUTION_EXCHANGE | RETURN_RESOLUTION_STORE_CREDIT => {
+            Ok(Some(normalized))
+        }
+        _ => Err(OrderError::Validation(format!(
+            "invalid return resolution_type `{value}`; expected refund, exchange, or store_credit"
+        ))),
     }
 }
 
@@ -1610,6 +1631,9 @@ impl OrderService {
             reason: Set(trim_optional_text(input.reason)),
             note: Set(trim_optional_text(input.note)),
             status: Set(RETURN_STATUS_PENDING.to_string()),
+            resolution_type: Set(None),
+            refund_id: Set(None),
+            order_change_id: Set(None),
             metadata: Set(input.metadata),
             created_at: Set(now.into()),
             updated_at: Set(now.into()),
@@ -1661,6 +1685,7 @@ impl OrderService {
         input
             .validate()
             .map_err(|error| OrderError::Validation(error.to_string()))?;
+        let resolution_type = normalize_return_resolution_type(input.resolution_type)?;
         self.transition_return(
             tenant_id,
             return_id,
@@ -1669,6 +1694,9 @@ impl OrderService {
             input.metadata,
             |active, now| {
                 active.completed_at = Set(Some(now.into()));
+                active.resolution_type = Set(resolution_type.clone());
+                active.refund_id = Set(input.refund_id);
+                active.order_change_id = Set(input.order_change_id);
             },
         )
         .await

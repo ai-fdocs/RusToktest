@@ -1296,6 +1296,9 @@ impl CommerceMutation {
                 tenant_id,
                 id,
                 crate::dto::CompleteOrderReturnInput {
+                    resolution_type: input.resolution_type,
+                    refund_id: input.refund_id,
+                    order_change_id: input.order_change_id,
                     metadata: parse_optional_metadata(input.metadata.as_deref())?,
                 },
             )
