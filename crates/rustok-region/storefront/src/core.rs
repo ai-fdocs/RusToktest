@@ -1,6 +1,6 @@
 use rustok_api::normalize_ui_text;
 
-use crate::model::{StorefrontRegion, StorefrontRegionCountryTaxPolicy};
+use crate::model::{StorefrontRegion, StorefrontRegionCountryTaxPolicy, StorefrontRegionsData};
 
 pub const DEFAULT_ROUTE_SEGMENT: &str = "regions";
 pub const DEFAULT_TAX_PROVIDER_ID: &str = "region_default";
@@ -18,6 +18,28 @@ pub struct RegionRailItemViewModel {
     pub country_summary: String,
     pub tax_summary: String,
     pub tax_provider_id: String,
+}
+
+pub fn normalize_selected_region_id(selected_region_id: Option<String>) -> Option<String> {
+    selected_region_id.and_then(|value| normalize_ui_text(&value))
+}
+
+pub fn resolve_storefront_regions(
+    regions: Vec<StorefrontRegion>,
+    selected_region_id: Option<String>,
+) -> StorefrontRegionsData {
+    let resolved_selected_region_id = normalize_selected_region_id(selected_region_id)
+        .or_else(|| regions.first().map(|item| item.id.clone()));
+    let selected_region = resolved_selected_region_id
+        .as_ref()
+        .and_then(|selected_id| regions.iter().find(|item| &item.id == selected_id))
+        .cloned();
+
+    StorefrontRegionsData {
+        regions,
+        selected_region,
+        selected_region_id: resolved_selected_region_id,
+    }
 }
 
 pub fn route_segment_or_default(route_segment: Option<&str>) -> String {
@@ -164,6 +186,38 @@ mod tests {
             }],
             countries: vec!["DE".to_string(), "FR".to_string()],
         }
+    }
+
+    #[test]
+    fn resolve_storefront_regions_normalizes_selection_and_defaults_to_first_region() {
+        let regions = vec![sample_region()];
+        let data = resolve_storefront_regions(regions.clone(), Some(" eu ".to_string()));
+
+        assert_eq!(data.selected_region_id.as_deref(), Some("eu"));
+        assert_eq!(
+            data.selected_region
+                .as_ref()
+                .map(|region| region.id.as_str()),
+            Some("eu")
+        );
+
+        let defaulted = resolve_storefront_regions(regions, Some("   ".to_string()));
+        assert_eq!(defaulted.selected_region_id.as_deref(), Some("eu"));
+        assert_eq!(
+            defaulted
+                .selected_region
+                .as_ref()
+                .map(|region| region.id.as_str()),
+            Some("eu")
+        );
+    }
+
+    #[test]
+    fn resolve_storefront_regions_keeps_missing_selection_visible_without_selecting_item() {
+        let data = resolve_storefront_regions(vec![sample_region()], Some("missing".to_string()));
+
+        assert_eq!(data.selected_region_id.as_deref(), Some("missing"));
+        assert!(data.selected_region.is_none());
     }
 
     #[test]
