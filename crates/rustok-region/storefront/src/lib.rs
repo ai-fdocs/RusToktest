@@ -288,7 +288,14 @@ fn RegionRail(items: Vec<StorefrontRegion>, total: usize) -> impl IntoView {
                                     <p class="text-sm text-muted-foreground">{view_model.country_summary.clone()}</p>
                                     <p class="text-xs text-muted-foreground">{view_model.tax_summary.clone()}</p>
                                 </div>
-                                <a class="inline-flex text-sm font-medium text-primary hover:underline" href=view_model.href>{t(locale.as_deref(), "region.list.open", "Open")}</a>
+                                <a
+    class="inline-flex text-sm font-medium text-primary hover:underline"
+    href=view_model.href
+    data-region-route-query-key=view_model.query_key
+    data-region-route-query-value=view_model.query_value.clone().unwrap_or_default()
+>
+    {t(locale.as_deref(), "region.list.open", "Open")}
+</a>
                             </div>
                         </article>
                     }

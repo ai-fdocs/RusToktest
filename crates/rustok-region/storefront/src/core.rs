@@ -7,6 +7,8 @@ pub const DEFAULT_TAX_PROVIDER_ID: &str = "region_default";
 pub const REGION_ERROR_STATUS_DOM_ATTRIBUTE: &str = "data-region-error-status";
 pub const REGION_ERROR_LOCALE_KEY_DOM_ATTRIBUTE: &str = "data-region-error-locale-key";
 pub const SELECTED_REGION_QUERY_KEY: &str = "region";
+pub const REGION_ROUTE_QUERY_KEY_DOM_ATTRIBUTE: &str = "data-region-route-query-key";
+pub const REGION_ROUTE_QUERY_VALUE_DOM_ATTRIBUTE: &str = "data-region-route-query-value";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegionStorefrontErrorPath {
@@ -180,6 +182,10 @@ pub struct RegionMetric {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RegionRailItemViewModel {
     pub href: String,
+    pub query_key_attribute: &'static str,
+    pub query_value_attribute: &'static str,
+    pub query_key: &'static str,
+    pub query_value: Option<String>,
     pub tax_mode_label: String,
     pub country_summary: String,
     pub tax_summary: String,
@@ -267,11 +273,19 @@ pub fn countries_summary(countries: &[String], empty_label: &str) -> String {
 }
 
 pub fn region_href(module_route_base: &str, region_id: &str) -> String {
-    match selected_region_query_update(region_id)
-        .update
-        .into_query_value()
-    {
-        Some(region_id) => format!("{module_route_base}?{SELECTED_REGION_QUERY_KEY}={region_id}"),
+    let selection_update = selected_region_query_update(region_id);
+    region_href_from_selection_update(module_route_base, &selection_update)
+}
+
+pub fn region_href_from_selection_update(
+    module_route_base: &str,
+    selection_update: &RegionRouteSelectionUpdate,
+) -> String {
+    match selection_update.clone().update.into_query_value() {
+        Some(region_id) => format!(
+            "{module_route_base}?{}={region_id}",
+            selection_update.query_key
+        ),
         None => module_route_base.to_string(),
     }
 }
@@ -352,8 +366,15 @@ pub fn rail_item_view_model(
     tax_rate_label: &str,
     tax_provider_label: &str,
 ) -> RegionRailItemViewModel {
+    let selection_update = selected_region_query_update(&region.id);
+    let query_value = selection_update.clone().update.into_query_value();
+
     RegionRailItemViewModel {
         href: region_href(module_route_base, &region.id),
+        query_key_attribute: REGION_ROUTE_QUERY_KEY_DOM_ATTRIBUTE,
+        query_value_attribute: REGION_ROUTE_QUERY_VALUE_DOM_ATTRIBUTE,
+        query_key: selection_update.query_key,
+        query_value,
         tax_mode_label: tax_mode_label(region.tax_included, included_label, excluded_label),
         country_summary: rail_country_summary(region, empty_countries_label),
         tax_summary: rail_tax_summary(region, tax_rate_label, tax_provider_label),
@@ -588,6 +609,16 @@ mod tests {
         );
 
         assert_eq!(view_model.href, "/modules/regions?region=eu");
+        assert_eq!(
+            view_model.query_key_attribute,
+            REGION_ROUTE_QUERY_KEY_DOM_ATTRIBUTE
+        );
+        assert_eq!(
+            view_model.query_value_attribute,
+            REGION_ROUTE_QUERY_VALUE_DOM_ATTRIBUTE
+        );
+        assert_eq!(view_model.query_key, SELECTED_REGION_QUERY_KEY);
+        assert_eq!(view_model.query_value.as_deref(), Some("eu"));
         assert_eq!(view_model.tax_mode_label, "tax included");
         assert_eq!(view_model.country_summary, "EUR | DE, FR");
         assert_eq!(view_model.tax_summary, "20 tax rate | tax provider default");

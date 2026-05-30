@@ -79,13 +79,16 @@ function withFixture({ pipeline, contractCommand, docsCommand }) {
       "  RegionErrorStatusDescriptor { stable_code: \"native_unavailable\", locale_key: \"region.error.status.nativeUnavailable\" },",
       "  RegionErrorStatusDescriptor { stable_code: \"fallback_unavailable\", locale_key: \"region.error.status.fallbackUnavailable\" },",
       "];",
+      "pub const SELECTED_REGION_QUERY_KEY: &str = \"region\";",
+      "pub struct RegionRouteState;",
+      "pub struct RegionRouteSelectionUpdate;",
       "fn _uses_variants() { let _ = RegionErrorStatusCode::NativeUnavailable; let _ = RegionErrorStatusCode::FallbackUnavailable; }",
     ].join("\n"),
   );
 
   writeFileSync(
     path.join(root, "crates", "rustok-region", "storefront", "src", "lib.rs"),
-    "data-region-error-status data-region-error-locale-key",
+    "data-region-error-status data-region-error-locale-key data-region-route-query-key data-region-route-query-value",
   );
 
   writeFileSync(
@@ -93,7 +96,8 @@ function withFixture({ pipeline, contractCommand, docsCommand }) {
     [
       "native_unavailable region.error.status.nativeUnavailable",
       "fallback_unavailable region.error.status.fallbackUnavailable",
-      "data-region-error-status data-region-error-locale-key",
+      "data-region-error-status data-region-error-locale-key data-region-route-query-key data-region-route-query-value",
+      "RegionRouteState RegionRouteSelectionUpdate SELECTED_REGION_QUERY_KEY",
     ].join("\n"),
   );
 

@@ -159,6 +159,11 @@ const requiredRegionErrorStatusContracts = [
   },
 ];
 
+const requiredRegionRouteDomAttributes = [
+  "data-region-route-query-key",
+  "data-region-route-query-value",
+];
+
 const regionStorefrontCorePath = "crates/rustok-region/storefront/src/core.rs";
 const regionStorefrontLibPath = "crates/rustok-region/storefront/src/lib.rs";
 const regionStorefrontReadmePath = "crates/rustok-region/storefront/README.md";
@@ -312,6 +317,28 @@ function collectRegionErrorStatusContractErrors() {
     }
     if (!storefrontReadme.includes(attributeName)) {
       errors.push(`Region storefront README должен документировать DOM attribute: ${attributeName}`);
+    }
+  });
+
+  [
+    "RegionRouteState",
+    "RegionRouteSelectionUpdate",
+    "SELECTED_REGION_QUERY_KEY",
+  ].forEach((contractName) => {
+    if (!core.includes(contractName)) {
+      errors.push(`Region storefront core должен содержать route/query contract: ${contractName}`);
+    }
+    if (!storefrontReadme.includes(contractName)) {
+      errors.push(`Region storefront README должен документировать route/query contract: ${contractName}`);
+    }
+  });
+
+  requiredRegionRouteDomAttributes.forEach((attributeName) => {
+    if (!leptosUi.includes(attributeName)) {
+      errors.push(`Region storefront Leptos route adapter должен публиковать DOM attribute: ${attributeName}`);
+    }
+    if (!storefrontReadme.includes(attributeName)) {
+      errors.push(`Region storefront README должен документировать route DOM attribute: ${attributeName}`);
     }
   });
 
