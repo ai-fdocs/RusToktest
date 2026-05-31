@@ -8,11 +8,11 @@ rule и scope write paths, а полный promotions engine и остально
 ## Execution checkpoint
 
 - Current phase: phase_b_in_progress
-- Last checkpoint: Storefront pricing получил следующий FFA slice: Leptos layer теперь вызывает `transport` facade, explicit `transport/native_server_adapter.rs` и `transport/graphql_adapter.rs` разделяют adapter ownership, а `core` владеет shared `StorefrontPricingQuery` рядом с presentation helpers.
-- Next step: Продолжать переносить request normalization/port contracts из `api.rs` в `core`, затем выделить `ui/leptos/` render module без изменения native-first + GraphQL fallback contract.
+- Last checkpoint: Storefront pricing получил следующий FFA slice: Leptos render/bind слой выделен в `ui/leptos.rs`, crate root теперь только объявляет слои и re-export публичного компонента, а `core` + `transport` остаются отдельными framework-agnostic/adapter boundaries.
+- Next step: Продолжать переносить request normalization/port contracts из `api.rs` в `core`, затем покрыть transport facade targeted fallback tests без изменения native-first + GraphQL fallback contract.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
-- Last updated at (UTC): 2026-05-31T01:00:00Z
+- Last updated at (UTC): 2026-05-31T02:00:00Z
 
 ## FFA/FBA status
 
@@ -22,8 +22,9 @@ rule и scope write paths, а полный promotions engine и остально
   - модуль ведётся в ускоренном FFA/FBA migration track как часть ecommerce family;
   - storefront pricing route теперь использует framework-agnostic `storefront/src/core.rs` для summary/label/effective context formatting, query href building и shared `StorefrontPricingQuery`; Leptos `lib.rs` больше не владеет этой presentation/request policy;
   - storefront transport разделён на thin facade + explicit `native_server_adapter` и `graphql_adapter`, при этом fallback order (`native #[server]` first, GraphQL second) сохранён;
+  - Leptos render/bind adapter выделен в `storefront/src/ui/leptos.rs`, а `storefront/src/lib.rs` стал crate-level composition/re-export boundary;
   - parity evidence: `cargo test -p rustok-pricing-storefront --lib` подтверждает existing transport validation tests и pure-core route/channel formatting tests без изменения native/GraphQL fallback contract.
-- Last verified at (UTC): 2026-05-31T01:00:00Z
+- Last verified at (UTC): 2026-05-31T02:00:00Z
 - Owner: `rustok-pricing` module team
 
 ## Область работ
@@ -49,7 +50,7 @@ rule и scope write paths, а полный promotions engine и остально
   для summary, health/option labels, effective context и query href теперь вынесена
   в framework-agnostic `storefront/src/core.rs`, shared fetch request тоже живёт в
   `core`, transport orchestration вынесен в `storefront/src/transport/`, а
-  Leptos `lib.rs` остаётся render/bind слоем;
+  Leptos render/bind слой живёт в `storefront/src/ui/leptos.rs`;
 - storefront package по-прежнему остаётся read-side surface, но admin package уже
   использует native-first `#[server]` transport не только для read-side, но и для
   base-row writes, active `price_list` overrides, typed percentage adjustments и
@@ -76,8 +77,10 @@ rule и scope write paths, а полный promotions engine и остально
   transport validation suite;
 - [x] ввести storefront `transport/` facade с explicit `native_server_adapter` и
   `graphql_adapter`, сохранив native-first + GraphQL fallback contract;
-- [~] продолжить разделение storefront package до `ui/leptos/`, не меняя public
-  route/transport contract.
+- [x] выделить Leptos render/bind adapter в `storefront/src/ui/leptos.rs`, оставив
+  crate root composition/re-export boundary;
+- [~] продолжить request normalization/port extraction из `api.rs` в `core`, не меняя
+  public route/transport contract.
 
 ### 2. Pricing transport split
 
