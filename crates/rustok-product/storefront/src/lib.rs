@@ -5,8 +5,9 @@ mod model;
 mod transport;
 
 use crate::core::{
-    build_product_catalog_rail_view_model, build_selected_product_empty_view_model,
-    build_selected_product_view_model, build_storefront_route_input, ProductCatalogRailLabels,
+    build_product_catalog_rail_view_model, build_product_storefront_shell_view_model,
+    build_selected_product_empty_view_model, build_selected_product_view_model,
+    build_storefront_fetch_request, build_storefront_route_input, ProductCatalogRailLabels,
 };
 use crate::i18n::t;
 use crate::model::{
@@ -30,80 +31,26 @@ pub fn ProductView() -> impl IntoView {
         read_route_query_value(&route_context, "channel_slug"),
         read_route_query_value(&route_context, "quantity"),
     );
-    let selected_handle = route_input.handle.clone();
-    let selected_locale = route_input.locale.clone();
-    let selected_currency_code = route_input.currency_code.clone();
-    let selected_region_id = route_input.region_id.clone();
-    let selected_price_list_id = route_input.price_list_id.clone();
-    let selected_channel_id = route_input.channel_id.clone();
-    let selected_channel_slug = route_input.channel_slug.clone();
-    let selected_quantity = route_input.quantity;
-    let badge = t(selected_locale.as_deref(), "product.badge", "product");
-    let title = t(
-        selected_locale.as_deref(),
-        "product.title",
-        "Published catalog from the product module",
-    );
-    let subtitle = t(
-        selected_locale.as_deref(),
-        "product.subtitle",
-        "This storefront route reads published catalog data through the product-owned package, with GraphQL kept as a fallback path.",
-    );
-    let load_error = t(
-        selected_locale.as_deref(),
-        "product.error.load",
-        "Failed to load storefront product data",
-    );
+    let shell = build_product_storefront_shell_view_model(route_input.locale.as_deref());
+    let fetch_request = build_storefront_fetch_request(&route_input);
 
     let resource = Resource::new_blocking(
-        move || {
-            (
-                selected_handle.clone(),
-                selected_locale.clone(),
-                selected_currency_code.clone(),
-                selected_region_id.clone(),
-                selected_price_list_id.clone(),
-                selected_channel_id.clone(),
-                selected_channel_slug.clone(),
-                selected_quantity,
-            )
-        },
-        move |(
-            handle,
-            locale,
-            currency_code,
-            region_id,
-            price_list_id,
-            channel_id,
-            channel_slug,
-            quantity,
-        )| async move {
-            transport::fetch_products(
-                handle,
-                locale,
-                currency_code,
-                region_id,
-                price_list_id,
-                channel_id,
-                channel_slug,
-                quantity,
-            )
-            .await
-        },
+        move || fetch_request.clone(),
+        move |request| async move { transport::fetch_products(request).await },
     );
 
     view! {
         <section class="rounded-[2rem] border border-border bg-card p-8 shadow-sm">
             <div class="max-w-3xl space-y-3">
-                <span class="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">{badge}</span>
-                <h2 class="text-3xl font-semibold text-card-foreground">{title}</h2>
-                <p class="text-sm text-muted-foreground">{subtitle}</p>
+                <span class="inline-flex items-center rounded-full border border-border px-3 py-1 text-xs font-medium uppercase tracking-[0.2em] text-muted-foreground">{shell.badge}</span>
+                <h2 class="text-3xl font-semibold text-card-foreground">{shell.title}</h2>
+                <p class="text-sm text-muted-foreground">{shell.subtitle}</p>
             </div>
             <div class="mt-8">
                 <Suspense fallback=|| view! { <div class="space-y-4"><div class="h-48 animate-pulse rounded-3xl bg-muted"></div><div class="grid gap-3 md:grid-cols-3"><div class="h-28 animate-pulse rounded-2xl bg-muted"></div><div class="h-28 animate-pulse rounded-2xl bg-muted"></div><div class="h-28 animate-pulse rounded-2xl bg-muted"></div></div></div> }>
                     {move || {
                         let resource = resource;
-                        let load_error = load_error.clone();
+                        let load_error = shell.load_error.clone();
                         Suspend::new(async move {
                             match resource.await {
                                 Ok(data) => view! { <ProductShowcase data /> }.into_any(),

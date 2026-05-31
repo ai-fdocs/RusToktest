@@ -17,6 +17,26 @@ pub struct ProductStorefrontRouteInput {
     pub quantity: Option<i32>,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProductStorefrontFetchRequest {
+    pub selected_handle: Option<String>,
+    pub locale: Option<String>,
+    pub currency_code: Option<String>,
+    pub region_id: Option<String>,
+    pub price_list_id: Option<String>,
+    pub channel_id: Option<String>,
+    pub channel_slug: Option<String>,
+    pub quantity: Option<i32>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ProductStorefrontShellViewModel {
+    pub badge: String,
+    pub title: String,
+    pub subtitle: String,
+    pub load_error: String,
+}
+
 #[allow(clippy::too_many_arguments)]
 pub fn build_storefront_route_input(
     handle: Option<String>,
@@ -37,6 +57,44 @@ pub fn build_storefront_route_input(
         channel_id,
         channel_slug,
         quantity: parse_storefront_quantity(quantity.as_deref()),
+    }
+}
+
+pub fn build_storefront_fetch_request(
+    input: &ProductStorefrontRouteInput,
+) -> ProductStorefrontFetchRequest {
+    ProductStorefrontFetchRequest {
+        selected_handle: input.handle.clone(),
+        locale: input.locale.clone(),
+        currency_code: input.currency_code.clone(),
+        region_id: input.region_id.clone(),
+        price_list_id: input.price_list_id.clone(),
+        channel_id: input.channel_id.clone(),
+        channel_slug: input.channel_slug.clone(),
+        quantity: input.quantity,
+    }
+}
+
+pub fn build_product_storefront_shell_view_model(
+    locale: Option<&str>,
+) -> ProductStorefrontShellViewModel {
+    ProductStorefrontShellViewModel {
+        badge: t(locale, "product.badge", "product"),
+        title: t(
+            locale,
+            "product.title",
+            "Published catalog from the product module",
+        ),
+        subtitle: t(
+            locale,
+            "product.subtitle",
+            "This storefront route reads published catalog data through the product-owned package, with GraphQL kept as a fallback path.",
+        ),
+        load_error: t(
+            locale,
+            "product.error.load",
+            "Failed to load storefront product data",
+        ),
     }
 }
 
@@ -519,6 +577,31 @@ mod tests {
         assert_eq!(input.quantity, Some(3));
         assert_eq!(parse_storefront_quantity(Some("bad")), None);
         assert_eq!(parse_storefront_quantity(Some("   ")), None);
+
+        let request = build_storefront_fetch_request(&input);
+        assert_eq!(request.selected_handle.as_deref(), Some("boot"));
+        assert_eq!(request.locale.as_deref(), Some("en"));
+        assert_eq!(request.currency_code.as_deref(), Some("USD"));
+        assert_eq!(request.quantity, Some(3));
+    }
+
+    #[test]
+    fn storefront_shell_view_model_is_built_without_ui_runtime() {
+        let view_model = build_product_storefront_shell_view_model(Some("en"));
+
+        assert_eq!(view_model.badge, "product");
+        assert_eq!(
+            view_model.title,
+            "Published catalog from the product module"
+        );
+        assert_eq!(
+            view_model.subtitle,
+            "This storefront route reads product-owned catalog data and shows resolved pricing through a separate pricing-module hook, with GraphQL kept as a fallback path."
+        );
+        assert_eq!(
+            view_model.load_error,
+            "Failed to load storefront product data"
+        );
     }
 
     #[test]

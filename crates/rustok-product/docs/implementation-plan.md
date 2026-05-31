@@ -6,7 +6,7 @@
 ## Execution checkpoint
 
 - Current phase: ffa_storefront_core_slice
-- Last checkpoint: Storefront selected-product card copy/metric/action labels and empty state now live in framework-agnostic view-models in `storefront/src/core.rs`; Leptos selected-product rendering consumes prepared core labels instead of resolving copy itself.
+- Last checkpoint: Storefront shell copy and fetch request shape now live in framework-agnostic `ProductStorefrontShellViewModel` / `ProductStorefrontFetchRequest`; Leptos `ProductView` supplies host route context and passes the prepared request to the transport facade.
 - Next step: Continue FFA-first sequencing by moving the next storefront/admin render fragment or route/query writer smoke into core without changing native/GraphQL transport parity.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
@@ -21,6 +21,7 @@
   - module plan синхронизирован с central FFA/FBA readiness board; UI surface уже опубликован и ведётся в migration/backlog ритме;
   - FFA slice: storefront catalog rail title/total/empty/open labels, item fallback labels, seller boundary text, published timestamp fallback and handle links now live in framework-agnostic `ProductCatalogRailViewModel` with unit-test evidence;
   - FFA slice: selected-product card empty state, pricing context label, ownership note, metric labels and pricing action label now live in `SelectedProductEmptyViewModel` / `SelectedProductViewModel` with unit-test evidence;
+  - FFA slice: storefront shell badge/title/subtitle/load-error copy and typed fetch request shape now live in `ProductStorefrontShellViewModel` / `ProductStorefrontFetchRequest` with unit-test evidence;
   - дальнейшее повышение статуса выполняется только вместе с verification evidence и обновлением local+central docs.
 - Last verified at (UTC): 2026-05-31T00:00:00Z
 - Owner: `rustok-product` module team
@@ -42,11 +43,11 @@
 - module-owned storefront UI пакет `rustok-product/storefront` уже поднят и
   подключён в manifest-driven storefront composition для published catalog
   discovery через native Leptos server functions с GraphQL fallback;
-- storefront UI продолжает FFA-декомпозицию: route/query normalization, selected-product
-  view-model composition, selected-card labels/empty state, catalog rail view-model,
-  pricing/seller labels и pricing deep-link state вынесены в framework-agnostic
-  `storefront/src/core.rs`, а Leptos слой остаётся thin render/host-context adapter
-  поверх transport;
+- storefront UI продолжает FFA-декомпозицию: route/query normalization, typed fetch
+  request shape, shell copy, selected-product view-model composition, selected-card
+  labels/empty state, catalog rail view-model, pricing/seller labels и pricing
+  deep-link state вынесены в framework-agnostic `storefront/src/core.rs`, а Leptos
+  слой остаётся thin render/host-context adapter поверх transport;
 - transport-level validation и public transport по-прежнему публикуются фасадом `rustok-commerce`.
 
 ## Этапы
@@ -72,6 +73,7 @@
 - [x] вынести storefront FFA core slice для route/query state, selected-product view-model и pricing/seller helpers;
 - [x] вынести storefront catalog rail presentation в core view-model без Leptos runtime;
 - [x] вынести selected-product card labels и empty state в core view-model без Leptos runtime;
+- [x] вынести storefront shell copy и typed fetch request shape в core без Leptos runtime;
 - [ ] обновлять consumer-module docs при изменении tag/deliverability integration rules.
 
 ## Проверка
