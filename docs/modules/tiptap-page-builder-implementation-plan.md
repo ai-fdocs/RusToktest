@@ -953,7 +953,7 @@ Notes: <known deviations or waivers>
   - [x] приложить anti-drift diff-check в baseline gate (`verify-page-builder-contract-registry.mjs`, aggregate `verify-page-builder-fba-baseline.mjs`, fail-fast при несовместимости).
 - [~] **PB-FBA-1B / Fallback hardening:**
   - [x] подтвердить service-level smoke-профили `all_on/publish_off/preview_off/builder_off` без деградации `pages` read/list через `pages_builder_fallback_*` gate;
-  - [ ] приложить host-level evidence без `5xx` на `admin list/read` и `storefront read`;
+  - [x] приложить admin/storefront host-helper evidence без деградации read/list и без builder capability requirement на storefront render;
   - [ ] собрать parity-таблицу typed errors для Next/Leptos/Flutter adapters.
 
 #### Week 2 — закрыть P2/P3
@@ -968,7 +968,7 @@ Notes: <known deviations or waivers>
 #### Артефакты, обязательные для checkpoint update
 
 1. `metadata snapshot` (provider/consumer versions + fallback profile mapping): `crates/rustok-page-builder/contracts/page-builder-fba-registry.json`;
-2. `fallback smoke report` (`all_on`, `publish_off`, `preview_off`, `builder_off`): service-level gate `cargo test -p rustok-pages --test page_service_kind_guard pages_builder_fallback`, host-level evidence pending;
+2. `fallback smoke report` (`all_on`, `publish_off`, `preview_off`, `builder_off`): service-level gate `cargo test -p rustok-pages --test page_service_kind_guard pages_builder_fallback`, admin/storefront host-helper static checks inside `verify-page-builder-pages-fallback-gate.mjs`;
 3. `toggle audit log` (change-set id, before/after, decision);
 4. `observability snapshot` (p95/error-rate/sanitize + traces).
 

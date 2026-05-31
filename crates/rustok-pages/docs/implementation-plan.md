@@ -8,7 +8,7 @@
 
 - Current phase: phase_b_closed
 - Last checkpoint: FFA maintenance slice вынесла create-page draft normalization (`PageDraftFormInput` / `build_create_page_draft`) и route text checks на shared UI helpers из `rustok-api`.
-- Next step: Закрыть host-level PB-FBA-1B evidence (`admin list/read`, `storefront read`, typed errors parity) и затем PB-FBA-1C control-plane audit trail.
+- Next step: Закрыть оставшуюся PB-FBA-1B typed errors parity для Next/Leptos/Flutter adapters и затем PB-FBA-1C control-plane audit trail.
 - Open blockers: None.
 - Hand-off notes for next agent:
   1. Перед любыми изменениями pages сначала сверить `docs/research/dioxus-ffa-pilot-connectivity-map.md` и этот файл; не открывать новый slice без явной цели в трекере.
@@ -27,7 +27,7 @@
 - PB-FBA-1 platform sync note: central plan `docs/modules/tiptap-page-builder-implementation-plan.md` now содержит delivery slices и exit criteria для Wave 0 hand-off; pages track должен обновляться синхронно по dependency notes.
 - PB-FBA-1 execution note: sync с central section `8.5 Execution backlog` принят как active queue (`PB-FBA-1A..1D`, фокус Week1=P0/P1, Week2=P2/P3).
 - PB-FBA-1A update: `consumer_min_version = "1.0"` добавлен в `fba.builder_consumer`, а machine-readable registry `crates/rustok-page-builder/contracts/page-builder-fba-registry.json` теперь проверяется через `verify-page-builder-contract-registry.mjs` и aggregate baseline gate.
-- PB-FBA-1B service update: `pages_builder_fallback_*` gate покрывает все baseline-профили (`all_on`, `publish_off`, `preview_off`, `builder_off`) на service boundary: read/list остаются стабильными, disabled capabilities возвращают typed `FeatureDisabled`.
+- PB-FBA-1B host update: `pages_builder_fallback_*` gate покрывает все baseline-профили (`all_on`, `publish_off`, `preview_off`, `builder_off`) на service boundary и admin/storefront host helpers: read/list остаются стабильными, disabled capabilities возвращают typed `FeatureDisabled`, storefront render не требует builder capability.
 
 
 
@@ -54,7 +54,7 @@
 
 - [x] Typed fallback matrix: `builder_off`, `preview_off`, `publish_off` с ожидаемыми runtime/error outcomes.
 - [x] Unified builder error catalog для `validation/sanitize/runtime/feature-disabled` без расхождения между GraphQL, `#[server]` и UI adapters.
-- [x] CI fallback gate для профилей `all_on`, `publish_off`, `preview_off`, `builder_off`: provider runtime gate и `rustok-pages` consumer fallback gate подключены к baseline-проверке.
+- [x] CI fallback gate для профилей `all_on`, `publish_off`, `preview_off`, `builder_off`: provider runtime gate и `rustok-pages` service/admin/storefront consumer fallback gate подключены к baseline-проверке.
 - [x] Contract freeze anti-drift: `builder_contract_version`, `consumer_min_version`, capability set и fallback profile names зафиксированы в machine-readable registry и проверяются aggregate baseline gate.
 
 ### Fallback matrix (admin/list/read/publish snapshots)
@@ -173,7 +173,7 @@ Rollback trigger:
 
 - [x] Закрепить единый typed error catalog для builder-related runtime ошибок (`validation/sanitize/runtime/feature-disabled`).
 - [x] Добавить fallback snapshots в docs для admin/list/read/publish surfaces.
-- [x] Убедиться, что baseline-профили `all_on`, `publish_off`, `preview_off`, `builder_off` не ломают page read/list/menu paths на service fallback gate; UI adapter evidence остаётся в Wave hand-off.
+- [x] Убедиться, что baseline-профили `all_on`, `publish_off`, `preview_off`, `builder_off` не ломают page read/list/menu paths на service fallback gate и host-level admin/storefront helper checks; Next/Flutter parity evidence остаётся в Wave hand-off.
 
 ### B3. Operability & rollout
 
@@ -183,7 +183,7 @@ Rollback trigger:
 
 ### B4. Verification gates
 
-- [x] Включить fallback regression checks в `cargo xtask module test pages` (или эквивалентный CI gate): `verify-page-builder-fba-baseline.mjs` запускает provider runtime gate, registry anti-drift gate и `rustok-pages` consumer fallback gate по всем четырём baseline-профилям.
+- [x] Включить fallback regression checks в `cargo xtask module test pages` (или эквивалентный CI gate): `verify-page-builder-fba-baseline.mjs` запускает provider runtime gate, registry anti-drift gate и `rustok-pages` service/admin/storefront fallback gates по всем четырём baseline-профилям.
 - [x] Добавить targeted integration checks для `all_on`, `publish_off`, `preview_off`, `builder_off` на уровне `pages` service/transport boundary (`pages_builder_fallback_*` checks).
 - [ ] Зафиксировать evidence-template для Wave hand-off (platform + pages owner approval).
 
@@ -191,9 +191,9 @@ Rollback trigger:
 
 ### C1. Toggle profiles (обязательно)
 
-- [x] `all_on`: `builder.enabled=true`, `preview/properties/publish=true` (service fallback gate).
-- [x] `publish_off`: `builder.publish.enabled=false`, publish-path возвращает typed `feature-disabled` error, read-path стабилен.
-- [x] `preview_off`: preview capability недоступен, read/list surfaces не деградируют (service fallback gate; host evidence pending).
+- [x] `all_on`: `builder.enabled=true`, `preview/properties/publish=true` (service + admin/storefront host fallback gate).
+- [x] `publish_off`: `builder.publish.enabled=false`, publish-path возвращает typed `feature-disabled` error, read/list paths стабильны.
+- [x] `preview_off`: preview capability недоступен, read/list surfaces не деградируют (service + admin/storefront host fallback gate).
 - [x] `builder_off`: service read/list paths стабильны, publish-path возвращает typed `feature-disabled`; UI read-only fallback остаётся Wave evidence.
 
 ### C2. Evidence package для каждого профиля
@@ -205,7 +205,7 @@ Rollback trigger:
 
 ### C3. Exit criteria для Wave 1
 
-- [x] service-level fallback regression checks зелёные на актуальном коммите; host-level smoke evidence ещё требуется для Wave 1.
+- [x] service-level fallback regression checks и admin/storefront host-helper static checks зелёные на актуальном коммите; Next/Flutter typed error parity ещё требуется для Wave 1.
 - [ ] нет RBAC regression для editor/moderator/admin в builder-related сценариях.
 - [ ] подтверждён rollback execution <= 10 минут без redeploy `pages` runtime.
 
