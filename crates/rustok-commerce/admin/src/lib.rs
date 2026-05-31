@@ -13,7 +13,7 @@ use crate::i18n::t;
 use crate::model::{
     CommerceAdminBootstrap, CommerceAdminCartSnapshot, CommerceCartPromotionDraft,
     CommerceCartPromotionKind, CommerceCartPromotionPreview, CommerceCartPromotionScope,
-    ShippingProfile, ShippingProfileDraft,
+    CommerceOrderChange, CommerceOrderChangeActionDraft, ShippingProfile, ShippingProfileDraft,
 };
 
 fn local_resource<S, Fut, T>(
@@ -34,6 +34,7 @@ pub fn CommerceAdmin() -> impl IntoView {
     let ui_locale = route_context.locale.clone();
     let selected_profile_query = use_route_query_value(AdminQueryKey::ShippingProfileId.as_str());
     let selected_cart_query = use_route_query_value(AdminQueryKey::CartId.as_str());
+    let selected_order_query = use_route_query_value(AdminQueryKey::OrderId.as_str());
     let query_writer = use_route_query_writer();
     let token = use_token();
     let tenant = use_tenant();
@@ -62,6 +63,13 @@ pub fn CommerceAdmin() -> impl IntoView {
         signal(Option::<CommerceCartPromotionPreview>::None);
     let (promotion_result, set_promotion_result) =
         signal(Option::<CommerceAdminCartSnapshot>::None);
+    let (order_change_order_id, set_order_change_order_id) = signal(String::new());
+    let (order_change_status, set_order_change_status) = signal("pending".to_string());
+    let (order_change_metadata_json, set_order_change_metadata_json) = signal(String::new());
+    let (order_change_cancel_reason, set_order_change_cancel_reason) = signal(String::new());
+    let (order_change_refresh_nonce, set_order_change_refresh_nonce) = signal(0_u64);
+    let (order_change_busy, set_order_change_busy) = signal(false);
+    let (order_change_error, set_order_change_error) = signal(Option::<String>::None);
 
     let badge_label = t(ui_locale.as_deref(), "commerce.badge", "commerce");
     let title_label = t(
@@ -285,8 +293,66 @@ pub fn CommerceAdmin() -> impl IntoView {
         "commerce.cartPromotion.scope.lineItem",
         "Line item",
     );
+    let order_changes_title_label = t(
+        ui_locale.as_deref(),
+        "commerce.orderChanges.title",
+        "Post-order Change Operator",
+    );
+    let order_changes_subtitle_label = t(
+        ui_locale.as_deref(),
+        "commerce.orderChanges.subtitle",
+        "Review exchange/claim order changes created by the return decision tree and drive their apply/cancel lifecycle through the order service.",
+    );
+    let order_id_placeholder_label = t(ui_locale.as_deref(), "commerce.field.orderId", "Order ID");
+    let status_placeholder_label = t(ui_locale.as_deref(), "commerce.field.status", "Status");
+    let cancel_reason_placeholder_label = t(
+        ui_locale.as_deref(),
+        "commerce.field.cancelReason",
+        "Cancel reason",
+    );
+    let refresh_order_changes_label = t(
+        ui_locale.as_deref(),
+        "commerce.action.refreshOrderChanges",
+        "Refresh changes",
+    );
+    let apply_order_change_label = t(
+        ui_locale.as_deref(),
+        "commerce.action.applyOrderChange",
+        "Apply",
+    );
+    let cancel_order_change_label = t(
+        ui_locale.as_deref(),
+        "commerce.action.cancelOrderChange",
+        "Cancel",
+    );
+    let clear_order_label = t(
+        ui_locale.as_deref(),
+        "commerce.action.clearOrderSelection",
+        "Clear order selection",
+    );
+    let order_change_required_label = t(
+        ui_locale.as_deref(),
+        "commerce.error.orderChangeRequired",
+        "Order change ID is required.",
+    );
+    let order_changes_empty_label = t(
+        ui_locale.as_deref(),
+        "commerce.orderChanges.empty",
+        "No order changes match the current filter.",
+    );
+    let order_changes_error_label = t(
+        ui_locale.as_deref(),
+        "commerce.error.loadOrderChanges",
+        "Failed to load order changes",
+    );
+    let order_change_action_error_label = t(
+        ui_locale.as_deref(),
+        "commerce.error.orderChangeAction",
+        "Failed to update order change",
+    );
     let ui_locale_for_promotion_preview = ui_locale.clone();
     let ui_locale_for_promotion_result = ui_locale.clone();
+    let ui_locale_for_order_changes = ui_locale.clone();
 
     let bootstrap = local_resource(
         move || (token.get(), tenant.get()),
@@ -304,6 +370,29 @@ pub fn CommerceAdmin() -> impl IntoView {
                 tenant_value,
                 bootstrap.current_tenant.id,
                 text_or_none(search_value),
+            )
+            .await
+        },
+    );
+
+    let order_changes = local_resource(
+        move || {
+            (
+                token.get(),
+                tenant.get(),
+                order_change_refresh_nonce.get(),
+                order_change_order_id.get(),
+                order_change_status.get(),
+            )
+        },
+        move |(token_value, tenant_value, _, order_id, status)| async move {
+            let bootstrap = api::fetch_bootstrap(token_value.clone(), tenant_value.clone()).await?;
+            api::fetch_order_changes(
+                token_value,
+                tenant_value,
+                bootstrap.current_tenant.id,
+                text_or_none(order_id),
+                text_or_none(status),
             )
             .await
         },
@@ -553,6 +642,14 @@ pub fn CommerceAdmin() -> impl IntoView {
             set_promotion_result.set(None);
         }
     });
+    Effect::new(move |_| match selected_order_query.get() {
+        Some(order_id) if !order_id.trim().is_empty() => {
+            set_order_change_order_id.set(order_id);
+        }
+        _ => {
+            set_order_change_order_id.set(String::new());
+        }
+    });
 
     let preview_required_label = promotion_required_label.clone();
     let preview_query_writer = query_writer.clone();
@@ -627,6 +724,72 @@ pub fn CommerceAdmin() -> impl IntoView {
         });
     });
     let clear_cart_query_writer = query_writer.clone();
+    let order_query_writer = query_writer.clone();
+    let sync_order_query = Callback::new(move |_| {
+        let order_id = order_change_order_id.get_untracked().trim().to_string();
+        if order_id.is_empty() {
+            order_query_writer.clear_key(AdminQueryKey::OrderId.as_str());
+        } else {
+            order_query_writer.replace_value(AdminQueryKey::OrderId.as_str(), order_id);
+        }
+        set_order_change_refresh_nonce.update(|value| *value += 1);
+    });
+    let clear_order_query_writer = query_writer.clone();
+    let order_change_action = Callback::new(move |(change_id, apply): (String, bool)| {
+        if change_id.trim().is_empty() {
+            set_order_change_error.set(Some(order_change_required_label.clone()));
+            return;
+        }
+        let Some(CommerceAdminBootstrap { current_tenant }) =
+            bootstrap.get_untracked().and_then(Result::ok)
+        else {
+            set_order_change_error.set(Some(bootstrap_loading_label.clone()));
+            return;
+        };
+        let token_value = token.get_untracked();
+        let tenant_value = tenant.get_untracked();
+        let action_error_label = order_change_action_error_label.clone();
+        let draft = CommerceOrderChangeActionDraft {
+            metadata_json: order_change_metadata_json
+                .get_untracked()
+                .trim()
+                .to_string(),
+            reason: order_change_cancel_reason
+                .get_untracked()
+                .trim()
+                .to_string(),
+        };
+        set_order_change_busy.set(true);
+        set_order_change_error.set(None);
+        spawn_local(async move {
+            let result = if apply {
+                api::apply_order_change(
+                    token_value,
+                    tenant_value,
+                    current_tenant.id,
+                    change_id,
+                    draft,
+                )
+                .await
+            } else {
+                api::cancel_order_change(
+                    token_value,
+                    tenant_value,
+                    current_tenant.id,
+                    change_id,
+                    draft,
+                )
+                .await
+            };
+            match result {
+                Ok(_) => set_order_change_refresh_nonce.update(|value| *value += 1),
+                Err(err) => {
+                    set_order_change_error.set(Some(format!("{action_error_label}: {err}")))
+                }
+            }
+            set_order_change_busy.set(false);
+        });
+    });
 
     view! {
         <section class="space-y-6">
@@ -717,6 +880,51 @@ pub fn CommerceAdmin() -> impl IntoView {
                     <p class="mt-3 text-xs text-muted-foreground">{metadata_hint_label.clone()}</p>
                 </section>
             </div>
+
+            <section class="rounded-3xl border border-border bg-card p-6 shadow-sm">
+                <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                    <div>
+                        <h3 class="text-lg font-semibold text-card-foreground">{order_changes_title_label.clone()}</h3>
+                        <p class="text-sm text-muted-foreground">{order_changes_subtitle_label.clone()}</p>
+                    </div>
+                    <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || order_change_busy.get() on:click=move |_| {
+                        clear_order_query_writer.clear_key(AdminQueryKey::OrderId.as_str());
+                        set_order_change_status.set("pending".to_string());
+                        set_order_change_metadata_json.set(String::new());
+                        set_order_change_cancel_reason.set(String::new());
+                        set_order_change_error.set(None);
+                        set_order_change_refresh_nonce.update(|value| *value += 1);
+                    }>{clear_order_label.clone()}</button>
+                </div>
+                <Show when=move || order_change_error.get().is_some()>
+                    <div class="mt-4 rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{move || order_change_error.get().unwrap_or_default()}</div>
+                </Show>
+                <div class="mt-5 grid gap-6 xl:grid-cols-[minmax(0,0.8fr)_minmax(0,1.2fr)]">
+                    <div class="space-y-4 rounded-2xl border border-border bg-background p-5">
+                        <input class="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" placeholder=order_id_placeholder_label.clone() prop:value=move || order_change_order_id.get() on:input=move |ev| set_order_change_order_id.set(event_target_value(&ev)) on:blur=move |_| sync_order_query.run(()) />
+                        <select class="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" aria-label=status_placeholder_label.clone() prop:value=move || order_change_status.get() on:change=move |ev| {
+                            set_order_change_status.set(event_target_value(&ev));
+                            set_order_change_refresh_nonce.update(|value| *value += 1);
+                        }>
+                            <option value="pending">"pending"</option>
+                            <option value="applied">"applied"</option>
+                            <option value="cancelled">"cancelled"</option>
+                            <option value="">"all"</option>
+                        </select>
+                        <textarea class="min-h-24 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" placeholder=metadata_placeholder_label.clone() prop:value=move || order_change_metadata_json.get() on:input=move |ev| set_order_change_metadata_json.set(event_target_value(&ev)) />
+                        <input class="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" placeholder=cancel_reason_placeholder_label.clone() prop:value=move || order_change_cancel_reason.get() on:input=move |ev| set_order_change_cancel_reason.set(event_target_value(&ev)) />
+                        <button type="button" class="inline-flex rounded-xl border border-border px-4 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || order_change_busy.get() on:click=move |_| sync_order_query.run(())>{refresh_order_changes_label.clone()}</button>
+                    </div>
+                    <div class="space-y-3">
+                        {move || match order_changes.get() {
+                            None => view! { <div class="h-32 animate-pulse rounded-2xl bg-muted"></div> }.into_any(),
+                            Some(Ok(list)) if list.items.is_empty() => view! { <div class="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{order_changes_empty_label.clone()}</div> }.into_any(),
+                            Some(Ok(list)) => render_order_changes(ui_locale_for_order_changes.as_deref(), list.items, order_change_action, apply_order_change_label.clone(), cancel_order_change_label.clone(), order_change_busy),
+                            Some(Err(err)) => view! { <div class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{format!("{order_changes_error_label}: {err}")}</div> }.into_any(),
+                        }}
+                    </div>
+                </div>
+            </section>
 
             <section class="rounded-3xl border border-border bg-card p-6 shadow-sm">
                 <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
@@ -889,6 +1097,62 @@ fn render_promotion_preview(
         </div>
     }
     .into_any()
+}
+
+fn render_order_changes(
+    locale: Option<&str>,
+    changes: Vec<CommerceOrderChange>,
+    action: Callback<(String, bool)>,
+    apply_label: String,
+    cancel_label: String,
+    busy: ReadSignal<bool>,
+) -> AnyView {
+    view! {
+        <div class="space-y-3">
+            {changes.into_iter().map(|change| {
+                let apply_id = change.id.clone();
+                let cancel_id = change.id.clone();
+                let can_update = change.status == "pending";
+                let description = change.description.clone();
+                let has_description = description.is_some();
+                view! {
+                    <article class="rounded-2xl border border-border bg-background p-5">
+                        <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                            <div class="space-y-2">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class=format!("inline-flex rounded-full border px-3 py-1 text-xs font-semibold {}", order_change_status_badge(change.status.as_str()))>{change.status.clone()}</span>
+                                    <span class="text-xs uppercase tracking-[0.18em] text-muted-foreground">{change.change_type.clone()}</span>
+                                </div>
+                                <h4 class="break-all text-base font-semibold text-card-foreground">{change.id.clone()}</h4>
+                                <p class="break-all text-xs text-muted-foreground">{format!("{}: {}", t(locale, "commerce.field.orderId", "Order ID"), change.order_id.clone())}</p>
+                                <Show when=move || has_description>
+                                    <p class="text-sm text-muted-foreground">{description.clone().unwrap_or_default()}</p>
+                                </Show>
+                                <p class="text-xs text-muted-foreground">{change.updated_at.clone()}</p>
+                            </div>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" class="inline-flex rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 disabled:opacity-50" disabled=move || busy.get() || !can_update on:click=move |_| action.run((apply_id.clone(), true))>{apply_label.clone()}</button>
+                                <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || busy.get() || !can_update on:click=move |_| action.run((cancel_id.clone(), false))>{cancel_label.clone()}</button>
+                            </div>
+                        </div>
+                        <div class="mt-4 grid gap-3 md:grid-cols-2">
+                            <pre class="overflow-x-auto rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">{change.preview.clone()}</pre>
+                            <pre class="overflow-x-auto rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">{change.metadata.clone()}</pre>
+                        </div>
+                    </article>
+                }
+            }).collect_view()}
+        </div>
+    }
+    .into_any()
+}
+
+fn order_change_status_badge(status: &str) -> &'static str {
+    match status {
+        "applied" => "border-emerald-200 bg-emerald-50 text-emerald-700",
+        "cancelled" => "border-rose-200 bg-rose-50 text-rose-700",
+        _ => "border-amber-200 bg-amber-50 text-amber-700",
+    }
 }
 
 fn render_cart_snapshot(locale: Option<&str>, cart: CommerceAdminCartSnapshot) -> AnyView {
