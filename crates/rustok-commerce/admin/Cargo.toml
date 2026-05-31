@@ -19,6 +19,7 @@ ssr = [
     "dep:rustok-core",
     "dep:rust_decimal",
     "dep:uuid",
+    "rustok-api/server",
 ]
 
 [dependencies]

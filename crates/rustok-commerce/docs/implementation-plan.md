@@ -2,12 +2,12 @@
 
 ## Execution checkpoint
 
-- Current phase: post_order_transport_publication
-- Last checkpoint: Phase 10.4 claim/exchange decision coupling доведён до return completion semantics и REST/GraphQL runtime parity: `PostOrderOrchestrationService` завершает созданный return и проставляет `resolution_type/refund_id/order_change_id` для `return_only/refund/exchange/claim`, `rustok-order` принимает `claim` как order-change-backed resolution без payment side effects, а REST `/admin/orders/{id}/returns/decision` и `createOrderReturnDecision` покрыты live claim-тестами.
-- Next step: расширить post-order operator UX поверх decision-tree контракта и связать `exchange/claim` order-change lifecycle (`apply/cancel`) с operator actions без переноса domain logic в umbrella UI.
-- Open blockers: OpenAPI contract test под default server features блокируется существующими compile errors вне commerce (`rustok-pages-admin` Fn/FnOnce и server build/lifecycle/graphql ошибки); targeted order claim-resolution, commerce bridge, admin REST/GraphQL claim parity и `cargo check -p rustok-commerce` проходят.
+- Current phase: post_order_operator_ux
+- Last checkpoint: Phase 10.4 operator UX продолжен: `rustok-commerce-admin` получил module-owned post-order change operator над `orderChanges` / `applyOrderChange` / `cancelOrderChange`, чтобы exchange/claim changes из return decision tree управлялись через order-owned lifecycle без переноса domain logic в UI.
+- Next step: добавить targeted UI/API coverage для post-order operator workspace и расширить exchange helper semantics поверх уже опубликованного apply/cancel lifecycle.
+- Open blockers: OpenAPI contract test под default server features ранее блокировался существующими compile errors вне commerce (`rustok-pages-admin` Fn/FnOnce и server build/lifecycle/graphql ошибки); targeted `cargo check -p rustok-commerce-admin --features ssr` проходит.
 - Hand-off notes for next agent: После каждого returns/order-change инкремента обновлять этот блок и central readiness/registry evidence.
-- Last updated at (UTC): 2026-05-30T12:17:00Z
+- Last updated at (UTC): 2026-05-31T00:00:00Z
 
 
 ## FFA/FBA status
@@ -17,8 +17,9 @@
 - Evidence:
   - module plan синхронизирован с central FFA/FBA readiness board; UI surface уже опубликован и ведётся в migration/backlog ритме;
   - admin return decision tree теперь имеет transport parity (`/admin/orders/{id}/returns/decision` ↔ `createOrderReturnDecision`) над единым `PostOrderOrchestrationService`, включая completion semantics для `return_only/refund/exchange/claim`, без дублирования rules в host/UI adapters; live REST и GraphQL parity tests фиксируют claim → completed return + `order_change(change_type=claim)`;
+  - module-owned admin UI получил post-order change operator: операторы фильтруют order changes по `order_id/status` и вызывают `applyOrderChange`/`cancelOrderChange` через GraphQL, сохраняя exchange/claim lifecycle внутри `rustok-order`;
   - дальнейшее повышение статуса выполняется только вместе с verification evidence и обновлением local+central docs.
-- Last verified at (UTC): 2026-05-30T12:17:00Z
+- Last verified at (UTC): 2026-05-31T00:00:00Z
 - Owner: `rustok-commerce` module team
 
 ## Статус документа
@@ -579,7 +580,7 @@ Execution slices (Phase 10):
 - [~] Slice 10.1: returns foundation (`rustok-order` storage + service lifecycle + admin REST/GraphQL read/write transport). Storage/read baseline был начат ранее; текущий срез добавил show/read, complete/cancel lifecycle, REST routes `/admin/returns/{id}`, `/admin/returns/{id}/complete`, `/admin/returns/{id}/cancel`, GraphQL `orderReturn(s)` + `create/complete/cancelOrderReturn`, OpenAPI registration и targeted lifecycle tests. Item-level return lines закрыты в текущем срезе через `order_return_items`; добавлены resolution-ссылки завершённого возврата (`resolution_type/refund_id/order_change_id`), а umbrella complete-return REST/GraphQL helper уже создаёт/опционально completes refund через `PaymentService` и передаёт `refund_id`; остаётся автоматизировать exchange helper.
 - [x] Slice 10.2: refund transport parity expansion (store/customer-safe read-side + ownership/RBAC contract tests).
 - [~] Slice 10.3: order-change groundwork (draft edit snapshot + preview/apply contract skeleton without host-owned logic). Started in `rustok-order`: `order_changes` storage/service skeleton with `pending -> applied|cancelled` lifecycle and service tests. Текущий срез добавил umbrella admin REST routes `/admin/orders/{id}/changes`, `/admin/order-changes*`, lifecycle routes `apply/cancel`, OpenAPI contract registration и GraphQL parity roots `orderChange(s)` + mutations `create/apply/cancelOrderChange`; остаётся связать changes с refund/exchange orchestration.
-- [~] Slice 10.4: exchanges/claims scope decision + parity matrix update in this plan and module docs. Decision tree доведён до transport-level parity: admin REST `POST /admin/orders/{id}/returns/decision` и admin GraphQL `createOrderReturnDecision` используют тот же `PostOrderOrchestrationService` и публикуют unified `ReturnDecisionResponse` (`return_only/refund/exchange/claim`) без host-owned logic. Claims scope decision зафиксирован как order-change-backed claim (`change_type=claim`) с `order_return_id` в preview/metadata и completed return `resolution_type=claim/order_change_id`; live REST и GraphQL runtime parity дополнительно проверяют claim response output (`order_return/orderReturn`, `order_change/orderChange`, `refund=null`) против runtime service semantics. Отдельный claim storage/API остаётся вне текущего scope, пока не появится dedicated bounded context.
+- [~] Slice 10.4: exchanges/claims scope decision + parity matrix update in this plan and module docs. Decision tree доведён до transport-level parity: admin REST `POST /admin/orders/{id}/returns/decision` и admin GraphQL `createOrderReturnDecision` используют тот же `PostOrderOrchestrationService` и публикуют unified `ReturnDecisionResponse` (`return_only/refund/exchange/claim`) без host-owned logic. Claims scope decision зафиксирован как order-change-backed claim (`change_type=claim`) с `order_return_id` в preview/metadata и completed return `resolution_type=claim/order_change_id`; live REST и GraphQL runtime parity дополнительно проверяют claim response output (`order_return/orderReturn`, `order_change/orderChange`, `refund=null`) против runtime service semantics. Отдельный claim storage/API остаётся вне текущего scope, пока не появится dedicated bounded context. Текущий UX-срез добавил в `rustok-commerce-admin` post-order change operator для `orderChanges` с `apply/cancel` actions, чтобы exchange/claim changes из decision tree управлялись без host-owned lifecycle rules.
 
 Обязательные проверки:
 

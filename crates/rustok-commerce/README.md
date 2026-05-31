@@ -23,6 +23,7 @@
 - Expose partial item-level `ship` / `deliver` adjustments over admin REST and GraphQL, with per-item shipped/delivered counters and a language-agnostic metadata-based audit trail.
 - Expose explicit admin `reopen` / `reship` fulfillment recovery operations over REST and GraphQL, so post-order delivery corrections do not rely on implicit status rewrites.
 - Expose admin return decision-tree transport over REST (`POST /admin/orders/{id}/returns/decision`) and GraphQL (`createOrderReturnDecision`) on top of `PostOrderOrchestrationService`, so `return_only` / `refund` / `exchange` orchestration stays service-owned.
+- Keep the module-owned admin UI as an aggregate operator workspace for shipping profiles, cart promotions, and post-order order-change actions; exchange/claim apply/cancel actions call `orderChanges` / `applyOrderChange` / `cancelOrderChange` instead of embedding domain rules.
 - Own the typed `shipping_profiles` registry and validate product/shipping-option references against active shipping profiles before write-path mutations are accepted.
 - Resolve the effective shipping profile as `variant -> product -> default`, persist it into cart/order line-item snapshots, and use those snapshots instead of live product metadata for checkout deliverability decisions.
 - Expose admin shipping-option management over REST and GraphQL (`list/show/create/update/deactivate/reactivate`) on top of `FulfillmentService`, so delivery compatibility and lifecycle are configurable without dropping to direct service calls.
