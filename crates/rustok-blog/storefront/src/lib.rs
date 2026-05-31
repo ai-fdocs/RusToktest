@@ -19,7 +19,7 @@ pub fn BlogView() -> impl IntoView {
         read_route_query_value(&route_context, core::SELECTED_POST_QUERY_KEY),
         route_context.route_segment.as_ref().cloned(),
     );
-    let selected_slug = route_state.selected_slug;
+    let fetch_request = core::build_storefront_fetch_request(&route_state, selected_locale.clone());
     let shell_view = core::build_storefront_shell_view_model(selected_locale.as_deref());
     let badge = shell_view.badge;
     let title = shell_view.title;
@@ -27,8 +27,8 @@ pub fn BlogView() -> impl IntoView {
     let load_error = shell_view.load_error;
 
     let posts_resource = Resource::new_blocking(
-        move || (selected_slug.clone(), selected_locale.clone()),
-        move |(post_slug, locale)| async move { transport::fetch_blog(post_slug, locale).await },
+        move || fetch_request.clone(),
+        move |request| async move { transport::fetch_blog(request).await },
     );
 
     view! {

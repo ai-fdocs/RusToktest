@@ -21,6 +21,12 @@ pub struct BlogStorefrontShellViewModel {
     pub load_error: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct BlogStorefrontFetchRequest {
+    pub post_slug: String,
+    pub locale: Option<String>,
+}
+
 pub fn build_storefront_route_state(
     route_slug: Option<String>,
     route_segment: Option<String>,
@@ -50,6 +56,19 @@ pub fn build_storefront_shell_view_model(locale: Option<&str>) -> BlogStorefront
             "blog.error.load",
             "Failed to load blog storefront data",
         ),
+    }
+}
+
+pub fn build_storefront_fetch_request(
+    route_state: &BlogStorefrontRouteState,
+    locale: Option<String>,
+) -> BlogStorefrontFetchRequest {
+    BlogStorefrontFetchRequest {
+        post_slug: selected_slug_or_default(
+            Some(route_state.selected_slug.clone()),
+            DEFAULT_POST_SLUG,
+        ),
+        locale: locale.as_deref().and_then(normalize_ui_text),
     }
 }
 
@@ -588,6 +607,23 @@ mod tests {
             "Failed to load blog storefront data".to_string()
         );
         assert!(view.subtitle.contains("GraphQL"));
+    }
+
+    #[test]
+    fn storefront_fetch_request_uses_core_route_state_and_host_locale() {
+        let route_state = build_storefront_route_state(
+            Some("  release-notes  ".to_string()),
+            Some("blog".to_string()),
+        );
+
+        let request = build_storefront_fetch_request(&route_state, Some("  ru  ".to_string()));
+
+        assert_eq!(request.post_slug, "release-notes".to_string());
+        assert_eq!(request.locale.as_deref(), Some("ru"));
+
+        let empty_locale_request =
+            build_storefront_fetch_request(&route_state, Some("   ".to_string()));
+        assert_eq!(empty_locale_request.locale, None);
     }
 
     #[test]
