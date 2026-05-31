@@ -131,7 +131,7 @@
 
 1. При изменении профилей сначала обновляется runtime matrix в `crates/rustok-page-builder/src/rollout.rs`.
 2. Затем синхронизируются consumer manifest/docs (`rustok-pages`) и этот центральный план.
-3. Anti-drift gate `verify-page-builder-fallback-matrix-docs.mjs` и provider runtime gate `verify-page-builder-runtime-fallback-gate.mjs` должны оставаться частью baseline-проверки до Wave 1.
+3. Anti-drift gate `verify-page-builder-fallback-matrix-docs.mjs`, provider runtime gate `verify-page-builder-runtime-fallback-gate.mjs` и `rustok-pages` consumer gate `verify-page-builder-pages-fallback-gate.mjs` должны оставаться частью baseline-проверки до Wave 1.
 
 ### Фаза 3.2 — Матрица rollout по волнам
 

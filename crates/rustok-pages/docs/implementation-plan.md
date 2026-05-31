@@ -52,7 +52,7 @@
 
 - [x] Typed fallback matrix: `builder_off`, `preview_off`, `publish_off` с ожидаемыми runtime/error outcomes.
 - [x] Unified builder error catalog для `validation/sanitize/runtime/feature-disabled` без расхождения между GraphQL, `#[server]` и UI adapters.
-- [~] CI fallback gate для профилей `builder.enabled=false` и `builder.publish.enabled=false`: provider runtime gate добавлен, consumer-level integration gate остаётся в B4.
+- [x] CI fallback gate для профилей `builder.enabled=false` и `builder.publish.enabled=false`: provider runtime gate и `rustok-pages` consumer fallback gate подключены к baseline-проверке.
 
 ### Fallback matrix (admin/list/read/publish snapshots)
 
@@ -169,7 +169,7 @@ Rollback trigger:
 
 - [x] Закрепить единый typed error catalog для builder-related runtime ошибок (`validation/sanitize/runtime/feature-disabled`).
 - [x] Добавить fallback snapshots в docs для admin/list/read/publish surfaces.
-- [~] Убедиться, что partial disable не ломает page read/list/menu paths в storefront/admin (docs/runtime matrix зафиксированы, targeted integration checks остаются в B4).
+- [x] Убедиться, что partial disable не ломает page read/list/menu paths в storefront/admin для `builder.enabled=false` и `builder.publish.enabled=false` на service fallback gate; UI adapter evidence остаётся в Wave hand-off.
 
 ### B3. Operability & rollout
 
@@ -179,8 +179,8 @@ Rollback trigger:
 
 ### B4. Verification gates
 
-- [~] Включить fallback regression checks в `cargo xtask module test pages` (или эквивалентный CI gate): provider gate подключён к `verify-page-builder-fba-baseline.mjs`, pages xtask-интеграция остаётся открытой.
-- [ ] Добавить targeted integration checks для `builder.publish.enabled=false` и `builder.enabled=false` на уровне `pages` transport/UI adapters.
+- [x] Включить fallback regression checks в `cargo xtask module test pages` (или эквивалентный CI gate): `verify-page-builder-fba-baseline.mjs` запускает provider runtime gate и `rustok-pages` consumer fallback gate.
+- [x] Добавить targeted integration checks для `builder.publish.enabled=false` и `builder.enabled=false` на уровне `pages` service/transport boundary (`pages_builder_fallback_*` checks).
 - [ ] Зафиксировать evidence-template для Wave hand-off (platform + pages owner approval).
 
 ## Wave 0 execution checklist (операционный минимум для `pages`)
@@ -188,9 +188,9 @@ Rollback trigger:
 ### C1. Toggle profiles (обязательно)
 
 - [ ] `all_on`: `builder.enabled=true`, `preview/properties/publish=true`.
-- [ ] `publish_off`: `builder.publish.enabled=false`, publish-path возвращает typed `feature-disabled` error.
+- [x] `publish_off`: `builder.publish.enabled=false`, publish-path возвращает typed `feature-disabled` error, read-path стабилен.
 - [ ] `preview_off`: preview capability недоступен, read/list surfaces не деградируют.
-- [ ] `builder_off`: admin visual path в read-only fallback, storefront read-path стабилен.
+- [x] `builder_off`: service read/list paths стабильны, publish-path возвращает typed `feature-disabled`; UI read-only fallback остаётся Wave evidence.
 
 ### C2. Evidence package для каждого профиля
 
