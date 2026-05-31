@@ -31,17 +31,6 @@ where
     LocalResource::new(move || fetcher(source()))
 }
 
-#[derive(Clone)]
-struct SearchPreviewLabels {
-    title: String,
-    summary_template: String,
-    preset_template: String,
-    none_label: String,
-    no_snippet: String,
-    no_target_url: String,
-    open_result: String,
-}
-
 #[component]
 pub fn SearchAdmin() -> impl IntoView {
     let route_context = use_context::<UiRouteContext>().unwrap_or_default();
@@ -834,7 +823,7 @@ fn playground_view(
     );
     let auto_label_for_presets = auto_label.clone();
     let auto_label_for_ranking = auto_label.clone();
-    let preview_labels = StoredValue::new(SearchPreviewLabels {
+    let preview_labels = StoredValue::new(core::SearchPreviewLabels {
         title: t(locale_ref, "search.preview.title", "Preview Results"),
         summary_template: t(
             locale_ref,
@@ -1069,28 +1058,20 @@ fn analytics_panel(analytics: SearchAnalyticsPayload, ui_locale: Option<String>)
     }
 }
 
-fn preview_panel(payload: SearchPreviewPayload, labels: SearchPreviewLabels) -> impl IntoView {
-    let preview_summary = core::render_preview_summary(
-        labels.summary_template.as_str(),
-        payload.total,
-        payload.took_ms,
-        payload.engine.as_str(),
-        payload.ranking_profile.as_str(),
-    );
-    let preview_preset = core::render_preview_preset(
-        labels.preset_template.as_str(),
-        payload.preset_key.as_deref(),
-        labels.none_label.as_str(),
-    );
+fn preview_panel(
+    payload: SearchPreviewPayload,
+    labels: core::SearchPreviewLabels,
+) -> impl IntoView {
+    let view_model = core::build_search_preview_view_model(payload, &labels);
     view! { <section class="rounded-2xl border border-border bg-card p-6 shadow-sm">
-        <div><h2 class="text-lg font-semibold text-card-foreground">{labels.title.clone()}</h2><p class="text-sm text-muted-foreground">{preview_summary}</p><p class="mt-2 text-xs text-muted-foreground">{preview_preset}</p></div>
-        <div class="mt-5 grid gap-4 lg:grid-cols-3">{payload.facets.iter().map(|facet| view! { <FacetCard facet=facet.clone() /> }).collect_view()}</div>
-        <div class="mt-6 space-y-3">{payload.items.into_iter().enumerate().map(|(index, item)| view! {
+        <div><h2 class="text-lg font-semibold text-card-foreground">{view_model.title}</h2><p class="text-sm text-muted-foreground">{view_model.summary}</p><p class="mt-2 text-xs text-muted-foreground">{view_model.preset}</p></div>
+        <div class="mt-5 grid gap-4 lg:grid-cols-3">{view_model.facets.iter().map(|facet| view! { <FacetCard facet=facet.clone() /> }).collect_view()}</div>
+        <div class="mt-6 space-y-3">{view_model.items.into_iter().enumerate().map(|(index, item)| view! {
             <article class="rounded-xl border border-border bg-background p-4">
-                <div class="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground"><span>{core::entity_source_label(&item.entity_type, &item.source_module)}</span><span>"|"</span><span>{core::score_label(item.score)}</span></div>
+                <div class="flex flex-wrap items-center gap-2 text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground"><span>{item.source_label}</span><span>"|"</span><span>{item.score_label}</span></div>
                 <h3 class="mt-2 text-base font-semibold text-card-foreground">{item.title}</h3>
-                <p class="mt-2 text-sm text-muted-foreground">{core::snippet_or_fallback(item.snippet.clone(), &labels.no_snippet)}</p>
-                {preview_result_action(payload.query_log_id.clone(), item.id.clone(), item.url.clone(), index, labels.clone())}
+                <p class="mt-2 text-sm text-muted-foreground">{item.snippet}</p>
+                {preview_result_action(view_model.query_log_id.clone(), item.id, item.url, index, labels.clone())}
             </article>
         }).collect_view()}</div>
     </section> }
@@ -1170,7 +1151,7 @@ fn preview_result_action(
     document_id: String,
     url: Option<String>,
     index: usize,
-    labels: SearchPreviewLabels,
+    labels: core::SearchPreviewLabels,
 ) -> impl IntoView {
     let Some(url) = url else {
         return view! { <p class="mt-4 text-xs text-muted-foreground">{labels.no_target_url}</p> }

@@ -5,12 +5,12 @@
 
 ## Execution checkpoint
 
-- Current phase: plan_sync
-- Last checkpoint: Phase B pilot slice #19 moved reusable UI text/CSV and route-query update semantics to shared `rustok-api`, with `leptos-ui-routing` applying the shared intent.
-- Next step: Continue Phase B by extracting the next preview view-model/state helper while reusing shared FFA UI contracts instead of package-local duplicates.
+- Current phase: phase_b_in_progress
+- Last checkpoint: Phase B slice #20 перенёс labels, summary/preset rendering и представление item-ов admin preview panel во framework-agnostic preview view-model в `admin/src/core.rs`.
+- Next step: Продолжить Phase B: вынести следующий preview state helper или другой render-ready фрагмент analytics/dictionaries, сохраняя Leptos как thin adapter.
 - Open blockers: None.
-- Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
-- Last updated at (UTC): 2026-05-29T00:00:00Z
+- Hand-off notes for next agent: После каждого инкремента обновлять этот блок и central readiness board.
+- Last updated at (UTC): 2026-05-31T00:00:00Z
 
 
 ## FFA/FBA status
@@ -21,8 +21,9 @@
   - module plan синхронизирован с central FFA/FBA readiness board;
   - дальнейшее повышение статуса выполняется только вместе с verification evidence и обновлением local+central docs;
   - Phase B slices #17-18 extracted admin route-query update semantics and preview form/request normalization into `admin/src/core.rs`; native/GraphQL transport was not modified;
-  - Phase B slice #19 promoted reusable UI text/CSV and route-query update semantics to `rustok-api`, consumed by `leptos-ui-routing` and search admin core.
-- Last verified at (UTC): 2026-05-29T00:00:00Z
+  - Phase B slice #19 promoted reusable UI text/CSV and route-query update semantics to `rustok-api`, consumed by `leptos-ui-routing` and search admin core;
+  - Phase B slice #20 перенёс render-ready labels, summary/preset text и представление result item-ов admin preview в `admin/src/core.rs`, оставив `admin/src/lib.rs` Leptos render adapter без изменений transport.
+- Last verified at (UTC): 2026-05-31T00:00:00Z
 - Owner: `rustok-search` module team
 
 ## Область работ
@@ -110,3 +111,4 @@
 - [x] Slice 17: admin preview route-query update semantics moved to core (`RouteQueryUpdate`, `route_query_update`) without native/GraphQL transport changes.
 - [x] Slice 18: admin preview form/request normalization moved to core (`SearchPreviewFormInput`, `SearchPreviewRequest`, `build_search_preview_request`), replacing the weak empty-state helper slice.
 - [x] Slice 19: reusable UI text/CSV normalization and route-query update intent promoted to `rustok-api` (`normalize_ui_text`, `parse_ui_csv`, `UiRouteQueryUpdate`) and applied by `leptos-ui-routing`.
+- [x] Slice 20: render-ready view-model admin preview panel перенесён в core (`SearchPreviewLabels`, `SearchPreviewViewModel`, `build_search_preview_view_model`), поэтому Leptos panel только рендерит подготовленные поля и click actions.

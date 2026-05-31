@@ -2,7 +2,7 @@ use rustok_api::{
     normalize_ui_text, parse_ui_csv, route_query_update_for_text, UiRouteQueryUpdate,
 };
 
-use crate::model::SearchPreviewFilters;
+use crate::model::{SearchFacetGroup, SearchPreviewFilters, SearchPreviewPayload};
 
 pub fn parse_csv(value: &str) -> Vec<String> {
     parse_ui_csv(value)
@@ -29,6 +29,72 @@ pub fn score_label(score: f64) -> String {
 }
 
 pub type RouteQueryUpdate = UiRouteQueryUpdate;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SearchPreviewLabels {
+    pub title: String,
+    pub summary_template: String,
+    pub preset_template: String,
+    pub none_label: String,
+    pub no_snippet: String,
+    pub no_target_url: String,
+    pub open_result: String,
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SearchPreviewItemViewModel {
+    pub id: String,
+    pub source_label: String,
+    pub score_label: String,
+    pub title: String,
+    pub snippet: String,
+    pub url: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub struct SearchPreviewViewModel {
+    pub title: String,
+    pub summary: String,
+    pub preset: String,
+    pub query_log_id: Option<String>,
+    pub facets: Vec<SearchFacetGroup>,
+    pub items: Vec<SearchPreviewItemViewModel>,
+}
+
+pub fn build_search_preview_view_model(
+    payload: SearchPreviewPayload,
+    labels: &SearchPreviewLabels,
+) -> SearchPreviewViewModel {
+    SearchPreviewViewModel {
+        title: labels.title.clone(),
+        summary: render_preview_summary(
+            labels.summary_template.as_str(),
+            payload.total,
+            payload.took_ms,
+            payload.engine.as_str(),
+            payload.ranking_profile.as_str(),
+        ),
+        preset: render_preview_preset(
+            labels.preset_template.as_str(),
+            payload.preset_key.as_deref(),
+            labels.none_label.as_str(),
+        ),
+        query_log_id: payload.query_log_id,
+        facets: payload.facets,
+        items: payload
+            .items
+            .into_iter()
+            .map(|item| SearchPreviewItemViewModel {
+                source_label: entity_source_label(&item.entity_type, &item.source_module),
+                score_label: score_label(item.score),
+                snippet: snippet_or_fallback(item.snippet, labels.no_snippet.as_str()),
+                id: item.id,
+                title: item.title,
+                url: item.url,
+            })
+            .collect(),
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SearchPreviewFormInput<'a> {
@@ -158,6 +224,57 @@ mod tests {
             request.filters.statuses,
             vec!["published".to_string(), "draft".to_string()]
         );
+    }
+
+    #[test]
+    fn search_preview_view_model_prepares_render_ready_fields() {
+        let payload = SearchPreviewPayload {
+            query_log_id: Some("log-1".to_string()),
+            preset_key: None,
+            total: 1,
+            took_ms: 12,
+            engine: "postgres".to_string(),
+            ranking_profile: "balanced".to_string(),
+            facets: vec![SearchFacetGroup {
+                name: "entity_type".to_string(),
+                buckets: vec![],
+            }],
+            items: vec![crate::model::SearchPreviewResultItem {
+                id: "doc-1".to_string(),
+                entity_type: "product".to_string(),
+                source_module: "catalog".to_string(),
+                title: "Boots".to_string(),
+                snippet: None,
+                score: 0.98765,
+                locale: Some("en".to_string()),
+                url: Some("/products/boots".to_string()),
+                payload: "{}".to_string(),
+            }],
+        };
+        let labels = SearchPreviewLabels {
+            title: "Preview Results".to_string(),
+            summary_template: "{total} results in {took_ms} ms via {engine} ({ranking_profile})"
+                .to_string(),
+            preset_template: "preset = {preset}".to_string(),
+            none_label: "none".to_string(),
+            no_snippet: "No snippet returned.".to_string(),
+            no_target_url: "No target URL".to_string(),
+            open_result: "Open".to_string(),
+        };
+
+        let view_model = build_search_preview_view_model(payload, &labels);
+
+        assert_eq!(view_model.title, "Preview Results");
+        assert_eq!(
+            view_model.summary,
+            "1 results in 12 ms via postgres (balanced)"
+        );
+        assert_eq!(view_model.preset, "preset = none");
+        assert_eq!(view_model.query_log_id, Some("log-1".to_string()));
+        assert_eq!(view_model.facets[0].name, "entity_type");
+        assert_eq!(view_model.items[0].source_label, "product | catalog");
+        assert_eq!(view_model.items[0].score_label, "score 0.988");
+        assert_eq!(view_model.items[0].snippet, "No snippet returned.");
     }
 
     #[test]
