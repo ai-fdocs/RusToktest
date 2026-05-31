@@ -20,6 +20,153 @@ pub(crate) struct StorefrontPricingQuery {
     pub(crate) quantity: Option<i32>,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum StorefrontPricingQueryError {
+    InvalidCurrencyCode,
+    InvalidUuid { field_name: &'static str },
+    MissingCurrencyCodeForResolutionContext,
+    NonPositiveQuantity,
+}
+
+impl std::fmt::Display for StorefrontPricingQueryError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::InvalidCurrencyCode => write!(f, "currency_code must be a 3-letter code"),
+            Self::InvalidUuid { field_name } => write!(f, "Invalid {field_name}"),
+            Self::MissingCurrencyCodeForResolutionContext => {
+                write!(
+                    f,
+                    "currency_code is required for pricing resolution context"
+                )
+            }
+            Self::NonPositiveQuantity => write!(f, "quantity must be at least 1"),
+        }
+    }
+}
+
+impl std::error::Error for StorefrontPricingQueryError {}
+
+pub(crate) fn text_or_none(value: String) -> Option<String> {
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(trimmed.to_string())
+    }
+}
+
+pub(crate) fn parse_optional_currency_code(
+    currency_code: Option<String>,
+) -> Result<Option<String>, StorefrontPricingQueryError> {
+    let Some(currency_code) = currency_code.and_then(text_or_none) else {
+        return Ok(None);
+    };
+    let normalized = currency_code.to_ascii_uppercase();
+    if normalized.len() != 3 || !normalized.chars().all(|ch| ch.is_ascii_alphabetic()) {
+        return Err(StorefrontPricingQueryError::InvalidCurrencyCode);
+    }
+
+    Ok(Some(normalized))
+}
+
+pub(crate) fn parse_optional_uuid_string(
+    value: Option<String>,
+    field_name: &'static str,
+) -> Result<Option<String>, StorefrontPricingQueryError> {
+    let Some(value) = value.and_then(text_or_none) else {
+        return Ok(None);
+    };
+
+    uuid::Uuid::parse_str(value.as_str())
+        .map(|_| Some(value))
+        .map_err(|_| StorefrontPricingQueryError::InvalidUuid { field_name })
+}
+
+pub(crate) fn sanitize_channel_slug(channel_slug: Option<String>) -> Option<String> {
+    channel_slug
+        .map(|value| value.trim().to_ascii_lowercase())
+        .filter(|value| !value.is_empty())
+}
+
+#[cfg(feature = "ssr")]
+pub(crate) fn normalize_optional(value: Option<String>) -> Option<String> {
+    value.and_then(|value| {
+        let trimmed = value.trim();
+        if trimmed.is_empty() {
+            None
+        } else {
+            Some(trimmed.to_string())
+        }
+    })
+}
+
+#[cfg(feature = "ssr")]
+pub(crate) fn resolve_requested_locale(
+    requested: Option<String>,
+    request_context_locale: Option<&str>,
+    tenant_default_locale: &str,
+) -> String {
+    normalize_optional(requested)
+        .or_else(|| {
+            request_context_locale.and_then(|value| normalize_optional(Some(value.to_string())))
+        })
+        .or_else(|| normalize_optional(Some(tenant_default_locale.to_string())))
+        .unwrap_or_default()
+}
+
+pub(crate) fn parse_resolution_quantity(
+    quantity: Option<i32>,
+) -> Result<i32, StorefrontPricingQueryError> {
+    match quantity {
+        Some(value) if value < 1 => Err(StorefrontPricingQueryError::NonPositiveQuantity),
+        Some(value) => Ok(value),
+        None => Ok(1),
+    }
+}
+
+pub(crate) fn sanitize_resolution_context(
+    currency_code: Option<String>,
+    region_id: Option<String>,
+    price_list_id: Option<String>,
+    channel_id: Option<String>,
+    channel_slug: Option<String>,
+    quantity: Option<i32>,
+) -> Result<Option<PricingResolutionContext>, StorefrontPricingQueryError> {
+    let channel_id = parse_optional_uuid_string(channel_id, "channel_id")?;
+    let requires_currency = region_id
+        .as_ref()
+        .and_then(|value| text_or_none(value.clone()))
+        .is_some()
+        || price_list_id
+            .as_ref()
+            .and_then(|value| text_or_none(value.clone()))
+            .is_some()
+        || quantity.is_some();
+    let Some(currency_code) = parse_optional_currency_code(currency_code)? else {
+        if requires_currency {
+            return Err(StorefrontPricingQueryError::MissingCurrencyCodeForResolutionContext);
+        }
+        return Ok(None);
+    };
+
+    Ok(Some(PricingResolutionContext {
+        currency_code,
+        region_id: parse_optional_uuid_string(region_id, "region_id")?,
+        price_list_id: parse_optional_uuid_string(price_list_id, "price_list_id")?,
+        channel_id,
+        channel_slug: sanitize_channel_slug(channel_slug),
+        quantity: parse_resolution_quantity(quantity)?,
+    }))
+}
+
+#[cfg(feature = "ssr")]
+pub(crate) fn normalize_public_channel_slug(channel_slug: Option<&str>) -> Option<String> {
+    channel_slug
+        .map(str::trim)
+        .filter(|slug| !slug.is_empty())
+        .map(|slug| slug.to_ascii_lowercase())
+}
+
 pub(crate) struct PricingSummary {
     pub(crate) currency_count: usize,
     pub(crate) sale_variant_count: usize,
@@ -457,5 +604,61 @@ mod tests {
             Some("channel main (channel-1)".to_string())
         );
         assert_eq!(format_channel_scope_text(Some("en"), Some(" "), None), None);
+    }
+
+    #[test]
+    fn storefront_pricing_resolution_context_rejects_non_letter_currency_code() {
+        let error =
+            sanitize_resolution_context(Some("EU1".to_string()), None, None, None, None, Some(1))
+                .expect_err("invalid currency should be rejected");
+
+        assert_eq!(error, StorefrontPricingQueryError::InvalidCurrencyCode);
+    }
+
+    #[test]
+    fn storefront_pricing_resolution_context_rejects_non_positive_quantity() {
+        let error =
+            sanitize_resolution_context(Some("EUR".to_string()), None, None, None, None, Some(0))
+                .expect_err("invalid quantity should be rejected");
+
+        assert_eq!(error, StorefrontPricingQueryError::NonPositiveQuantity);
+    }
+
+    #[test]
+    fn storefront_pricing_resolution_context_rejects_modifiers_without_currency_code() {
+        let error = sanitize_resolution_context(
+            None,
+            Some(uuid::Uuid::new_v4().to_string()),
+            None,
+            None,
+            None,
+            None,
+        )
+        .expect_err("region_id without currency should be rejected");
+
+        assert_eq!(
+            error,
+            StorefrontPricingQueryError::MissingCurrencyCodeForResolutionContext
+        );
+    }
+
+    #[test]
+    fn storefront_pricing_resolution_context_rejects_invalid_channel_id() {
+        let error = sanitize_resolution_context(
+            None,
+            None,
+            None,
+            Some("not-a-uuid".to_string()),
+            None,
+            None,
+        )
+        .expect_err("invalid channel_id should be rejected");
+
+        assert_eq!(
+            error,
+            StorefrontPricingQueryError::InvalidUuid {
+                field_name: "channel_id"
+            }
+        );
     }
 }
