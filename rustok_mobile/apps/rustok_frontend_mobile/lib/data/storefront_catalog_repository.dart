@@ -24,8 +24,92 @@ const storefrontMobileCatalogQuery = r'''
 const storefrontMobileCartQuery = r'''
   query StorefrontMobileCart($id: UUID!) {
     storefrontCart(id: $id) {
+      id
       lineItems {
+        id
         productId
+        variantId
+        title
+        quantity
+        totalPrice
+        currencyCode
+      }
+    }
+  }
+''';
+
+const storefrontMobileCreateCartMutation = r'''
+  mutation StorefrontMobileCreateCart($input: CreateStorefrontCartInput!) {
+    createStorefrontCart(input: $input) {
+      cart {
+        id
+        lineItems {
+          id
+          productId
+          variantId
+          title
+          quantity
+          totalPrice
+          currencyCode
+        }
+      }
+    }
+  }
+''';
+
+const storefrontMobileAddCartLineMutation = r'''
+  mutation StorefrontMobileAddCartLine(
+    $cartId: UUID!
+    $input: AddStorefrontCartLineItemInput!
+  ) {
+    addStorefrontCartLineItem(cartId: $cartId, input: $input) {
+      id
+      lineItems {
+        id
+        productId
+        variantId
+        title
+        quantity
+        totalPrice
+        currencyCode
+      }
+    }
+  }
+''';
+
+const storefrontMobileUpdateCartLineMutation = r'''
+  mutation StorefrontMobileUpdateCartLine(
+    $cartId: UUID!
+    $lineId: UUID!
+    $input: UpdateStorefrontCartLineItemInput!
+  ) {
+    updateStorefrontCartLineItem(
+      cartId: $cartId
+      lineId: $lineId
+      input: $input
+    ) {
+      id
+      lineItems {
+        id
+        productId
+        variantId
+        title
+        quantity
+        totalPrice
+        currencyCode
+      }
+    }
+  }
+''';
+
+const storefrontMobileRemoveCartLineMutation = r'''
+  mutation StorefrontMobileRemoveCartLine($cartId: UUID!, $lineId: UUID!) {
+    removeStorefrontCartLineItem(cartId: $cartId, lineId: $lineId) {
+      id
+      lineItems {
+        id
+        productId
+        variantId
         title
         quantity
         totalPrice
@@ -47,15 +131,18 @@ final hostStorefrontCatalogRepositoryProvider =
 });
 
 class GraphQlStorefrontCatalogRepository implements StorefrontCatalogRepository {
-  const GraphQlStorefrontCatalogRepository({
+  GraphQlStorefrontCatalogRepository({
     required GraphQLClient client,
     required this.locale,
-    this.cartId,
-  }) : _client = client;
+    String? cartId,
+  })  : _client = client,
+        _activeCartId = cartId;
 
   final GraphQLClient _client;
   final String locale;
-  final String? cartId;
+  String? _activeCartId;
+
+  String? get cartId => _activeCartId;
 
   @override
   Future<List<StorefrontProductSummary>> featuredProducts() async {
@@ -120,23 +207,181 @@ class GraphQlStorefrontCatalogRepository implements StorefrontCatalogRepository 
       return const <StorefrontCartLine>[];
     }
 
-    final items = payload['lineItems'];
-    if (items is! List) {
-      return const <StorefrontCartLine>[];
+    return _cartLinesFromPayload(payload);
+  }
+
+  @override
+  Future<StorefrontCartWriteResult> createCart(
+    StorefrontCreateCartDraft draft,
+  ) async {
+    final input = <String, dynamic>{
+      if (_nonEmpty(draft.email) != null) 'email': _nonEmpty(draft.email),
+      if (_nonEmpty(draft.currencyCode) != null)
+        'currencyCode': _nonEmpty(draft.currencyCode),
+      if (_nonEmpty(draft.countryCode) != null)
+        'countryCode': _nonEmpty(draft.countryCode),
+      'locale': _nonEmpty(draft.locale) ?? locale,
+      'metadata': '{"source":"rustok-flutter-storefront"}',
+    };
+    final result = await _client.mutate(
+      MutationOptions(
+        document: gql(storefrontMobileCreateCartMutation),
+        fetchPolicy: FetchPolicy.noCache,
+        variables: <String, dynamic>{'input': input},
+      ),
+    );
+
+    if (result.hasException) {
+      throw result.exception!;
     }
 
-    return List.unmodifiable(
-      items.whereType<Map<String, dynamic>>().map(_cartLineFromJson),
+    final payload = _readCartPayload(result.data, 'createStorefrontCart');
+    return _rememberCart(payload);
+  }
+
+  @override
+  Future<StorefrontCartWriteResult> addCartLine(
+    StorefrontAddCartLineDraft draft,
+  ) async {
+    final id = await _ensureCartId();
+    final result = await _client.mutate(
+      MutationOptions(
+        document: gql(storefrontMobileAddCartLineMutation),
+        fetchPolicy: FetchPolicy.noCache,
+        variables: <String, dynamic>{
+          'cartId': id,
+          'input': <String, dynamic>{
+            'variantId': draft.variantId,
+            'quantity': draft.quantity,
+            'metadata': '{"source":"rustok-flutter-storefront"}',
+          },
+        },
+      ),
     );
+
+    if (result.hasException) {
+      throw result.exception!;
+    }
+
+    final payload = _readCartPayload(result.data, 'addStorefrontCartLineItem');
+    return _rememberCart(payload);
+  }
+
+  @override
+  Future<StorefrontCartWriteResult> updateCartLine(
+    StorefrontUpdateCartLineDraft draft,
+  ) async {
+    final id = _requireCartId();
+    final result = await _client.mutate(
+      MutationOptions(
+        document: gql(storefrontMobileUpdateCartLineMutation),
+        fetchPolicy: FetchPolicy.noCache,
+        variables: <String, dynamic>{
+          'cartId': id,
+          'lineId': draft.lineId,
+          'input': <String, dynamic>{'quantity': draft.quantity},
+        },
+      ),
+    );
+
+    if (result.hasException) {
+      throw result.exception!;
+    }
+
+    final payload = _readCartPayload(
+      result.data,
+      'updateStorefrontCartLineItem',
+    );
+    return _rememberCart(payload);
+  }
+
+  @override
+  Future<StorefrontCartWriteResult> removeCartLine(String lineId) async {
+    final id = _requireCartId();
+    final result = await _client.mutate(
+      MutationOptions(
+        document: gql(storefrontMobileRemoveCartLineMutation),
+        fetchPolicy: FetchPolicy.noCache,
+        variables: <String, dynamic>{'cartId': id, 'lineId': lineId},
+      ),
+    );
+
+    if (result.hasException) {
+      throw result.exception!;
+    }
+
+    final payload = _readCartPayload(
+      result.data,
+      'removeStorefrontCartLineItem',
+    );
+    return _rememberCart(payload);
+  }
+
+  StorefrontCartWriteResult _rememberCart(Map<String, dynamic> payload) {
+    final id = _readString(payload, 'id');
+    if (id.isNotEmpty) {
+      _activeCartId = id;
+    }
+    return StorefrontCartWriteResult(
+      cartId: _activeCartId ?? id,
+      lines: _cartLinesFromPayload(payload),
+    );
+  }
+
+  Future<String> _ensureCartId() async {
+    final id = _activeCartId?.trim();
+    if (id != null && id.isNotEmpty) {
+      return id;
+    }
+    final created = await createCart(StorefrontCreateCartDraft(locale: locale));
+    return created.cartId;
+  }
+
+  String _requireCartId() {
+    final id = _activeCartId?.trim();
+    if (id == null || id.isEmpty) {
+      throw StateError('Create a storefront cart before changing cart lines.');
+    }
+    return id;
   }
 }
 
+Map<String, dynamic> _readCartPayload(
+  Map<String, dynamic>? data,
+  String rootKey,
+) {
+  final payload = data?[rootKey];
+  if (payload is! Map<String, dynamic>) {
+    return const <String, dynamic>{};
+  }
+  final nestedCart = payload['cart'];
+  if (nestedCart is Map<String, dynamic>) {
+    return nestedCart;
+  }
+  return payload;
+}
+
+List<StorefrontCartLine> _cartLinesFromPayload(Map<String, dynamic> payload) {
+  final items = payload['lineItems'];
+  if (items is! List) {
+    return const <StorefrontCartLine>[];
+  }
+
+  return List.unmodifiable(
+    items.whereType<Map<String, dynamic>>().map(_cartLineFromJson),
+  );
+}
+
 StorefrontCartLine _cartLineFromJson(Map<String, dynamic> item) {
+  final lineId = _readString(item, 'id');
   final productId = _readOptionalString(item, 'productId') ??
+      _readOptionalString(item, 'product_id') ??
       _readOptionalString(item, 'variantId') ??
+      _readOptionalString(item, 'variant_id') ??
       _readString(item, 'title');
   final quantity = item['quantity'];
   return StorefrontCartLine(
+    lineId: lineId,
     productId: productId,
     title: _readString(item, 'title'),
     quantity: quantity is int ? quantity : 0,
@@ -170,6 +415,8 @@ StorefrontProductSummary _productFromSearchItem(Map<String, dynamic> item) {
     title: title.isNotEmpty ? title : id,
     description: snippet ?? url ?? 'Published storefront product',
     priceLabel: _priceLabel(details),
+    variantId: _readOptionalString(details, 'variantId') ??
+        _readOptionalString(details, 'variant_id'),
     badge: _readOptionalString(details, 'badge'),
   );
 }
@@ -195,6 +442,11 @@ String _priceLabel(Map<String, dynamic> payload) {
       _readOptionalString(payload, 'priceLabel') ??
       _readOptionalString(payload, 'price_label');
   return price ?? 'Open product details';
+}
+
+String? _nonEmpty(String? value) {
+  final trimmed = value?.trim();
+  return trimmed == null || trimmed.isEmpty ? null : trimmed;
 }
 
 String _readString(Map<String, dynamic> json, String key) {
