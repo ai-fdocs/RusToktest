@@ -31,6 +31,7 @@ Flutter workspace scaffold based on `docs/research/flutter.md`.
 - Module-owned storefront catalog/cart mobile package mounted by `rustok_frontend_mobile` without package-local transport clients; catalog reads use the existing `storefrontSearch` GraphQL surface and cart reads/writes use the canonical `storefrontCart`, `createStorefrontCart`, `addStorefrontCartLineItem`, `updateStorefrontCartLineItem`, and `removeStorefrontCartLineItem` GraphQL surfaces through the host repository boundary, with cart id state held by the host cart id store and optional durable file-backed persistence adapter.
 - Generated storefront mobile manifest from `provides.storefront_ui` with a dedicated snapshot and freshness checks.
 - Storefront registry adapter that maps generated `products` and `cart` routes to mounted module-owned package screens, with generic fallback for unmapped storefront modules and registry-driven home navigation for all generated storefront routes.
+- Storefront catalog/cart GraphQL evidence now ties Flutter operation documents to existing server storefront/search APIs and the commerce runtime parity test flow, so catalog/cart drift is caught even when the Flutter SDK is unavailable in CI.
 
 Host-level providers now resolve sessions via `AuthSessionManager` and `RefreshTokenService` before building the authenticated GraphQL client. The refresh flow uses an HTTP-only GraphQL client to avoid unnecessary WebSocket initialization during bootstrap. Provider wiring is isolated in `apps/rustok_admin_mobile/lib/app_shell/auth_bootstrap.dart`.
 
@@ -114,4 +115,5 @@ python3 rustok_mobile/tooling/scripts/check_mobile_codegen.py \
 1. Replace in-memory auth session store with secure storage and connect refresh flow to sign-in lifecycle.
 2. Promote storefront cart id persistence from the file-backed adapter to the agreed production storage backend once product requirements choose secure/non-sensitive storage boundaries.
 3. Add deterministic generated-file checks to the mobile CI pipeline.
-4. Extend generated storefront registry mappings as more module-owned storefront packages are added.
+4. Promote the storefront catalog/cart evidence from source-backed contract checks to a live schema/test-server CI job once the Flutter SDK and test server are available in the target environment.
+5. Extend generated storefront registry mappings as more module-owned storefront packages are added.

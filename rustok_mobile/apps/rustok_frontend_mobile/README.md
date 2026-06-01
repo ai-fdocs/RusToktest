@@ -30,6 +30,7 @@ UX do not drift into one host.
 - `lib/app_shell/storefront_shell_page.dart` — mobile storefront shell.
 - `lib/app_shell/storefront_context.dart` — host-owned runtime context, durable cart id store adapter, and GraphQL client configuration.
 - `lib/data/storefront_catalog_repository.dart` — host-owned catalog/cart repository using the shared GraphQL client and existing `storefrontSearch`, `storefrontCart`, and storefront cart mutation surfaces.
+- `../../tooling/tests/test_storefront_cart_graphql_contract.py` — source-backed storefront catalog/cart GraphQL evidence that ties mobile operation documents to existing server APIs and commerce runtime parity coverage.
 - `lib/registry/storefront_mobile_manifest.g.dart` — generated storefront registry from `provides.storefront_ui`.
 - `lib/registry/storefront_surface_registry.dart` — host adapter that maps generated storefront entries to mounted mobile package surfaces.
 - `lib/routes/storefront_router.dart` — route table, registry-driven module links, module-owned catalog/cart mounting, and generic manifest-backed module placeholders.
