@@ -74,11 +74,17 @@ Leptos `#[server]` functions — это internal host/UI contract, а не за�
 Каждый API path должен работать через единый host/runtime context:
 
 - tenant resolution
-- request-scoped `ChannelContext`, включая `resolution_source` и `resolution_trace` для channel-aware runtime diagnostics
-- auth/session handling
-- RBAC enforcement
 - request-scoped locale
+- auth/session handling
+- request-scoped `ChannelContext`, включая `resolution_source` и `resolution_trace` для channel-aware runtime diagnostics
+- RBAC enforcement
 - observability hooks
+
+Для full application router канонический порядок подготовки request context:
+`security_headers -> tenant::resolve -> locale::resolve_locale -> auth_context::resolve_optional -> channel::resolve -> handler`.
+`channel::resolve` должен строить `RequestFacts` из tenant id, request selectors, effective host,
+auth-derived OAuth/client dimension и effective locale; channel cache key обязан различать locale/OAuth dimensions,
+чтобы request одного client/locale не переиспользовал resolution другого контекста.
 
 API surface не должен обходить эти слои через локальные shortcuts.
 

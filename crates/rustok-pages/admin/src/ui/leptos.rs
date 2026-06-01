@@ -7,6 +7,7 @@ use rustok_api::{AdminQueryKey, UiRouteContext, WritePathIssue};
 use rustok_seo_admin_support::SeoEntityPanel;
 use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
 
+use crate::core;
 use crate::i18n::t;
 use crate::model::{PageBlock, PageListItem};
 use crate::transport;

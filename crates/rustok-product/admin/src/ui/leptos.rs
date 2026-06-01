@@ -14,9 +14,8 @@ use crate::core::{
     ProductAdminPricingPreviewState, SelectedProductSummaryViewModel,
 };
 use crate::i18n::t;
-use crate::model::{
-    ProductAdminBootstrap, ProductDetail, ProductDraft, ProductPricingDetail, ShippingProfile,
-};
+use crate::model::{ProductAdminBootstrap, ProductDetail, ProductDraft, ProductPricingDetail};
+use crate::transport;
 
 fn local_resource<S, Fut, T>(
     source: impl Fn() -> S + 'static,
