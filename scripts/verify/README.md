@@ -70,11 +70,11 @@ npm run verify:page-builder:consumer:forum
 **Wave 4 migration-safety smoke** — PostgreSQL apply-from-zero для server migrator.
 
 Что делает:
-- создаёт временную PostgreSQL database через `RUSTOK_MIGRATION_SMOKE_ADMIN_URL`;
+- создаёт временную PostgreSQL database через `RUSTOK_MIGRATION_SMOKE_ADMIN_URL` внутри Rust integration test, без зависимости от локального `psql`;
 - запускает ignored integration test `postgres_zero_migration_smoke_applies_from_empty_database`;
 - применяет `migration::Migrator` с нуля и проверяет, что pending migrations не осталось;
 - проверяет наличие representative platform/module tables (`tenants`, `product_variants`, `prices`, `inventory_items`, `channels`, `oauth_apps`, `blog_post_tags`, `forum_topic_tags`, `taxonomy_terms`);
-- удаляет временную database, если `RUSTOK_MIGRATION_SMOKE_KEEP_DB=1` не установлен.
+- удаляет временную database из Rust test, если `RUSTOK_MIGRATION_SMOKE_KEEP_DB=1` не установлен.
 
 Пример:
 
