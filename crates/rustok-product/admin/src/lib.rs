@@ -3,6 +3,7 @@ mod api;
 mod core;
 mod i18n;
 mod model;
+mod transport;
 
 use leptos::ev::SubmitEvent;
 use leptos::prelude::*;
@@ -74,7 +75,7 @@ pub fn ProductAdmin() -> impl IntoView {
     let bootstrap = local_resource(
         move || (token.get(), tenant.get()),
         move |(token_value, tenant_value)| async move {
-            api::fetch_bootstrap(token_value, tenant_value).await
+            transport::fetch_bootstrap(token_value, tenant_value).await
         },
     );
 
@@ -90,8 +91,9 @@ pub fn ProductAdmin() -> impl IntoView {
             )
         },
         move |(token_value, tenant_value, _, locale_value, search_value, status_value)| async move {
-            let bootstrap = api::fetch_bootstrap(token_value.clone(), tenant_value.clone()).await?;
-            api::fetch_products(
+            let bootstrap =
+                transport::fetch_bootstrap(token_value.clone(), tenant_value.clone()).await?;
+            transport::fetch_products(
                 token_value,
                 tenant_value,
                 bootstrap.current_tenant.id,
@@ -106,9 +108,14 @@ pub fn ProductAdmin() -> impl IntoView {
     let shipping_profiles = local_resource(
         move || (token.get(), tenant.get(), refresh_nonce.get()),
         move |(token_value, tenant_value, _)| async move {
-            let bootstrap = api::fetch_bootstrap(token_value.clone(), tenant_value.clone()).await?;
-            api::fetch_shipping_profiles(token_value, tenant_value, bootstrap.current_tenant.id)
-                .await
+            let bootstrap =
+                transport::fetch_bootstrap(token_value.clone(), tenant_value.clone()).await?;
+            transport::fetch_shipping_profiles(
+                token_value,
+                tenant_value,
+                bootstrap.current_tenant.id,
+            )
+            .await
         },
     );
     let selected_pricing = local_resource(
@@ -131,10 +138,10 @@ pub fn ProductAdmin() -> impl IntoView {
             let Some((product_id, currency_code)) = selected_product else {
                 return Ok(None);
             };
-            let bootstrap = api::fetch_bootstrap(token_value.clone(), tenant_value.clone())
+            let bootstrap = transport::fetch_bootstrap(token_value.clone(), tenant_value.clone())
                 .await
                 .map_err(|err| err.to_string())?;
-            api::fetch_product_pricing(
+            transport::fetch_product_pricing(
                 token_value,
                 tenant_value,
                 bootstrap.current_tenant.id,
@@ -317,7 +324,7 @@ pub fn ProductAdmin() -> impl IntoView {
         spawn_local(async move {
             let result = match product_id {
                 Some(id) => {
-                    api::update_product(
+                    transport::update_product(
                         token_value,
                         tenant_value,
                         bootstrap.current_tenant.id,
@@ -328,7 +335,7 @@ pub fn ProductAdmin() -> impl IntoView {
                     .await
                 }
                 None => {
-                    api::create_product(
+                    transport::create_product(
                         token_value,
                         tenant_value,
                         bootstrap.current_tenant.id,
@@ -577,7 +584,7 @@ pub fn ProductAdmin() -> impl IntoView {
                                                             let delete_returned_false_label = delete_returned_false_label_for_delete.clone();
                                                             let delete_product_error_label = delete_product_error_label_for_delete.clone();
                                                             spawn_local(async move {
-                                                                match api::delete_product(
+                                                                match transport::delete_product(
                                                                     token_value,
                                                                     tenant_value,
                                                                     bootstrap.current_tenant.id,
@@ -779,7 +786,7 @@ fn open_product_for_edit(
     set_busy.set(true);
     set_error.set(None);
     spawn_local(async move {
-        match api::fetch_product(
+        match transport::fetch_product(
             token,
             tenant,
             bootstrap.current_tenant.id,
@@ -994,7 +1001,7 @@ fn mutate_status(
     set_busy.set(true);
     set_error.set(None);
     spawn_local(async move {
-        match api::change_product_status(
+        match transport::change_product_status(
             token,
             tenant,
             bootstrap.current_tenant.id,

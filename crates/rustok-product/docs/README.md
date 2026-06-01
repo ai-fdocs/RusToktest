@@ -27,7 +27,8 @@
   `variants.prices` как resolved price, а держит отдельный pricing-module preview
   hook для `adminPricingProduct` / `storefrontPricingProduct`; admin list/status/filter,
   shipping-profile, pricing-preview и pricing deep-link helpers живут в
-  framework-agnostic `admin/src/core.rs`;
+  framework-agnostic `admin/src/core.rs`, а admin GraphQL операции проходят через
+  module-owned facade `admin/src/transport.rs`;
 - storefront FFA slices вынесли route/query normalization, typed fetch request shape,
   shell copy, selected-product view-model composition, selected-card labels/empty
   state, catalog rail presentation, pricing/seller labels, pricing-context
