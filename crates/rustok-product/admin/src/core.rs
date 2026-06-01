@@ -173,6 +173,118 @@ pub(crate) fn build_admin_pricing_href(module_route_base: &str, product: &Produc
     format!("{module_route_base}?{}", params.join("&"))
 }
 
+#[derive(Clone, Debug)]
+pub(crate) enum ProductAdminPricingPreviewState<'a> {
+    Loading,
+    Error(&'a str),
+    Unavailable,
+    Ready(&'a ProductPricingDetail),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum SelectedProductSummaryViewModel {
+    Empty {
+        message: String,
+    },
+    Ready {
+        title: String,
+        status_line: String,
+        catalog_snapshot_label: String,
+        pricing_preview_label: String,
+        pricing_href: String,
+        open_pricing_label: String,
+    },
+}
+
+pub(crate) fn build_selected_product_summary_view_model(
+    locale: Option<&str>,
+    product: Option<&ProductDetail>,
+    pricing_state: ProductAdminPricingPreviewState<'_>,
+    pricing_route_base: &str,
+) -> SelectedProductSummaryViewModel {
+    let Some(product) = product else {
+        return SelectedProductSummaryViewModel::Empty {
+            message: t(
+                locale,
+                "product.summary.empty",
+                "Open a product to inspect its localized copy, catalog snapshot and pricing module preview.",
+            ),
+        };
+    };
+
+    let title = translation_for_locale(&product.translations, locale)
+        .map(|item| item.title)
+        .or_else(|| product.translations.first().map(|item| item.title.clone()))
+        .unwrap_or_else(|| t(locale, "product.summary.untitled", "Untitled"));
+    let inventory = product
+        .variants
+        .first()
+        .map(|item| item.inventory_quantity)
+        .unwrap_or(0);
+    let shipping_profile = product
+        .shipping_profile_slug
+        .clone()
+        .unwrap_or_else(|| t(locale, "product.summary.unassigned", "unassigned"));
+    let pricing_preview = match pricing_state {
+        ProductAdminPricingPreviewState::Loading => t(
+            locale,
+            "product.summary.pricingLoading",
+            "Loading pricing module preview...",
+        ),
+        ProductAdminPricingPreviewState::Error(err) => format!(
+            "{}: {err}",
+            t(
+                locale,
+                "product.summary.pricingError",
+                "Pricing module preview failed",
+            )
+        ),
+        ProductAdminPricingPreviewState::Unavailable => t(
+            locale,
+            "product.summary.pricingUnavailable",
+            "Pricing module preview is unavailable.",
+        ),
+        ProductAdminPricingPreviewState::Ready(pricing) => {
+            format_pricing_preview(locale, Some(pricing))
+        }
+    };
+
+    SelectedProductSummaryViewModel::Ready {
+        title,
+        status_line: format!(
+            "{} {} | {} {inventory} | {} {shipping_profile}",
+            t(locale, "product.summary.status", "status"),
+            localized_product_status(locale, product.status.as_str()),
+            t(locale, "product.summary.inventory", "inventory"),
+            t(
+                locale,
+                "product.summary.shippingProfile",
+                "shipping profile",
+            ),
+        ),
+        catalog_snapshot_label: format!(
+            "{}: {}",
+            t(
+                locale,
+                "product.summary.catalogSnapshot",
+                "catalog snapshot",
+            ),
+            format_catalog_snapshot_price(locale, Some(product)),
+        ),
+        pricing_preview_label: format!(
+            "{}: {}",
+            t(
+                locale,
+                "product.summary.pricingPreview",
+                "pricing module preview",
+            ),
+            pricing_preview,
+        ),
+        pricing_href: build_admin_pricing_href(pricing_route_base, product),
+        open_pricing_label: t(locale, "product.summary.openPricing", "Open pricing module"),
+    }
+}
+
 pub(crate) fn format_known_shipping_profiles(
     locale: Option<&str>,
     profiles: &[ShippingProfile],
@@ -277,5 +389,98 @@ mod tests {
             format_product_shipping_profile(Some("en"), "standard"),
             "profile standard",
         );
+    }
+
+    #[test]
+    fn selected_summary_view_model_handles_empty_state() {
+        assert_eq!(
+            build_selected_product_summary_view_model(
+                Some("en"),
+                None,
+                ProductAdminPricingPreviewState::Loading,
+                "/admin/pricing",
+            ),
+            SelectedProductSummaryViewModel::Empty {
+                message: "Open a product to inspect its localized copy, catalog snapshot and pricing module preview."
+                    .to_string(),
+            },
+        );
+    }
+
+    #[test]
+    fn selected_summary_view_model_formats_ready_product() {
+        let product = ProductDetail {
+            id: "product-1".to_string(),
+            status: "ACTIVE".to_string(),
+            seller_id: None,
+            vendor: Some("Acme".to_string()),
+            product_type: Some("coat".to_string()),
+            shipping_profile_slug: Some("standard".to_string()),
+            tags: Vec::new(),
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
+            published_at: Some("2026-01-01T00:00:00Z".to_string()),
+            translations: vec![ProductTranslation {
+                locale: "en".to_string(),
+                title: "Winter coat".to_string(),
+                handle: "winter-coat".to_string(),
+                description: None,
+                meta_title: None,
+                meta_description: None,
+            }],
+            options: Vec::new(),
+            variants: vec![crate::model::ProductVariant {
+                id: "variant-1".to_string(),
+                sku: None,
+                barcode: None,
+                shipping_profile_slug: None,
+                title: "Default".to_string(),
+                option1: None,
+                option2: None,
+                option3: None,
+                prices: vec![crate::model::ProductPrice {
+                    currency_code: "USD".to_string(),
+                    amount: "10.00".to_string(),
+                    compare_at_amount: None,
+                    on_sale: false,
+                }],
+                inventory_quantity: 7,
+                inventory_policy: "DENY".to_string(),
+                in_stock: true,
+            }],
+        };
+
+        match build_selected_product_summary_view_model(
+            Some("en"),
+            Some(&product),
+            ProductAdminPricingPreviewState::Unavailable,
+            "/admin/pricing",
+        ) {
+            SelectedProductSummaryViewModel::Ready {
+                title,
+                status_line,
+                catalog_snapshot_label,
+                pricing_preview_label,
+                pricing_href,
+                open_pricing_label,
+            } => {
+                assert_eq!(title, "Winter coat");
+                assert_eq!(
+                    status_line,
+                    "status Active | inventory 7 | shipping profile standard"
+                );
+                assert_eq!(catalog_snapshot_label, "catalog snapshot: USD 10.00");
+                assert_eq!(
+                    pricing_preview_label,
+                    "pricing module preview: Pricing module preview is unavailable.",
+                );
+                assert_eq!(
+                    pricing_href,
+                    "/admin/pricing?id=product-1&currency=USD&quantity=1"
+                );
+                assert_eq!(open_pricing_label, "Open pricing module");
+            }
+            SelectedProductSummaryViewModel::Empty { .. } => panic!("expected ready summary"),
+        }
     }
 }

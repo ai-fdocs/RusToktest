@@ -5,12 +5,12 @@
 
 ## Execution checkpoint
 
-- Current phase: ffa_product_admin_ui_slice
-- Last checkpoint: Product admin Leptos rendering is isolated under `admin/src/ui/leptos.rs`, with crate root re-exporting `ProductAdmin` and the existing core/transport split preserved.
+- Current phase: ffa_product_admin_summary_view_model_slice
+- Last checkpoint: Selected product admin summary state now builds through `SelectedProductSummaryViewModel` in `admin/src/core.rs`; Leptos renders the prepared labels/links instead of owning summary pricing/catalog policy.
 - Next step: Continue FFA-first sequencing by decomposing remaining large admin render fragments into smaller `ui/leptos/` submodules or typed core view-models without changing the current GraphQL transport contract.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
-- Last updated at (UTC): 2026-06-01T10:13:12Z
+- Last updated at (UTC): 2026-06-01T10:44:05Z
 
 
 ## FFA/FBA status
@@ -27,8 +27,9 @@
   - FFA slice: product admin list/status/filter, shipping-profile, pricing-preview and pricing deep-link helpers moved into `admin/src/core.rs`; Leptos admin remains the render/effect adapter while GraphQL transport stays unchanged for this slice;
   - FFA slice: product admin GraphQL operations now route through `admin/src/transport.rs`, keeping `admin/src/api.rs` as the GraphQL adapter and preserving the existing `rustok-commerce` GraphQL contract;
   - FFA slice: product admin Leptos rendering moved under `admin/src/ui/leptos.rs`, and `admin/src/lib.rs` now acts as the module/re-export boundary for `ProductAdmin`;
+  - FFA slice: selected product admin summary labels, pricing preview state and pricing deep-link are composed by `SelectedProductSummaryViewModel` in `admin/src/core.rs`, keeping Leptos summary rendering as markup-only;
   - дальнейшее повышение статуса выполняется только вместе с verification evidence и обновлением local+central docs.
-- Last verified at (UTC): 2026-06-01T10:13:12Z
+- Last verified at (UTC): 2026-06-01T10:44:05Z
 - Owner: `rustok-product` module team
 
 ## Область работ
@@ -47,8 +48,9 @@
   manifest-driven admin composition как первый шаг UI split; admin list/status/filter,
   shipping-profile, pricing-preview и pricing deep-link helpers вынесены в
   framework-agnostic `admin/src/core.rs`, GraphQL операции проходят через
-  `admin/src/transport.rs`, а Leptos слой изолирован в
-  `admin/src/ui/leptos.rs` как render/effect adapter;
+  `admin/src/transport.rs`, selected-product summary собирается через
+  `SelectedProductSummaryViewModel` в `admin/src/core.rs`, а Leptos слой
+  изолирован в `admin/src/ui/leptos.rs` как render/effect adapter;
 - module-owned storefront UI пакет `rustok-product/storefront` уже поднят и
   подключён в manifest-driven storefront composition для published catalog
   discovery через native Leptos server functions с GraphQL fallback;
@@ -89,6 +91,7 @@
 - [x] вынести product admin list/status/filter, shipping-profile и pricing-preview helpers в framework-agnostic admin core;
 - [x] выделить product admin GraphQL operations behind a module-owned transport facade without changing `rustok-commerce` GraphQL contract;
 - [x] изолировать product admin Leptos rendering under `admin/src/ui/leptos.rs` with crate-root re-export boundary;
+- [x] вынести selected product admin summary state into `SelectedProductSummaryViewModel` in framework-agnostic admin core;
 - [ ] обновлять consumer-module docs при изменении tag/deliverability integration rules.
 
 ## Проверка

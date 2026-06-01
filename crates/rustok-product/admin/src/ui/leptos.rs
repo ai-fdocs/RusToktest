@@ -8,10 +8,10 @@ use rustok_seo_admin_support::SeoEntityPanel;
 use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
 
 use crate::core::{
-    build_admin_pricing_href, format_catalog_snapshot_price, format_known_shipping_profiles,
-    format_pricing_preview, format_product_meta, format_product_shipping_profile,
-    localized_product_status, primary_catalog_currency, shipping_profile_choice_label,
-    status_badge, text_or_none, translation_for_locale,
+    build_selected_product_summary_view_model, format_known_shipping_profiles, format_product_meta,
+    format_product_shipping_profile, localized_product_status, primary_catalog_currency,
+    shipping_profile_choice_label, status_badge, text_or_none, translation_for_locale,
+    ProductAdminPricingPreviewState, SelectedProductSummaryViewModel,
 };
 use crate::i18n::t;
 use crate::model::{
@@ -1018,107 +1018,46 @@ fn SelectedProductSummary(
     pricing_state: Option<Result<Option<ProductPricingDetail>, String>>,
     pricing_route_base: String,
 ) -> impl IntoView {
-    let Some(product) = product else {
-        return view! {
-            <p>
-                {t(
-                    locale.as_deref(),
-                    "product.summary.empty",
-                    "Open a product to inspect its localized copy, catalog snapshot and pricing module preview.",
-                )}
-            </p>
+    let pricing_state = match pricing_state.as_ref() {
+        None => ProductAdminPricingPreviewState::Loading,
+        Some(Err(err)) => ProductAdminPricingPreviewState::Error(err.as_str()),
+        Some(Ok(None)) => ProductAdminPricingPreviewState::Unavailable,
+        Some(Ok(Some(pricing))) => ProductAdminPricingPreviewState::Ready(pricing),
+    };
+
+    match build_selected_product_summary_view_model(
+        locale.as_deref(),
+        product.as_ref(),
+        pricing_state,
+        pricing_route_base.as_str(),
+    ) {
+        SelectedProductSummaryViewModel::Empty { message } => view! {
+            <p>{message}</p>
         }
-        .into_any();
-    };
-
-    let title = translation_for_locale(&product.translations, locale.as_deref())
-        .map(|item| item.title)
-        .or_else(|| product.translations.first().map(|item| item.title.clone()))
-        .unwrap_or_else(|| t(locale.as_deref(), "product.summary.untitled", "Untitled"));
-    let inventory = product
-        .variants
-        .first()
-        .map(|item| item.inventory_quantity)
-        .unwrap_or(0);
-    let shipping_profile = product.shipping_profile_slug.clone().unwrap_or_else(|| {
-        t(
-            locale.as_deref(),
-            "product.summary.unassigned",
-            "unassigned",
-        )
-    });
-    let catalog_snapshot = format_catalog_snapshot_price(locale.as_deref(), Some(&product));
-
-    let pricing_preview = match pricing_state {
-        None => t(
-            locale.as_deref(),
-            "product.summary.pricingLoading",
-            "Loading pricing module preview...",
-        ),
-        Some(Err(err)) => format!(
-            "{}: {err}",
-            t(
-                locale.as_deref(),
-                "product.summary.pricingError",
-                "Pricing module preview failed",
-            )
-        ),
-        Some(Ok(None)) => t(
-            locale.as_deref(),
-            "product.summary.pricingUnavailable",
-            "Pricing module preview is unavailable.",
-        ),
-        Some(Ok(Some(pricing))) => format_pricing_preview(locale.as_deref(), Some(&pricing)),
-    };
-    let pricing_href = build_admin_pricing_href(pricing_route_base.as_str(), &product);
-
-    view! {
-        <div class="space-y-3">
-            <p class="font-medium text-card-foreground">{title}</p>
-            <p>
-                {format!(
-                    "{} {} | {} {inventory} | {} {shipping_profile}",
-                    t(locale.as_deref(), "product.summary.status", "status"),
-                    localized_product_status(locale.as_deref(), product.status.as_str()),
-                    t(locale.as_deref(), "product.summary.inventory", "inventory"),
-                    t(locale.as_deref(), "product.summary.shippingProfile", "shipping profile"),
-                )}
-            </p>
-            <p>
-                {format!(
-                    "{}: {}",
-                    t(
-                        locale.as_deref(),
-                        "product.summary.catalogSnapshot",
-                        "catalog snapshot",
-                    ),
-                    catalog_snapshot,
-                )}
-            </p>
-            <p>
-                {format!(
-                    "{}: {}",
-                    t(
-                        locale.as_deref(),
-                        "product.summary.pricingPreview",
-                        "pricing module preview",
-                    ),
-                    pricing_preview,
-                )}
-            </p>
-            <div class="pt-1">
-                <a
-                    class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent"
-                    href=pricing_href
-                >
-                    {t(
-                        locale.as_deref(),
-                        "product.summary.openPricing",
-                        "Open pricing module",
-                    )}
-                </a>
+        .into_any(),
+        SelectedProductSummaryViewModel::Ready {
+            title,
+            status_line,
+            catalog_snapshot_label,
+            pricing_preview_label,
+            pricing_href,
+            open_pricing_label,
+        } => view! {
+            <div class="space-y-3">
+                <p class="font-medium text-card-foreground">{title}</p>
+                <p>{status_line}</p>
+                <p>{catalog_snapshot_label}</p>
+                <p>{pricing_preview_label}</p>
+                <div class="pt-1">
+                    <a
+                        class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent"
+                        href=pricing_href
+                    >
+                        {open_pricing_label}
+                    </a>
+                </div>
             </div>
-        </div>
+        }
+        .into_any(),
     }
-    .into_any()
 }
