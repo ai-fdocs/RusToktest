@@ -6,8 +6,8 @@ capability integrations без дрейфа и битой документаци
 
 ## Execution checkpoint
 
-- Current phase: FFA admin transport facade
-- Last checkpoint: FFA-срез workflow admin теперь имеет framework-agnostic `admin/src/core.rs` и тонкий `admin/src/transport/` facade вокруг текущего GraphQL adapter; Leptos render layer потребляет core view-models и больше не вызывает GraphQL adapter напрямую.
+- Current phase: FFA admin ui/leptos split
+- Last checkpoint: FFA-срез workflow admin теперь имеет framework-agnostic `admin/src/core.rs`, тонкий `admin/src/transport/` facade вокруг текущего GraphQL adapter и явный Leptos render adapter в `admin/src/ui/leptos.rs`; crate root только wires modules и re-export `WorkflowAdmin`.
 - Next step: Добавить native/server-function adapter за `transport/` facade и собрать parity evidence для native + GraphQL paths перед повышением статуса.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
@@ -22,6 +22,7 @@ capability integrations без дрейфа и битой документаци
   - module plan синхронизирован с central FFA/FBA readiness board; UI surface уже опубликован и ведётся в migration/backlog ритме;
   - FFA admin slice: status badge presentation, workflow table row mapping, template category styling и template-name normalization теперь живут в framework-agnostic `admin/src/core.rs` с unit tests;
   - transport slice: текущий GraphQL adapter перенесён под `admin/src/transport/graphql_adapter.rs`, а `admin/src/transport/mod.rs` стал стабильным facade для будущего native/server-function adapter; Leptos UI больше не зависит от GraphQL adapter module напрямую;
+  - UI adapter slice: Leptos-only render code перенесён в `admin/src/ui/leptos.rs`, а crate root оставлен composition/re-export layer для дальнейшего добавления других host adapters;
   - дальнейшее повышение статуса требует native/server-function + GraphQL parity evidence и обновления local+central docs в том же change.
 - Last verified at (UTC): 2026-06-01T00:00:00Z
 - Owner: `rustok-workflow` module team
@@ -47,7 +48,7 @@ capability integrations без дрейфа и битой документаци
 - [x] закрепить workflow engine и execution journal как module-owned runtime;
 - [x] зафиксировать transport adapters и admin UI внутри модуля;
 - [x] нормализовать local docs и убрать битую кодировку из module docs;
-- [~] удерживать sync между workflow runtime contract, UI surfaces и module metadata; текущий FFA slice вынес presentation/view-model helpers из Leptos render path и добавил transport facade без изменения manifest или внешнего GraphQL contract.
+- [~] удерживать sync между workflow runtime contract, UI surfaces и module metadata; текущий FFA slice вынес presentation/view-model helpers из Leptos render path, добавил transport facade и выделил `ui/leptos` adapter без изменения manifest или внешнего GraphQL contract.
 
 ### 2. Execution hardening
 
