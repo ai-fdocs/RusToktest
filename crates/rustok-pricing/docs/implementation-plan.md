@@ -18,6 +18,7 @@ rule и scope write paths, а полный promotions engine и остально
 
 - FFA status: `in_progress`
 - FBA status: `in_progress`
+- Structural shape: `docs_boundary`
 - Evidence:
   - модуль ведётся в ускоренном FFA/FBA migration track как часть ecommerce family;
   - storefront pricing route теперь использует framework-agnostic `storefront/src/core.rs` для summary/label/effective context formatting, query href building и shared `StorefrontPricingQuery`; Leptos `lib.rs` больше не владеет этой presentation/request policy;
