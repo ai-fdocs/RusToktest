@@ -6,7 +6,8 @@ Leptos admin UI package for the `rustok-product` module.
 
 - Exposes the product catalog admin root view used by `apps/admin`.
 - Keeps product list/create/edit/publish/archive workflow inside the product-owned package.
-- Keeps admin list/status/filter, shipping-profile, pricing-preview and pricing deep-link presentation helpers in framework-agnostic `src/core.rs`, leaving Leptos as the render/effect adapter.
+- Keeps admin list/status/filter, shipping-profile, selected-summary, pricing-preview and pricing deep-link presentation helpers in framework-agnostic `src/core.rs`, leaving Leptos as the render/effect adapter.
+- Isolates Leptos rendering in `src/ui/leptos.rs`, with crate root re-exporting `ProductAdmin`.
 - Routes admin data operations through `src/transport.rs`, which currently preserves the existing GraphQL adapter in `src/api.rs`.
 - Participates in manifest-driven admin composition through `rustok-module.toml`.
 - Uses registry-backed shipping-profile selection so catalog operators work with typed product bindings instead of raw slug text.
@@ -15,8 +16,8 @@ Leptos admin UI package for the `rustok-product` module.
 
 ## Entry Points
 
-- `ProductAdmin` - root admin view rendered from the host admin registry.
-- `core::*` helpers for product list/status/filter labels, pricing previews and pricing deep links.
+- `ProductAdmin` - root admin view re-exported from `ui::leptos` and rendered from the host admin registry.
+- `core::*` helpers for product list/status/filter labels, selected-summary view-models, pricing previews and pricing deep links.
 - `transport::*` facade functions for product admin GraphQL operations.
 
 ## Interactions
