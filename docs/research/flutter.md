@@ -1328,14 +1328,14 @@ Storefront host начал использовать generated registry не то
 
 #### PR-O evidence pack (storefront catalog/cart GraphQL integration signal)
 
-**Source-backed integration signal:** `rustok_mobile/tooling/tests/test_storefront_cart_graphql_contract.py`.
+**Source-backed integration signal:** `rustok_mobile/tooling/scripts/verify_storefront_graphql_contract.py` + `rustok_mobile/tooling/tests/test_storefront_cart_graphql_contract.py`.
 
 Storefront track получил первый детерминированный CI-friendly сигнал для catalog/cart GraphQL path без добавления Flutter-specific API:
-- catalog contract — mobile `StorefrontMobileCatalog` query сверяется с existing `crates/rustok-search/storefront/src/api.rs` surface `storefrontSearch(input: $input)` и `SearchPreviewInput`;
-- cart contract — mobile `StorefrontMobileCart` read и create/add/update/remove mutation documents сверяются с canonical commerce operation names;
+- catalog contract — переиспользуемая CLI-проверка извлекает mobile `StorefrontMobileCatalog` query из Dart raw-string const и сверяет её с существующей surface `storefrontSearch(input: $input)` и `SearchPreviewInput` в `crates/rustok-search/storefront/src/api.rs`;
+- cart contract — CLI-проверка извлекает mobile `StorefrontMobileCart` read и create/add/update/remove mutation documents, проверяет operation/root-field markers и сверяет их с canonical commerce operation names;
 - server-backed evidence — cart operation documents дополнительно привязаны к `crates/rustok-commerce/tests/graphql_runtime_parity_test.rs`, где те же create/add/query/update/remove steps выполняются через `schema.execute(Request::new(...))` и проверяют отсутствие GraphQL errors;
-- FFA guardrail — проверка не вводит `/api/flutter`, `/api/mobile`, feature-local transport client или package-local tenant/locale/cart ownership;
-- environment note — это source-backed contract/integration evidence для текущего окружения без Flutter SDK; live schema/test-server job остаётся следующим CI-усилением, а не новым архитектурным контрактом.
+- FFA guardrail — CLI-проверка не вводит `/api/flutter`, `/api/mobile`, feature-local transport client или package-local tenant/locale/cart ownership и запрещает `tenantId` в mobile operation documents, потому что tenant/locale остаются host-provided GraphQL context;
+- environment note — это source-backed contract/integration evidence для текущего окружения без Flutter SDK; CLI умеет печатать JSON evidence через `--json`, а live schema/test-server job остаётся следующим CI-усилением, а не новым архитектурным контрактом.
 
 Следующий storefront шаг: поднять этот сигнал до live schema/test-server job в CI, когда будет доступен Flutter SDK/test server harness, и расширять package mappings только при появлении новых module-owned storefront packages.
 

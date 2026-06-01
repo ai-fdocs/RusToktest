@@ -1,11 +1,23 @@
-import re
+import json
+import subprocess
+import sys
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
+SCRIPT_PATH = REPO_ROOT / "rustok_mobile/tooling/scripts/verify_storefront_graphql_contract.py"
 
 
 def read(path: str) -> str:
     return (REPO_ROOT / path).read_text(encoding="utf-8")
+
+
+def run_contract_check(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [sys.executable, str(SCRIPT_PATH), "--repo-root", str(REPO_ROOT), *args],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
 
 
 def test_storefront_mobile_cart_operations_match_commerce_graphql_surface() -> None:
@@ -53,52 +65,25 @@ def test_storefront_mobile_cart_transport_does_not_define_flutter_only_api() -> 
     assert "GraphQlClientFactory().create" in context
 
 
-def test_storefront_mobile_operations_have_server_backed_evidence() -> None:
-    """Keep Flutter storefront operations tied to existing server-executed flows."""
-    mobile_repo = read(
-        "rustok_mobile/apps/rustok_frontend_mobile/lib/data/storefront_catalog_repository.dart"
-    )
-    search_storefront_api = read("crates/rustok-search/storefront/src/api.rs")
-    commerce_runtime_test = read(
-        "crates/rustok-commerce/tests/graphql_runtime_parity_test.rs"
-    )
+def test_storefront_mobile_graphql_contract_script_outputs_contract_evidence() -> None:
+    result = run_contract_check("--json")
+    payload = json.loads(result.stdout)
+    contracts = payload["storefront_graphql_contracts"]
 
-    catalog_markers = [
-        "query StorefrontMobileCatalog($input: SearchPreviewInput!)",
-        "storefrontSearch(input: $input)",
-        "entityTypes': <String>['product']",
+    assert [contract["operation"] for contract in contracts] == [
+        "StorefrontMobileCatalog",
+        "StorefrontMobileCart",
+        "StorefrontMobileCreateCart",
+        "StorefrontMobileAddCartLine",
+        "StorefrontMobileUpdateCartLine",
+        "StorefrontMobileRemoveCartLine",
     ]
-    for marker in catalog_markers:
-        assert marker in mobile_repo
+    assert contracts[0]["server_evidence"] == "crates/rustok-search/storefront/src/api.rs"
+    assert "crates/rustok-commerce/tests/graphql_runtime_parity_test.rs" in contracts[-1][
+        "server_evidence"
+    ]
 
-    for marker in [
-        "query StorefrontSearch($input: SearchPreviewInput!)",
-        "storefrontSearch(input: $input)",
-        "struct SearchPreviewInput",
-    ]:
-        assert marker in search_storefront_api
 
-    cart_operation_pairs = {
-        "storefrontMobileCreateCartMutation": "storefront_cart_flow_mutation",
-        "storefrontMobileAddCartLineMutation": "storefront_cart_add_line_item_mutation",
-        "storefrontMobileUpdateCartLineMutation": "storefront_cart_update_line_item_mutation",
-        "storefrontMobileRemoveCartLineMutation": "storefront_cart_remove_line_item_mutation",
-        "storefrontMobileCartQuery": "storefront_cart_query",
-    }
-    for dart_operation, runtime_builder in cart_operation_pairs.items():
-        assert f"const {dart_operation}" in mobile_repo
-        assert f"fn {runtime_builder}" in commerce_runtime_test
-        assert re.search(
-            rf"schema\s*\.execute\(Request::new\(\s*{runtime_builder}",
-            commerce_runtime_test,
-        )
-
-    for runtime_assertion in [
-        "unexpected create cart GraphQL errors",
-        "unexpected add line item GraphQL errors",
-        "unexpected cart query GraphQL errors",
-        "unexpected update line item GraphQL errors",
-        "unexpected remove line item GraphQL errors",
-    ]:
-        assert runtime_assertion in commerce_runtime_test
-
+def test_storefront_mobile_graphql_contract_script_has_short_ok_output() -> None:
+    result = run_contract_check()
+    assert result.stdout.strip() == "OK: verified 6 storefront mobile GraphQL contracts"

@@ -31,7 +31,7 @@ Flutter workspace scaffold based on `docs/research/flutter.md`.
 - Module-owned storefront catalog/cart mobile package mounted by `rustok_frontend_mobile` without package-local transport clients; catalog reads use the existing `storefrontSearch` GraphQL surface and cart reads/writes use the canonical `storefrontCart`, `createStorefrontCart`, `addStorefrontCartLineItem`, `updateStorefrontCartLineItem`, and `removeStorefrontCartLineItem` GraphQL surfaces through the host repository boundary, with cart id state held by the host cart id store and optional durable file-backed persistence adapter.
 - Generated storefront mobile manifest from `provides.storefront_ui` with a dedicated snapshot and freshness checks.
 - Storefront registry adapter that maps generated `products` and `cart` routes to mounted module-owned package screens, with generic fallback for unmapped storefront modules and registry-driven home navigation for all generated storefront routes.
-- Storefront catalog/cart GraphQL evidence now ties Flutter operation documents to existing server storefront/search APIs and the commerce runtime parity test flow, so catalog/cart drift is caught even when the Flutter SDK is unavailable in CI.
+- Storefront catalog/cart GraphQL verifier ties Flutter operation documents to existing server storefront/search APIs and the commerce runtime parity test flow, so catalog/cart drift is caught even when the Flutter SDK is unavailable in CI.
 
 Host-level providers now resolve sessions via `AuthSessionManager` and `RefreshTokenService` before building the authenticated GraphQL client. The refresh flow uses an HTTP-only GraphQL client to avoid unnecessary WebSocket initialization during bootstrap. Provider wiring is isolated in `apps/rustok_admin_mobile/lib/app_shell/auth_bootstrap.dart`.
 
@@ -109,6 +109,14 @@ python3 rustok_mobile/tooling/scripts/check_mobile_codegen.py \
   --manifest rustok_mobile/apps/rustok_frontend_mobile/lib/registry/storefront_mobile_manifest.g.dart \
   --snapshot rustok_mobile/tooling/snapshots/storefront_mobile_manifest.snapshot.json
 ```
+
+## Verify storefront catalog/cart GraphQL contracts
+
+```bash
+python3 rustok_mobile/tooling/scripts/verify_storefront_graphql_contract.py --repo-root /workspace/RusTok
+```
+
+Use `--json` when CI needs machine-readable evidence for the mobile operation documents and the server-side surfaces that back them.
 
 ## Next steps
 
