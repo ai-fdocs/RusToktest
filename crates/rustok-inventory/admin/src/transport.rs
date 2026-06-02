@@ -3,6 +3,10 @@ use leptos::web_sys;
 use leptos_graphql::{execute as execute_graphql, GraphqlHttpError, GraphqlRequest};
 use serde::{Deserialize, Serialize};
 
+use crate::core::{
+    normalized_product_selector, normalized_products_filter, InventoryProductRequest,
+    InventoryProductsRequest,
+};
 use crate::model::{InventoryAdminBootstrap, InventoryProductDetail, InventoryProductList};
 
 pub type InventoryTransportError = GraphqlHttpError;
@@ -23,25 +27,6 @@ pub trait InventoryReadTransport {
         &self,
         request: InventoryProductRequest,
     ) -> Result<Option<InventoryProductDetail>, InventoryTransportError>;
-}
-
-#[derive(Clone, Debug)]
-pub struct InventoryProductsRequest {
-    pub token: Option<String>,
-    pub tenant_slug: Option<String>,
-    pub tenant_id: String,
-    pub locale: Option<String>,
-    pub search: Option<String>,
-    pub status: Option<String>,
-}
-
-#[derive(Clone, Debug)]
-pub struct InventoryProductRequest {
-    pub token: Option<String>,
-    pub tenant_slug: Option<String>,
-    pub tenant_id: String,
-    pub id: String,
-    pub locale: Option<String>,
 }
 
 #[derive(Clone, Debug, Default)]
@@ -117,29 +102,6 @@ fn graphql_url() -> String {
     }
 }
 
-pub(crate) fn normalize_optional_trimmed(value: Option<String>) -> Option<String> {
-    value.and_then(|value| {
-        let trimmed = value.trim();
-        if trimmed.is_empty() {
-            None
-        } else {
-            Some(trimmed.to_string())
-        }
-    })
-}
-
-pub(crate) fn normalize_locale_filter(locale: Option<String>) -> Option<String> {
-    normalize_optional_trimmed(locale)
-}
-
-pub(crate) fn normalize_search_filter(search: Option<String>) -> Option<String> {
-    normalize_optional_trimmed(search)
-}
-
-pub(crate) fn normalize_status_filter(status: Option<String>) -> Option<String> {
-    normalize_optional_trimmed(status).map(|value| value.to_ascii_uppercase())
-}
-
 async fn request<V, T>(
     query: &str,
     variables: Option<V>,
@@ -186,15 +148,22 @@ impl InventoryReadTransport for CommerceGraphqlInventoryReadAdapter {
             PRODUCTS_QUERY,
             Some(TenantScopedVariables {
                 tenant_id: request_data.tenant_id,
-                extra: ProductsVariables {
-                    locale: normalize_locale_filter(request_data.locale),
-                    filter: ProductsFilter {
-                        status: normalize_status_filter(request_data.status),
-                        vendor: None,
-                        search: normalize_search_filter(request_data.search),
-                        page: Some(1),
-                        per_page: Some(24),
-                    },
+                extra: {
+                    let filter = normalized_products_filter(
+                        request_data.locale,
+                        request_data.search,
+                        request_data.status,
+                    );
+                    ProductsVariables {
+                        locale: filter.locale,
+                        filter: ProductsFilter {
+                            status: filter.status,
+                            vendor: None,
+                            search: filter.search,
+                            page: Some(filter.page),
+                            per_page: Some(filter.per_page),
+                        },
+                    }
                 },
             }),
             request_data.token,
@@ -212,9 +181,13 @@ impl InventoryReadTransport for CommerceGraphqlInventoryReadAdapter {
             PRODUCT_QUERY,
             Some(TenantScopedVariables {
                 tenant_id: request_data.tenant_id,
-                extra: ProductVariables {
-                    id: request_data.id,
-                    locale: normalize_locale_filter(request_data.locale),
+                extra: {
+                    let selector =
+                        normalized_product_selector(request_data.id, request_data.locale);
+                    ProductVariables {
+                        id: selector.id,
+                        locale: selector.locale,
+                    }
                 },
             }),
             request_data.token,
@@ -227,54 +200,7 @@ impl InventoryReadTransport for CommerceGraphqlInventoryReadAdapter {
 
 #[cfg(test)]
 mod tests {
-    use super::{
-        normalize_locale_filter, normalize_optional_trimmed, normalize_search_filter,
-        normalize_status_filter, PRODUCTS_QUERY, PRODUCT_QUERY,
-    };
-
-    #[test]
-    fn normalize_optional_trimmed_keeps_non_blank_and_drops_blank_values() {
-        assert_eq!(
-            normalize_optional_trimmed(Some("  value  ".to_string())),
-            Some("value".to_string())
-        );
-        assert_eq!(normalize_optional_trimmed(Some("   ".to_string())), None);
-        assert_eq!(normalize_optional_trimmed(None), None);
-    }
-
-    #[test]
-    fn normalize_locale_filter_trims_and_drops_blank_values() {
-        assert_eq!(
-            normalize_locale_filter(Some("  de-DE  ".to_string())),
-            Some("de-DE".to_string())
-        );
-        assert_eq!(normalize_locale_filter(Some("   ".to_string())), None);
-        assert_eq!(normalize_locale_filter(None), None);
-    }
-
-    #[test]
-    fn normalize_search_filter_trims_and_drops_blank_values() {
-        assert_eq!(
-            normalize_search_filter(Some("  winter jacket  ".to_string())),
-            Some("winter jacket".to_string())
-        );
-        assert_eq!(normalize_search_filter(Some("   ".to_string())), None);
-        assert_eq!(normalize_search_filter(None), None);
-    }
-
-    #[test]
-    fn normalize_status_filter_trims_and_uppercases_values() {
-        assert_eq!(
-            normalize_status_filter(Some(" active ".to_string())),
-            Some("ACTIVE".to_string())
-        );
-    }
-
-    #[test]
-    fn normalize_status_filter_drops_blank_values() {
-        assert_eq!(normalize_status_filter(Some("   ".to_string())), None);
-        assert_eq!(normalize_status_filter(None), None);
-    }
+    use super::{PRODUCTS_QUERY, PRODUCT_QUERY};
 
     #[test]
     fn transitional_graphql_adapter_keeps_inventory_read_model_fields() {

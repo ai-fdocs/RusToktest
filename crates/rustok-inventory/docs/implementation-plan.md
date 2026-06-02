@@ -7,7 +7,7 @@ admin read-side UI, а dedicated inventory write transport и channel-aware orch
 ## Execution checkpoint
 
 - Current phase: wave5_read_facade
-- Last checkpoint: Добавлен inventory-owned admin read facade (`admin/src/api.rs` + `admin/src/transport.rs`), а существующий commerce GraphQL доступ изолирован в transitional adapter-е с compatibility test на минимальную read model.
+- Last checkpoint: Добавлен inventory-owned admin read facade (`admin/src/core.rs` + `admin/src/api.rs` + `admin/src/transport.rs`), а существующий commerce GraphQL доступ изолирован в transitional adapter-е с compatibility test на минимальную read model.
 - Next step: Заменить transitional commerce GraphQL adapter на dedicated inventory transport/mutations и расширить parity coverage для read/write stock operations.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
@@ -20,7 +20,7 @@ admin read-side UI, а dedicated inventory write transport и channel-aware orch
 - Structural shape: `core_transport`
 - Evidence:
   - модуль ведётся в ускоренном FFA/FBA migration track как часть ecommerce family;
-  - inventory admin UI вызывает inventory-owned `api` facade, а transport boundary держит transitional commerce GraphQL adapter внутри пакета;
+  - inventory admin UI вызывает inventory-owned `core`/`api` facade, а transport boundary держит transitional commerce GraphQL adapter внутри пакета;
   - compatibility test фиксирует минимальные поля read model (`inventoryQuantity`, `inventoryPolicy`, `inStock`, variants/translations/feed paging) до выделения dedicated inventory transport.
 - Last verified at (UTC): 2026-06-02T00:00:00Z
 - Owner: `rustok-inventory` module team
@@ -53,7 +53,7 @@ admin read-side UI, а dedicated inventory write transport и channel-aware orch
 
 ### 2. Inventory transport split
 
-- [x] добавить inventory-owned read facade для admin UI и изолировать текущий commerce GraphQL доступ в transitional adapter-е;
+- [x] добавить inventory-owned core/read facade для admin UI и изолировать текущий commerce GraphQL доступ в transitional adapter-е;
 - [ ] вынести dedicated inventory read/write transport из umbrella `rustok-commerce`;
 - [ ] перевести inventory admin UI с read-only product-backed transport на inventory-owned
   mutations и targeted stock operations;

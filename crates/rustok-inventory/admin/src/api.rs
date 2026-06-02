@@ -1,7 +1,7 @@
+use crate::core::{InventoryProductRequest, InventoryProductsRequest};
 use crate::model::{InventoryAdminBootstrap, InventoryProductDetail, InventoryProductList};
 use crate::transport::{
-    CommerceGraphqlInventoryReadAdapter, InventoryProductRequest, InventoryProductsRequest,
-    InventoryReadTransport, InventoryTransportError,
+    CommerceGraphqlInventoryReadAdapter, InventoryReadTransport, InventoryTransportError,
 };
 
 pub type ApiError = InventoryTransportError;
