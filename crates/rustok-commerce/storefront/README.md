@@ -11,6 +11,8 @@ Leptos storefront UI package for the `rustok-commerce` module.
 - Uses native Leptos `#[server]` calls to expose effective storefront context plus aggregate checkout workspace state from host request/tenant/channel wiring.
 - Acts as the remaining storefront orchestration surface while read-side ownership already lives in split commerce modules.
 
+- Keeps Leptos render/bind code in `storefront/src/ui/leptos.rs`; `storefront/src/lib.rs` only wires modules and re-exports `CommerceView`.
+
 ## Entry Points
 
 - `CommerceView` - root storefront view rendered from the host storefront slot registry.

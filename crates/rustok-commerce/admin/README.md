@@ -14,6 +14,8 @@ Leptos admin UI package for the `rustok-commerce` module.
 - No longer carries product CRUD; that catalog UI now lives in `rustok-product/admin`.
 - Ships package-owned `admin/locales/en.json` and `admin/locales/ru.json` bundles declared through `[provides.admin_ui.i18n]`.
 
+- Keeps Leptos render/bind code in `admin/src/ui/leptos.rs`; `admin/src/lib.rs` only wires modules and re-exports `CommerceAdmin`.
+
 ## Entry Points
 
 - `CommerceAdmin` - root admin view rendered from the host admin registry.
