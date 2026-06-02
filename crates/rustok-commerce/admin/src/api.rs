@@ -49,6 +49,9 @@ const CREATE_SHIPPING_PROFILE_MUTATION: &str = "mutation CommerceCreateShippingP
 const UPDATE_SHIPPING_PROFILE_MUTATION: &str = "mutation CommerceUpdateShippingProfile($tenantId: UUID!, $id: UUID!, $input: UpdateShippingProfileInput!) { updateShippingProfile(tenantId: $tenantId, id: $id, input: $input) { id tenantId slug name description active metadata createdAt updatedAt } }";
 const DEACTIVATE_SHIPPING_PROFILE_MUTATION: &str = "mutation CommerceDeactivateShippingProfile($tenantId: UUID!, $id: UUID!) { deactivateShippingProfile(tenantId: $tenantId, id: $id) { id tenantId slug name description active metadata createdAt updatedAt } }";
 const REACTIVATE_SHIPPING_PROFILE_MUTATION: &str = "mutation CommerceReactivateShippingProfile($tenantId: UUID!, $id: UUID!) { reactivateShippingProfile(tenantId: $tenantId, id: $id) { id tenantId slug name description active metadata createdAt updatedAt } }";
+const ORDER_CHANGES_QUERY: &str = "query CommerceOrderChanges($tenantId: UUID!, $filter: OrderChangesFilter) { orderChanges(tenantId: $tenantId, filter: $filter) { total page perPage hasNext items { id tenantId orderId createdBy changeType status description preview metadata createdAt updatedAt appliedAt cancelledAt } } }";
+const APPLY_ORDER_CHANGE_MUTATION: &str = "mutation CommerceApplyOrderChange($tenantId: UUID!, $id: UUID!, $input: ApplyOrderChangeInputObject!) { applyOrderChange(tenantId: $tenantId, id: $id, input: $input) { id tenantId orderId createdBy changeType status description preview metadata createdAt updatedAt appliedAt cancelledAt } }";
+const CANCEL_ORDER_CHANGE_MUTATION: &str = "mutation CommerceCancelOrderChange($tenantId: UUID!, $id: UUID!, $input: CancelOrderChangeInputObject!) { cancelOrderChange(tenantId: $tenantId, id: $id, input: $input) { id tenantId orderId createdBy changeType status description preview metadata createdAt updatedAt appliedAt cancelledAt } }";
 
 #[derive(Debug, Deserialize)]
 struct BootstrapResponse {
@@ -92,6 +95,24 @@ struct ReactivateShippingProfileResponse {
     reactivate_shipping_profile: ShippingProfile,
 }
 
+#[derive(Debug, Deserialize)]
+struct OrderChangesResponse {
+    #[serde(rename = "orderChanges")]
+    order_changes: CommerceOrderChangeList,
+}
+
+#[derive(Debug, Deserialize)]
+struct ApplyOrderChangeResponse {
+    #[serde(rename = "applyOrderChange")]
+    apply_order_change: CommerceOrderChange,
+}
+
+#[derive(Debug, Deserialize)]
+struct CancelOrderChangeResponse {
+    #[serde(rename = "cancelOrderChange")]
+    cancel_order_change: CommerceOrderChange,
+}
+
 #[derive(Debug, Serialize)]
 struct TenantScopedVariables<T> {
     #[serde(rename = "tenantId")]
@@ -119,6 +140,40 @@ struct CreateShippingProfileVariables {
 struct UpdateShippingProfileVariables {
     id: String,
     input: UpdateShippingProfileInput,
+}
+
+#[derive(Debug, Serialize)]
+struct OrderChangesVariables {
+    filter: OrderChangesFilter,
+}
+
+#[derive(Debug, Serialize)]
+struct OrderChangeActionVariables<T> {
+    id: String,
+    input: T,
+}
+
+#[derive(Debug, Serialize)]
+struct OrderChangesFilter {
+    #[serde(rename = "orderId")]
+    order_id: Option<String>,
+    status: Option<String>,
+    #[serde(rename = "changeType")]
+    change_type: Option<String>,
+    page: Option<u64>,
+    #[serde(rename = "perPage")]
+    per_page: Option<u64>,
+}
+
+#[derive(Debug, Serialize)]
+struct ApplyOrderChangeInput {
+    metadata: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+struct CancelOrderChangeInput {
+    reason: Option<String>,
+    metadata: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -338,10 +393,15 @@ pub async fn fetch_order_changes(
     order_id: Option<String>,
     status: Option<String>,
 ) -> Result<CommerceOrderChangeList, ApiError> {
-    let _ = (token, tenant_slug);
-    commerce_admin_order_changes_native(tenant_id, order_id, status)
+    match commerce_admin_order_changes_native(tenant_id.clone(), order_id.clone(), status.clone())
         .await
-        .map_err(Into::into)
+    {
+        Ok(list) => Ok(list),
+        Err(error) if is_native_transport_unavailable(&error) => {
+            fetch_order_changes_graphql(token, tenant_slug, tenant_id, order_id, status).await
+        }
+        Err(error) => Err(ApiError::from(error)),
+    }
 }
 
 pub async fn apply_order_change(
@@ -351,10 +411,15 @@ pub async fn apply_order_change(
     id: String,
     draft: CommerceOrderChangeActionDraft,
 ) -> Result<CommerceOrderChange, ApiError> {
-    let _ = (token, tenant_slug);
-    commerce_admin_apply_order_change_native(tenant_id, id, draft)
+    match commerce_admin_apply_order_change_native(tenant_id.clone(), id.clone(), draft.clone())
         .await
-        .map_err(Into::into)
+    {
+        Ok(change) => Ok(change),
+        Err(error) if is_native_transport_unavailable(&error) => {
+            apply_order_change_graphql(token, tenant_slug, tenant_id, id, draft).await
+        }
+        Err(error) => Err(ApiError::from(error)),
+    }
 }
 
 pub async fn cancel_order_change(
@@ -364,10 +429,98 @@ pub async fn cancel_order_change(
     id: String,
     draft: CommerceOrderChangeActionDraft,
 ) -> Result<CommerceOrderChange, ApiError> {
-    let _ = (token, tenant_slug);
-    commerce_admin_cancel_order_change_native(tenant_id, id, draft)
+    match commerce_admin_cancel_order_change_native(tenant_id.clone(), id.clone(), draft.clone())
         .await
-        .map_err(Into::into)
+    {
+        Ok(change) => Ok(change),
+        Err(error) if is_native_transport_unavailable(&error) => {
+            cancel_order_change_graphql(token, tenant_slug, tenant_id, id, draft).await
+        }
+        Err(error) => Err(ApiError::from(error)),
+    }
+}
+
+async fn fetch_order_changes_graphql(
+    token: Option<String>,
+    tenant_slug: Option<String>,
+    tenant_id: String,
+    order_id: Option<String>,
+    status: Option<String>,
+) -> Result<CommerceOrderChangeList, ApiError> {
+    let response: OrderChangesResponse = request(
+        ORDER_CHANGES_QUERY,
+        Some(TenantScopedVariables {
+            tenant_id,
+            extra: OrderChangesVariables {
+                filter: OrderChangesFilter {
+                    order_id: order_id.and_then(|value| optional_text(value.as_str())),
+                    status: status.and_then(|value| optional_text(value.as_str())),
+                    change_type: None,
+                    page: Some(1),
+                    per_page: Some(20),
+                },
+            },
+        }),
+        token,
+        tenant_slug,
+    )
+    .await?;
+    Ok(response.order_changes)
+}
+
+async fn apply_order_change_graphql(
+    token: Option<String>,
+    tenant_slug: Option<String>,
+    tenant_id: String,
+    id: String,
+    draft: CommerceOrderChangeActionDraft,
+) -> Result<CommerceOrderChange, ApiError> {
+    let response: ApplyOrderChangeResponse = request(
+        APPLY_ORDER_CHANGE_MUTATION,
+        Some(TenantScopedVariables {
+            tenant_id,
+            extra: OrderChangeActionVariables {
+                id,
+                input: ApplyOrderChangeInput {
+                    metadata: optional_json_text(draft.metadata_json.as_str()),
+                },
+            },
+        }),
+        token,
+        tenant_slug,
+    )
+    .await?;
+    Ok(response.apply_order_change)
+}
+
+async fn cancel_order_change_graphql(
+    token: Option<String>,
+    tenant_slug: Option<String>,
+    tenant_id: String,
+    id: String,
+    draft: CommerceOrderChangeActionDraft,
+) -> Result<CommerceOrderChange, ApiError> {
+    let response: CancelOrderChangeResponse = request(
+        CANCEL_ORDER_CHANGE_MUTATION,
+        Some(TenantScopedVariables {
+            tenant_id,
+            extra: OrderChangeActionVariables {
+                id,
+                input: CancelOrderChangeInput {
+                    reason: optional_text(draft.reason.as_str()),
+                    metadata: optional_json_text(draft.metadata_json.as_str()),
+                },
+            },
+        }),
+        token,
+        tenant_slug,
+    )
+    .await?;
+    Ok(response.cancel_order_change)
+}
+
+fn is_native_transport_unavailable(error: &ServerFnError) -> bool {
+    error.to_string().contains("requires the `ssr` feature")
 }
 
 #[allow(dead_code)]

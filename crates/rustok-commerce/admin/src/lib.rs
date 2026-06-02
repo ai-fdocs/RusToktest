@@ -1099,6 +1099,61 @@ fn render_promotion_preview(
     .into_any()
 }
 
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+struct OrderChangeResolutionSummary {
+    order_return_id: Option<String>,
+    return_decision_action: Option<String>,
+    return_decision_source: Option<String>,
+    cancellation_reason: Option<String>,
+}
+
+impl OrderChangeResolutionSummary {
+    fn has_any(&self) -> bool {
+        self.order_return_id.is_some()
+            || self.return_decision_action.is_some()
+            || self.return_decision_source.is_some()
+            || self.cancellation_reason.is_some()
+    }
+}
+
+fn order_change_resolution_summary(change: &CommerceOrderChange) -> OrderChangeResolutionSummary {
+    let preview = parse_json_object(change.preview.as_str());
+    let metadata = parse_json_object(change.metadata.as_str());
+
+    OrderChangeResolutionSummary {
+        order_return_id: json_string(&metadata, "order_return_id")
+            .or_else(|| json_string(&preview, "order_return_id")),
+        return_decision_action: json_string(&metadata, "return_decision_action")
+            .or_else(|| json_string(&preview, "return_decision_action"))
+            .or_else(|| {
+                Some(change.change_type.clone())
+                    .filter(|value| value == "exchange" || value == "claim")
+            }),
+        return_decision_source: json_string(&metadata, "return_decision_source")
+            .or_else(|| json_string(&preview, "return_decision_source")),
+        cancellation_reason: json_string(&metadata, "cancellation_reason"),
+    }
+}
+
+fn parse_json_object(value: &str) -> Option<serde_json::Map<String, serde_json::Value>> {
+    serde_json::from_str::<serde_json::Value>(value)
+        .ok()
+        .and_then(|value| value.as_object().cloned())
+}
+
+fn json_string(
+    object: &Option<serde_json::Map<String, serde_json::Value>>,
+    key: &str,
+) -> Option<String> {
+    object
+        .as_ref()
+        .and_then(|object| object.get(key))
+        .and_then(|value| value.as_str())
+        .map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map(ToString::to_string)
+}
+
 fn render_order_changes(
     locale: Option<&str>,
     changes: Vec<CommerceOrderChange>,
@@ -1107,6 +1162,19 @@ fn render_order_changes(
     cancel_label: String,
     busy: ReadSignal<bool>,
 ) -> AnyView {
+    let resolution_return_label = t(locale, "commerce.orderChanges.resolution.return", "Return");
+    let resolution_action_label = t(
+        locale,
+        "commerce.orderChanges.resolution.action",
+        "Decision",
+    );
+    let resolution_source_label = t(locale, "commerce.orderChanges.resolution.source", "Source");
+    let resolution_cancel_reason_label = t(
+        locale,
+        "commerce.orderChanges.resolution.cancelReason",
+        "Cancel reason",
+    );
+
     view! {
         <div class="space-y-3">
             {changes.into_iter().map(|change| {
@@ -1115,6 +1183,12 @@ fn render_order_changes(
                 let can_update = change.status == "pending";
                 let description = change.description.clone();
                 let has_description = description.is_some();
+                let resolution_summary = order_change_resolution_summary(&change);
+                let has_resolution_summary = resolution_summary.has_any();
+                let resolution_return_label = resolution_return_label.clone();
+                let resolution_action_label = resolution_action_label.clone();
+                let resolution_source_label = resolution_source_label.clone();
+                let resolution_cancel_reason_label = resolution_cancel_reason_label.clone();
                 view! {
                     <article class="rounded-2xl border border-border bg-background p-5">
                         <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
@@ -1135,6 +1209,14 @@ fn render_order_changes(
                                 <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || busy.get() || !can_update on:click=move |_| action.run((cancel_id.clone(), false))>{cancel_label.clone()}</button>
                             </div>
                         </div>
+                        <Show when=move || has_resolution_summary>
+                            <div class="mt-4 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                                <MetricCard title=resolution_return_label.clone() value=resolution_summary.order_return_id.clone().unwrap_or_else(|| "-".to_string()) />
+                                <MetricCard title=resolution_action_label.clone() value=resolution_summary.return_decision_action.clone().unwrap_or_else(|| "-".to_string()) />
+                                <MetricCard title=resolution_source_label.clone() value=resolution_summary.return_decision_source.clone().unwrap_or_else(|| "-".to_string()) />
+                                <MetricCard title=resolution_cancel_reason_label.clone() value=resolution_summary.cancellation_reason.clone().unwrap_or_else(|| "-".to_string()) />
+                            </div>
+                        </Show>
                         <div class="mt-4 grid gap-3 md:grid-cols-2">
                             <pre class="overflow-x-auto rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">{change.preview.clone()}</pre>
                             <pre class="overflow-x-auto rounded-lg bg-muted px-3 py-2 text-xs text-muted-foreground">{change.metadata.clone()}</pre>
@@ -1218,6 +1300,63 @@ fn localized_promotion_scope_value(locale: Option<&str>, scope: Option<&str>) ->
         Some("shipping") => t(locale, "commerce.cartPromotion.scope.shipping", "Shipping"),
         Some(value) => value.to_string(),
         None => "-".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn order_change_with_payload(preview: &str, metadata: &str) -> CommerceOrderChange {
+        CommerceOrderChange {
+            id: "change-1".to_string(),
+            tenant_id: "tenant-1".to_string(),
+            order_id: "order-1".to_string(),
+            created_by: "operator-1".to_string(),
+            change_type: "exchange".to_string(),
+            status: "pending".to_string(),
+            description: None,
+            preview: preview.to_string(),
+            metadata: metadata.to_string(),
+            created_at: "2026-06-02T00:00:00Z".to_string(),
+            updated_at: "2026-06-02T00:00:00Z".to_string(),
+            applied_at: None,
+            cancelled_at: None,
+        }
+    }
+
+    #[test]
+    fn order_change_resolution_summary_prefers_metadata_context() {
+        let change = order_change_with_payload(
+            r#"{"order_return_id":"preview-return","return_decision_action":"claim"}"#,
+            r#"{"order_return_id":"metadata-return","return_decision_action":"exchange","return_decision_source":"rustok-commerce","cancellation_reason":"operator rejected"}"#,
+        );
+
+        let summary = order_change_resolution_summary(&change);
+
+        assert_eq!(summary.order_return_id.as_deref(), Some("metadata-return"));
+        assert_eq!(summary.return_decision_action.as_deref(), Some("exchange"));
+        assert_eq!(
+            summary.return_decision_source.as_deref(),
+            Some("rustok-commerce")
+        );
+        assert_eq!(
+            summary.cancellation_reason.as_deref(),
+            Some("operator rejected")
+        );
+        assert!(summary.has_any());
+    }
+
+    #[test]
+    fn order_change_resolution_summary_falls_back_to_preview_and_change_type() {
+        let change = order_change_with_payload(r#"{"order_return_id":"preview-return"}"#, "{}");
+
+        let summary = order_change_resolution_summary(&change);
+
+        assert_eq!(summary.order_return_id.as_deref(), Some("preview-return"));
+        assert_eq!(summary.return_decision_action.as_deref(), Some("exchange"));
+        assert!(summary.return_decision_source.is_none());
+        assert!(summary.cancellation_reason.is_none());
     }
 }
 
