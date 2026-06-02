@@ -1,6 +1,8 @@
 mod api;
+mod core;
 mod i18n;
 mod model;
+mod transport;
 
 use leptos::ev::SubmitEvent;
 use leptos::prelude::*;
@@ -50,12 +52,14 @@ pub fn CommerceAdmin() -> impl IntoView {
     let (busy, set_busy) = signal(false);
     let (error, set_error) = signal(Option::<String>::None);
     let (promotion_cart_id, set_promotion_cart_id) = signal(String::new());
-    let (promotion_kind, set_promotion_kind) = signal("fixed_discount".to_string());
-    let (promotion_scope, set_promotion_scope) = signal("shipping".to_string());
+    let (promotion_kind, set_promotion_kind) = signal(core::DEFAULT_PROMOTION_KIND.to_string());
+    let (promotion_scope, set_promotion_scope) = signal(core::DEFAULT_PROMOTION_SCOPE.to_string());
     let (promotion_line_item_id, set_promotion_line_item_id) = signal(String::new());
-    let (promotion_source_id, set_promotion_source_id) = signal("promo-operator".to_string());
+    let (promotion_source_id, set_promotion_source_id) =
+        signal(core::DEFAULT_PROMOTION_SOURCE_ID.to_string());
     let (promotion_discount_percent, set_promotion_discount_percent) = signal(String::new());
-    let (promotion_amount, set_promotion_amount) = signal("4.99".to_string());
+    let (promotion_amount, set_promotion_amount) =
+        signal(core::DEFAULT_PROMOTION_AMOUNT.to_string());
     let (promotion_metadata_json, set_promotion_metadata_json) = signal(String::new());
     let (promotion_busy, set_promotion_busy) = signal(false);
     let (promotion_error, set_promotion_error) = signal(Option::<String>::None);
@@ -64,7 +68,8 @@ pub fn CommerceAdmin() -> impl IntoView {
     let (promotion_result, set_promotion_result) =
         signal(Option::<CommerceAdminCartSnapshot>::None);
     let (order_change_order_id, set_order_change_order_id) = signal(String::new());
-    let (order_change_status, set_order_change_status) = signal("pending".to_string());
+    let (order_change_status, set_order_change_status) =
+        signal(core::DEFAULT_ORDER_CHANGE_STATUS.to_string());
     let (order_change_metadata_json, set_order_change_metadata_json) = signal(String::new());
     let (order_change_cancel_reason, set_order_change_cancel_reason) = signal(String::new());
     let (order_change_refresh_nonce, set_order_change_refresh_nonce) = signal(0_u64);
@@ -357,15 +362,16 @@ pub fn CommerceAdmin() -> impl IntoView {
     let bootstrap = local_resource(
         move || (token.get(), tenant.get()),
         move |(token_value, tenant_value)| async move {
-            api::fetch_bootstrap(token_value, tenant_value).await
+            transport::fetch_bootstrap(token_value, tenant_value).await
         },
     );
 
     let shipping_profiles = local_resource(
         move || (token.get(), tenant.get(), refresh_nonce.get(), search.get()),
         move |(token_value, tenant_value, _, search_value)| async move {
-            let bootstrap = api::fetch_bootstrap(token_value.clone(), tenant_value.clone()).await?;
-            api::fetch_shipping_profiles(
+            let bootstrap =
+                transport::fetch_bootstrap(token_value.clone(), tenant_value.clone()).await?;
+            transport::fetch_shipping_profiles(
                 token_value,
                 tenant_value,
                 bootstrap.current_tenant.id,
@@ -386,8 +392,9 @@ pub fn CommerceAdmin() -> impl IntoView {
             )
         },
         move |(token_value, tenant_value, _, order_id, status)| async move {
-            let bootstrap = api::fetch_bootstrap(token_value.clone(), tenant_value.clone()).await?;
-            api::fetch_order_changes(
+            let bootstrap =
+                transport::fetch_bootstrap(token_value.clone(), tenant_value.clone()).await?;
+            transport::fetch_order_changes(
                 token_value,
                 tenant_value,
                 bootstrap.current_tenant.id,
@@ -434,7 +441,7 @@ pub fn CommerceAdmin() -> impl IntoView {
         set_busy.set(true);
         set_error.set(None);
         spawn_local(async move {
-            match api::fetch_shipping_profile(
+            match transport::fetch_shipping_profile(
                 token_value,
                 tenant_value,
                 current_tenant.id,
@@ -513,7 +520,7 @@ pub fn CommerceAdmin() -> impl IntoView {
         spawn_local(async move {
             let result = match current_id {
                 Some(profile_id) => {
-                    api::update_shipping_profile(
+                    transport::update_shipping_profile(
                         token_value.clone(),
                         tenant_value.clone(),
                         current_tenant.id.clone(),
@@ -523,7 +530,7 @@ pub fn CommerceAdmin() -> impl IntoView {
                     .await
                 }
                 None => {
-                    api::create_shipping_profile(
+                    transport::create_shipping_profile(
                         token_value.clone(),
                         tenant_value.clone(),
                         current_tenant.id.clone(),
@@ -548,7 +555,10 @@ pub fn CommerceAdmin() -> impl IntoView {
                     submit_query_writer
                         .replace_value(AdminQueryKey::ShippingProfileId.as_str(), profile_id);
                 }
-                Err(err) => set_error.set(Some(format!("{save_error_label}: {err}"))),
+                Err(err) => set_error.set(Some(core::error_with_context(
+                    save_error_label.as_str(),
+                    &err.to_string(),
+                ))),
             }
             set_busy.set(false);
         });
@@ -568,7 +578,7 @@ pub fn CommerceAdmin() -> impl IntoView {
         set_error.set(None);
         spawn_local(async move {
             let result = if profile.active {
-                api::deactivate_shipping_profile(
+                transport::deactivate_shipping_profile(
                     token_value,
                     tenant_value,
                     current_tenant.id,
@@ -576,7 +586,7 @@ pub fn CommerceAdmin() -> impl IntoView {
                 )
                 .await
             } else {
-                api::reactivate_shipping_profile(
+                transport::reactivate_shipping_profile(
                     token_value,
                     tenant_value,
                     current_tenant.id,
@@ -677,7 +687,7 @@ pub fn CommerceAdmin() -> impl IntoView {
         set_promotion_busy.set(true);
         set_promotion_error.set(None);
         spawn_local(async move {
-            match api::preview_cart_promotion(cart_id, draft).await {
+            match transport::preview_cart_promotion(cart_id, draft).await {
                 Ok(preview) => {
                     set_promotion_preview.set(Some(preview));
                     set_promotion_result.set(None);
@@ -714,7 +724,7 @@ pub fn CommerceAdmin() -> impl IntoView {
         set_promotion_busy.set(true);
         set_promotion_error.set(None);
         spawn_local(async move {
-            match api::apply_cart_promotion(cart_id, draft).await {
+            match transport::apply_cart_promotion(cart_id, draft).await {
                 Ok(result) => {
                     set_promotion_result.set(Some(result));
                 }
@@ -763,7 +773,7 @@ pub fn CommerceAdmin() -> impl IntoView {
         set_order_change_error.set(None);
         spawn_local(async move {
             let result = if apply {
-                api::apply_order_change(
+                transport::apply_order_change(
                     token_value,
                     tenant_value,
                     current_tenant.id,
@@ -772,7 +782,7 @@ pub fn CommerceAdmin() -> impl IntoView {
                 )
                 .await
             } else {
-                api::cancel_order_change(
+                transport::cancel_order_change(
                     token_value,
                     tenant_value,
                     current_tenant.id,
@@ -783,9 +793,10 @@ pub fn CommerceAdmin() -> impl IntoView {
             };
             match result {
                 Ok(_) => set_order_change_refresh_nonce.update(|value| *value += 1),
-                Err(err) => {
-                    set_order_change_error.set(Some(format!("{action_error_label}: {err}")))
-                }
+                Err(err) => set_order_change_error.set(Some(core::error_with_context(
+                    action_error_label.as_str(),
+                    &err.to_string(),
+                ))),
             }
             set_order_change_busy.set(false);
         });
@@ -889,7 +900,7 @@ pub fn CommerceAdmin() -> impl IntoView {
                     </div>
                     <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || order_change_busy.get() on:click=move |_| {
                         clear_order_query_writer.clear_key(AdminQueryKey::OrderId.as_str());
-                        set_order_change_status.set("pending".to_string());
+                        set_order_change_status.set(core::DEFAULT_ORDER_CHANGE_STATUS.to_string());
                         set_order_change_metadata_json.set(String::new());
                         set_order_change_cancel_reason.set(String::new());
                         set_order_change_error.set(None);
@@ -936,7 +947,7 @@ pub fn CommerceAdmin() -> impl IntoView {
                         clear_cart_query_writer.clear_key(AdminQueryKey::CartId.as_str());
                         set_promotion_line_item_id.set(String::new());
                         set_promotion_discount_percent.set(String::new());
-                        set_promotion_amount.set("4.99".to_string());
+                        set_promotion_amount.set(core::DEFAULT_PROMOTION_AMOUNT.to_string());
                         set_promotion_metadata_json.set(String::new());
                         set_promotion_preview.set(None);
                         set_promotion_result.set(None);

@@ -1,6 +1,8 @@
 mod api;
+mod core;
 mod i18n;
 mod model;
+mod transport;
 
 use leptos::prelude::*;
 use leptos::task::spawn_local;
@@ -26,28 +28,17 @@ type ShippingSelectCallback = Callback<(
 pub fn CommerceView() -> impl IntoView {
     let route_context = use_context::<UiRouteContext>().unwrap_or_default();
     let selected_locale = route_context.locale.clone();
-    let selected_cart_id = read_route_query_value(&route_context, "cart_id");
-    let badge = t(selected_locale.as_deref(), "commerce.badge", "commerce");
-    let title = t(
-        selected_locale.as_deref(),
-        "commerce.title",
-        "Commerce orchestration hub",
-    );
-    let subtitle = t(
-        selected_locale.as_deref(),
-        "commerce.subtitle",
-        "Catalog, pricing, regions, and cart line-item handling now live in module-owned storefront packages. Commerce remains the aggregate storefront handoff for checkout context and cross-domain flow.",
-    );
-    let load_error = t(
-        selected_locale.as_deref(),
-        "commerce.error.load",
-        "Failed to load commerce storefront data",
-    );
-    let action_error_label = t(
-        selected_locale.as_deref(),
-        "commerce.error.action",
-        "Failed to update aggregate checkout state",
-    );
+    let route_state = core::build_storefront_route_state(read_route_query_value(
+        &route_context,
+        core::SELECTED_CART_QUERY_KEY,
+    ));
+    let selected_cart_id = route_state.selected_cart_id.clone();
+    let shell_view = core::build_storefront_shell_view_model(selected_locale.as_deref());
+    let badge = shell_view.badge;
+    let title = shell_view.title;
+    let subtitle = shell_view.subtitle;
+    let load_error = shell_view.load_error;
+    let action_error_label = shell_view.action_error;
 
     let (refresh_nonce, set_refresh_nonce) = signal(0_u64);
     let (action_busy, set_action_busy) = signal(false);
@@ -62,7 +53,9 @@ pub fn CommerceView() -> impl IntoView {
                 refresh_nonce.get(),
             )
         },
-        move |(cart_id, locale, _)| async move { api::fetch_storefront_commerce(cart_id, locale).await },
+        move |(cart_id, locale, _)| async move {
+            transport::fetch_storefront_commerce(cart_id, locale).await
+        },
     );
 
     let on_create_payment_collection = {
@@ -73,9 +66,12 @@ pub fn CommerceView() -> impl IntoView {
             set_action_error.set(None);
             set_completion.set(None);
             spawn_local(async move {
-                match api::create_storefront_payment_collection(cart_id).await {
+                match transport::create_storefront_payment_collection(cart_id).await {
                     Ok(_) => set_refresh_nonce.update(|value| *value += 1),
-                    Err(err) => set_action_error.set(Some(format!("{action_error_label}: {err}"))),
+                    Err(err) => set_action_error.set(Some(core::error_with_context(
+                        action_error_label.as_str(),
+                        &err.to_string(),
+                    ))),
                 }
                 set_action_busy.set(false);
             });
@@ -97,7 +93,7 @@ pub fn CommerceView() -> impl IntoView {
                 set_action_error.set(None);
                 set_completion.set(None);
                 spawn_local(async move {
-                    match api::select_storefront_shipping_option(
+                    match transport::select_storefront_shipping_option(
                         cart,
                         shipping_profile_slug,
                         seller_id,
@@ -107,9 +103,10 @@ pub fn CommerceView() -> impl IntoView {
                     .await
                     {
                         Ok(()) => set_refresh_nonce.update(|value| *value += 1),
-                        Err(err) => {
-                            set_action_error.set(Some(format!("{action_error_label}: {err}")))
-                        }
+                        Err(err) => set_action_error.set(Some(core::error_with_context(
+                            action_error_label.as_str(),
+                            &err.to_string(),
+                        ))),
                     }
                     set_action_busy.set(false);
                 });
@@ -124,12 +121,15 @@ pub fn CommerceView() -> impl IntoView {
             set_action_busy.set(true);
             set_action_error.set(None);
             spawn_local(async move {
-                match api::complete_storefront_checkout(cart_id).await {
+                match transport::complete_storefront_checkout(cart_id).await {
                     Ok(result) => {
                         set_completion.set(Some(result));
                         set_refresh_nonce.update(|value| *value += 1);
                     }
-                    Err(err) => set_action_error.set(Some(format!("{action_error_label}: {err}"))),
+                    Err(err) => set_action_error.set(Some(core::error_with_context(
+                        action_error_label.as_str(),
+                        &err.to_string(),
+                    ))),
                 }
                 set_action_busy.set(false);
             });

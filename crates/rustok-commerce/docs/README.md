@@ -89,3 +89,7 @@
 ## Контракты событий
 
 - [Event flow contract (central)](../../../docs/architecture/event-flow-contract.md)
+
+## FFA core/transport slice
+
+Срез 10.5 фиксирует structural shape `core_transport`: admin и storefront получили framework-agnostic `core.rs` helpers и module-owned `transport.rs` facades. Leptos surfaces пока остаются в crate roots, но covered flows обращаются к transport facade, а не к raw `api::*` functions; следующий FFA шаг — выделить явные `ui/leptos.rs` adapters.
