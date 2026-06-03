@@ -6,8 +6,8 @@
 ## Execution checkpoint
 
 - Current phase: phase_b_in_progress
-- Last checkpoint: Phase B slice #31 разделил storefront transport на `storefront/src/transport/native_server_adapter.rs` и `storefront/src/transport/graphql_adapter.rs`; facade остаётся native-first с GraphQL fallback, а `api.rs` больше не владеет fallback orchestration.
-- Next step: Продолжить Phase B: вынести storefront suggestions presentation или dictionaries mutation feedback envelope/status state в core view-model, сохраняя разделённые native/GraphQL adapters без изменения public contract.
+- Last checkpoint: Phase B slice #32 перенёс storefront suggestions presentation и navigation decision в `storefront/src/core.rs`; Leptos suggestions adapter теперь рендерит `SearchSuggestionItemViewModel` и только исполняет core-owned navigation target.
+- Next step: Продолжить Phase B: вынести storefront filter preset chips или dictionaries mutation feedback envelope/status state в core view-model, сохраняя разделённые native/GraphQL adapters без изменения public contract.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок и central readiness board.
 - Last updated at (UTC): 2026-06-03T00:00:00Z
@@ -35,6 +35,7 @@
   - Phase B slice #29 добавил `SearchSynonymMutationRequest`, `SearchStopWordMutationRequest` и `SearchPinRuleMutationRequest` builders в `admin/src/core.rs`; Leptos dictionaries forms теперь передают в transport core-owned request objects вместо inline parsing/request construction;
   - Phase B slice #30 добавил `SearchResultsLabels`, `SearchResultItemViewModel` и `SearchResultsViewModel` в `storefront/src/core.rs`; Leptos storefront results больше не форматируют summary/preset/locale/source/score/snippet inline.
   - Phase B slice #31 разделил storefront transport facade на `native_server_adapter` и `graphql_adapter`; native-first fallback orchestration теперь находится в `storefront/src/transport/mod.rs`, а raw `api.rs` предоставляет только adapter endpoints.
+  - Phase B slice #32 добавил `SearchSuggestionsLabels`, `SearchSuggestionNavigation` и `SearchSuggestionItemViewModel` в `storefront/src/core.rs`; Leptos suggestions adapter больше не решает inline document-vs-query navigation или action/kind labels.
 - Last verified at (UTC): 2026-06-03T00:00:00Z
 - Owner: `rustok-search` module team
 
@@ -135,3 +136,4 @@
 - [x] Slice 29: dictionaries mutation request construction перенесён в core (`SearchSynonymMutationRequest`, `SearchStopWordMutationRequest`, `SearchPinRuleMutationRequest`), поэтому Leptos forms больше не парсят CSV/pinned position и не собирают transport payloads inline.
 - [x] Slice 30: storefront results render-ready presentation перенесён в core (`SearchResultsLabels`, `SearchResultItemViewModel`, `SearchResultsViewModel`), поэтому Leptos results adapter рендерит подготовленные summary/preset/locale/item поля.
 - [x] Slice 31: storefront transport facade разделён на `transport/native_server_adapter.rs` и `transport/graphql_adapter.rs`; `transport/mod.rs` владеет native-first fallback orchestration для search, suggestions, presets и click tracking, а `api.rs` оставлен raw adapter endpoint слоем.
+- [x] Slice 32: storefront suggestions presentation перенесён в core (`SearchSuggestionsLabels`, `SearchSuggestionNavigation`, `SearchSuggestionItemViewModel`, `build_search_suggestion_view_models`), поэтому Leptos adapter получает готовые kind/action labels и исполняет core-owned navigation target без inline document-vs-query branching.

@@ -1,4 +1,4 @@
-use crate::model::{SearchFacetGroup, SearchPreviewPayload};
+use crate::model::{SearchFacetGroup, SearchPreviewPayload, SearchSuggestion};
 
 pub fn parse_csv(value: &str) -> Vec<String> {
     value
@@ -233,6 +233,69 @@ mod tests {
         );
         assert_eq!(view_model.facets.len(), 1);
     }
+
+    #[test]
+    fn search_suggestion_view_models_prepare_labels_and_navigation() {
+        let suggestions = vec![
+            crate::model::SearchSuggestion {
+                text: "Boots".to_string(),
+                kind: "document".to_string(),
+                document_id: Some("doc-1".to_string()),
+                entity_type: Some("product".to_string()),
+                source_module: Some("catalog".to_string()),
+                locale: Some("ru".to_string()),
+                url: Some("/products/boots".to_string()),
+                score: 0.9,
+            },
+            crate::model::SearchSuggestion {
+                text: "sneakers".to_string(),
+                kind: "query".to_string(),
+                document_id: None,
+                entity_type: None,
+                source_module: None,
+                locale: None,
+                url: None,
+                score: 0.8,
+            },
+            crate::model::SearchSuggestion {
+                text: "Fallback document".to_string(),
+                kind: "document".to_string(),
+                document_id: Some("doc-2".to_string()),
+                entity_type: Some("blog".to_string()),
+                source_module: Some("blog".to_string()),
+                locale: None,
+                url: None,
+                score: 0.7,
+            },
+        ];
+
+        let view_models = build_search_suggestion_view_models(
+            suggestions,
+            &SearchSuggestionsLabels {
+                open_label: "Open".to_string(),
+                search_label: "Search".to_string(),
+            },
+        );
+
+        assert_eq!(view_models.len(), 3);
+        assert_eq!(view_models[0].text, "Boots");
+        assert_eq!(view_models[0].kind_label, "document • ru");
+        assert_eq!(view_models[0].action_label, "Open");
+        assert_eq!(
+            view_models[0].navigation,
+            SearchSuggestionNavigation::Href("/products/boots".to_string())
+        );
+        assert_eq!(view_models[1].kind_label, "query");
+        assert_eq!(view_models[1].action_label, "Search");
+        assert_eq!(
+            view_models[1].navigation,
+            SearchSuggestionNavigation::SearchQuery("sneakers".to_string())
+        );
+        assert_eq!(
+            view_models[2].navigation,
+            SearchSuggestionNavigation::SearchQuery("Fallback document".to_string())
+        );
+    }
 }
 
 pub fn entity_source_label(entity_type: &str, source_module: &str) -> String {
@@ -319,6 +382,62 @@ pub fn suggestion_action_label(kind: &str, open_label: &str, search_label: &str)
     } else {
         search_label.to_string()
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct SearchSuggestionsLabels {
+    pub open_label: String,
+    pub search_label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SearchSuggestionNavigation {
+    Href(String),
+    SearchQuery(String),
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct SearchSuggestionItemViewModel {
+    pub text: String,
+    pub kind_label: String,
+    pub action_label: String,
+    pub navigation: SearchSuggestionNavigation,
+}
+
+pub fn build_search_suggestion_view_models(
+    suggestions: Vec<SearchSuggestion>,
+    labels: &SearchSuggestionsLabels,
+) -> Vec<SearchSuggestionItemViewModel> {
+    suggestions
+        .into_iter()
+        .map(|suggestion| {
+            let navigation = if is_document_suggestion(suggestion.kind.as_str()) {
+                suggestion
+                    .url
+                    .clone()
+                    .map(SearchSuggestionNavigation::Href)
+                    .unwrap_or_else(|| {
+                        SearchSuggestionNavigation::SearchQuery(suggestion.text.clone())
+                    })
+            } else {
+                SearchSuggestionNavigation::SearchQuery(suggestion.text.clone())
+            };
+
+            SearchSuggestionItemViewModel {
+                kind_label: suggestion_kind_with_locale(
+                    suggestion.kind.as_str(),
+                    suggestion.locale.as_deref(),
+                ),
+                action_label: suggestion_action_label(
+                    suggestion.kind.as_str(),
+                    labels.open_label.as_str(),
+                    labels.search_label.as_str(),
+                ),
+                text: suggestion.text,
+                navigation,
+            }
+        })
+        .collect()
 }
 
 pub fn next_preset_selection(current: &str, selected_key: &str) -> String {

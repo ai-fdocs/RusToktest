@@ -281,46 +281,34 @@ fn SearchSuggestionList(suggestions: Vec<SearchSuggestion>) -> impl IntoView {
                 </div>
             </div>
             <div class="mt-3 grid gap-2">
-                {suggestions
+                {core::build_search_suggestion_view_models(
+                    suggestions,
+                    &core::SearchSuggestionsLabels { open_label, search_label },
+                )
                     .into_iter()
                     .map(|suggestion| {
-                        let suggestion_text = suggestion.text.clone();
-                        let suggestion_kind = suggestion.kind.clone();
-                        let suggestion_locale = suggestion.locale.clone();
-                        let href = suggestion.url.clone();
+                        let navigation = suggestion.navigation.clone();
                         view! {
                             <button
                                 class="flex w-full items-start justify-between gap-4 rounded-xl border border-border px-4 py-3 text-left hover:bg-muted/30"
-                                on:click=move |_| {
-                                    if core::is_document_suggestion(suggestion_kind.as_str()) {
-                                        if let Some(href) = href.clone() {
-                                            navigate_to_href(&href);
-                                        } else {
-                                            navigate_to_search_query(&suggestion_text, None);
-                                        }
-                                    } else {
-                                        navigate_to_search_query(&suggestion_text, None);
+                                on:click=move |_| match navigation.clone() {
+                                    core::SearchSuggestionNavigation::Href(href) => navigate_to_href(&href),
+                                    core::SearchSuggestionNavigation::SearchQuery(query) => {
+                                        navigate_to_search_query(&query, None)
                                     }
                                 }
                                 type="button"
                             >
                                 <span class="min-w-0">
                                     <span class="block truncate text-sm font-medium text-card-foreground">
-                                        {suggestion_text.clone()}
+                                        {suggestion.text.clone()}
                                     </span>
                                     <span class="mt-1 block text-xs uppercase tracking-[0.16em] text-muted-foreground">
-                                        {core::suggestion_kind_with_locale(
-                                            suggestion_kind.as_str(),
-                                            suggestion_locale.as_deref(),
-                                        )}
+                                        {suggestion.kind_label.clone()}
                                     </span>
                                 </span>
                                 <span class="shrink-0 text-xs text-muted-foreground">
-                                    {core::suggestion_action_label(
-                                        suggestion_kind.as_str(),
-                                        open_label.as_str(),
-                                        search_label.as_str(),
-                                    )}
+                                    {suggestion.action_label.clone()}
                                 </span>
                             </button>
                         }
