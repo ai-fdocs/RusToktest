@@ -21,7 +21,7 @@ admin read-side service, native server-function read transport, первые nat
 - Evidence:
   - модуль ведётся в ускоренном FFA/FBA migration track как часть ecommerce family;
   - backend crate экспортирует `AdminInventoryReadService` и typed read DTO (`AdminInventoryProductList`, `AdminInventoryProductDetail`, variants/prices/translations) как inventory-owned read-side source для native server-function transport;
-  - inventory admin UI вынесен в explicit `ui/leptos.rs` adapter, вызывает inventory-owned `core`/`api` facade, primary read path идёт через dedicated `admin/src/native.rs` native `#[server]` functions, первый write split представлен native `inventory/variant/set-quantity` и `inventory/variant/adjust-quantity` endpoint-ами; UI targeted set-quantity control работает без GraphQL fallback, а transport boundary держит transitional commerce GraphQL adapter внутри пакета только как native-unavailable read fallback;
+  - inventory admin UI вынесен в explicit `ui/leptos.rs` adapter, вызывает inventory-owned `core`/`api` facade, primary read path идёт через dedicated `admin/src/native.rs` native `#[server]` functions, первый write split представлен native `inventory/variant/set-quantity` и `inventory/variant/adjust-quantity` endpoint-ами; UI targeted set-quantity и +/-1 adjustment controls работают без GraphQL fallback, а transport boundary держит transitional commerce GraphQL adapter внутри пакета только как native-unavailable read fallback;
   - unit tests покрывают locale fallback, tags extraction, price sale mapping, search normalization и variant title fallback в backend read-side service;
   - compatibility tests фиксируют минимальные поля read model (`inventoryQuantity`, `inventoryPolicy`, `inStock`, variants/translations/feed paging), сериализацию normalized GraphQL variables, facade request builders и mapping `GraphqlHttpError` → inventory-owned `InventoryTransportError` до выделения dedicated inventory transport;
   - `admin/tests/boundary.rs` проверяет, что `leptos_graphql`, `GraphqlRequest`, `GraphqlHttpError`, `/api/graphql` и `RUSTOK_GRAPHQL_URL` не попадают в `api`, `core`, `model`, `native` или `ui`, а read/write boundary checks разделяют native read markers и native-only set/adjust quantity write facades и set-quantity UI без transitional GraphQL fallback.
@@ -61,7 +61,7 @@ admin read-side service, native server-function read transport, первые nat
 - [x] добавить inventory-owned core/read facade и explicit Leptos adapter для admin UI, изолировав текущий commerce GraphQL доступ в transitional adapter-е и закрепив это boundary test-ом;
 - [x] подключить dedicated inventory read transport/native `#[server]` path к backend `AdminInventoryReadService`;
 - [ ] вынести dedicated inventory read/write transport из umbrella `rustok-commerce` (read path готов; первый write split: native set-quantity/adjust-quantity endpoints);
-- [x] подключить initial inventory admin UI targeted stock operation к inventory-owned set-quantity mutation;
+- [x] подключить initial inventory admin UI targeted stock operations к inventory-owned set/adjust quantity mutations;
 - [ ] перевести оставшиеся inventory admin UI stock operations на inventory-owned mutations;
 - [ ] покрывать transport parity и stock mutation semantics targeted tests (первые facade/boundary checks добавлены для set/adjust quantity endpoints).
 

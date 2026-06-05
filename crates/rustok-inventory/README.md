@@ -12,7 +12,7 @@
 - Provide `AdminInventoryReadService` as the inventory-owned backend read model for admin
   product, variant, price, stock, and translation visibility.
 - Provide a module-owned Leptos admin UI package in `admin/` for inventory visibility,
-  low-stock triage, stock-health inspection, and targeted set-quantity corrections.
+  low-stock triage, stock-health inspection, and targeted set-quantity corrections and +/-1 adjustments.
 
 ## Interactions
 
@@ -23,7 +23,7 @@
   the admin package now uses native Leptos server functions backed by
   `AdminInventoryReadService` as the primary read transport, keeps the transitional commerce
   GraphQL adapter as a read-only compatibility fallback, and uses native inventory-owned
-  set/adjust quantity write endpoints for targeted stock corrections while remaining write
+  set/adjust quantity write endpoints for targeted stock corrections and +/-1 adjustments while remaining write
   parity is split from the umbrella commerce surface.
 
 ## Entry points

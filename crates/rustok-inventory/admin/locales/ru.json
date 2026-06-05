@@ -1,4 +1,6 @@
 {
+  "inventory.action.decreaseOne": "Уменьшить на 1",
+  "inventory.action.increaseOne": "Увеличить на 1",
   "inventory.action.open": "Открыть",
   "inventory.action.quantityLabel": "Количество варианта",
   "inventory.action.refresh": "Обновить",
@@ -47,6 +49,6 @@
   "inventory.status.active": "Активен",
   "inventory.status.archived": "Архив",
   "inventory.status.draft": "Черновик",
-  "inventory.subtitle": "Module-owned inventory surface для видимости остатков, low-stock triage, variant health signals и точечных set-quantity корректировок, пока оставшиеся inventory mutations выделяются из umbrella transport.",
+  "inventory.subtitle": "Module-owned inventory surface для видимости остатков, low-stock triage, variant health signals, точечных set-quantity корректировок и +/-1 adjustments, пока оставшиеся inventory mutations выделяются из umbrella transport.",
   "inventory.title": "Inventory Control"
 }

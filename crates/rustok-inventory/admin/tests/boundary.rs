@@ -190,18 +190,19 @@ fn native_write_facades_stay_native_without_graphql_fallback() {
 }
 
 #[test]
-fn ui_set_quantity_control_uses_inventory_api_facade_only() {
+fn ui_stock_quantity_controls_use_inventory_api_facade_only() {
     let ui = read_source("src/ui/leptos.rs");
 
     for required in [
         "parse_set_quantity",
         "crate::api::set_variant_quantity",
+        "crate::api::adjust_variant_quantity",
         "apply_variant_quantity_update",
         "set_quantity_input.set(new_quantity.to_string())",
     ] {
         assert!(
             ui.contains(required),
-            "inventory UI set-quantity control must keep marker `{}`",
+            "inventory UI stock quantity controls must keep marker `{}`",
             required
         );
     }

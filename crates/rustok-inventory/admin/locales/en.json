@@ -1,4 +1,6 @@
 {
+  "inventory.action.decreaseOne": "Decrease by 1",
+  "inventory.action.increaseOne": "Increase by 1",
   "inventory.action.open": "Open",
   "inventory.action.quantityLabel": "Variant quantity",
   "inventory.action.refresh": "Refresh",
@@ -47,6 +49,6 @@
   "inventory.status.active": "Active",
   "inventory.status.archived": "Archived",
   "inventory.status.draft": "Draft",
-  "inventory.subtitle": "Module-owned inventory surface for stock visibility, low-stock triage, variant health signals and targeted set-quantity corrections while remaining inventory mutations are still being split from the umbrella transport.",
+  "inventory.subtitle": "Module-owned inventory surface for stock visibility, low-stock triage, variant health signals, targeted set-quantity corrections and +/-1 adjustments while remaining inventory mutations are still being split from the umbrella transport.",
   "inventory.title": "Inventory Control"
 }

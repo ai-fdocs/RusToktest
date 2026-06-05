@@ -34,7 +34,7 @@
 - inventory-owned backend admin read service экспортируется root crate-ом и является source
   для native server-function read transport;
 - inventory-owned admin UX и read facade публикуются через `rustok-inventory/admin`;
-  underlying commerce GraphQL adapter считается transitional read-only compatibility implementation detail, а native set/adjust quantity endpoints являются inventory-owned write surface;
+  underlying commerce GraphQL adapter считается transitional read-only compatibility implementation detail, а native set/adjust quantity endpoints являются inventory-owned write surface для set-quantity и +/-1 operator flows;
 - изменения cross-module контракта нужно синхронизировать с `rustok-commerce`
   и соседними split-модулями.
 
