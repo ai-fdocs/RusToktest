@@ -31,6 +31,7 @@
 - Следующий малый Wave 4/Wave 6 CI slice добавил отдельный GitHub Actions job `migration-smoke` с PostgreSQL service: CI запускает локальный smoke wrapper сначала в apply-from-zero режиме, затем с `RUSTOK_MIGRATION_SMOKE_INCREMENTAL=1`, а aggregate `ci-success` теперь ждёт этот migration-safety gate.
 - Следующий малый Wave 6 docs-hardening slice расширил существующий `docs/verification/README.md` кратким runtime/backend regression runbook для module graph drift, channel locale/OAuth context, locale DB amplification и migration dependency failures без создания нового документа.
 - Следующий малый Wave 5 guardrail slice закрепил transitional commerce GraphQL adapter как read-only compatibility fallback: inventory admin boundary test теперь проверяет отсутствие GraphQL mutation/write markers в adapter-е и наличие README removal criteria для adapter-а, пока оставшийся dedicated write transport добирается.
+- Следующий малый Wave 5 docs-sync slice синхронизировал центральный FFA/FBA readiness board в `docs/modules/registry.md` с локальным inventory plan: registry evidence теперь явно включает read-only transitional adapter/removal criteria boundary coverage.
 
 ## Проверенные факты
 
