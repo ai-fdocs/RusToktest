@@ -39,6 +39,7 @@
 - Следующий малый Wave 5 availability-read slice синхронизировал native read-side с выделенными stock writes: `AdminInventoryReadService` теперь берёт variant available quantity из `inventory_items`/`inventory_levels` при наличии stock-level state, поэтому set/adjust/reserve mutations не теряются при последующем native detail refresh; legacy `product_variant.inventory_quantity` остаётся fallback-ом для ещё неинициализированных stock levels.
 - Следующий малый Wave 5 reserve-ui slice подключил reserve-quantity к admin detail UI через inventory-owned API facade: UI валидирует non-negative quantity, вызывает `reserve_variant_quantity` без GraphQL fallback, применяет `InventoryReservationWriteResult.available_quantity/in_stock` в optimistic detail refresh и обновляет boundary evidence для native-only reservation controls.
 - Следующий малый Wave 5 evidence-sync slice убрал оставшийся stale UI fallback текст и синхронизировал local/central registry evidence: readiness теперь описывает set/adjust/reserve UI controls, available-quantity optimistic refresh и native-only boundary guardrail одним контрактом.
+- Следующий малый Wave 5 reservation-noop slice уточнил backend semantics для zero-quantity reservation: `InventoryService::reserve(..., 0)` теперь возвращает текущий available quantity / in-stock state из inventory levels или legacy variant snapshot, не создавая synthetic zero-availability result и не создавая reservation item для admin optimistic refresh.
 
 ## Проверенные факты
 
