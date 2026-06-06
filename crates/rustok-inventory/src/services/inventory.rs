@@ -264,12 +264,6 @@ impl InventoryService {
         variant_id: Uuid,
         requested_quantity: i32,
     ) -> CommerceResult<InventoryAvailabilityCheckResult> {
-        if requested_quantity < 0 {
-            return Err(CommerceError::Validation(
-                "Availability check quantity must be non-negative".to_string(),
-            ));
-        }
-
         let available = self
             .check_availability(tenant_id, variant_id, requested_quantity)
             .await?;
@@ -283,6 +277,8 @@ impl InventoryService {
         variant_id: Uuid,
         requested_quantity: i32,
     ) -> CommerceResult<bool> {
+        validate_availability_request_quantity(requested_quantity)?;
+
         let variant = self.load_variant(&self.db, tenant_id, variant_id).await?;
 
         if variant.inventory_policy == "continue" {
@@ -552,9 +548,50 @@ impl InventoryService {
     }
 }
 
+fn validate_availability_request_quantity(requested_quantity: i32) -> CommerceResult<()> {
+    if requested_quantity < 0 {
+        return Err(CommerceError::Validation(
+            "Availability check quantity must be non-negative".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{InventoryQuantityWriteResult, InventoryReservationWriteResult};
+    use super::{
+        validate_availability_request_quantity, InventoryAvailabilityCheckResult,
+        InventoryQuantityWriteResult, InventoryReservationWriteResult,
+    };
+
+    #[test]
+    fn availability_check_quantity_rejects_negative_requests_before_db_access() {
+        let error = validate_availability_request_quantity(-1)
+            .expect_err("negative availability requests must be rejected before DB lookup");
+
+        assert!(
+            error.to_string().contains("non-negative"),
+            "availability request validation should explain the non-negative invariant"
+        );
+        assert!(validate_availability_request_quantity(0).is_ok());
+        assert!(validate_availability_request_quantity(3).is_ok());
+    }
+
+    #[test]
+    fn availability_check_result_keeps_backend_wire_shape() {
+        let result = InventoryAvailabilityCheckResult { available: true };
+
+        let serialized = serde_json::to_value(&result)
+            .expect("inventory availability result should serialize for native endpoint transport");
+
+        assert_eq!(
+            serialized,
+            serde_json::json!({
+                "available": true
+            })
+        );
+    }
 
     #[test]
     fn quantity_write_result_derives_in_stock_from_committed_quantity() {
