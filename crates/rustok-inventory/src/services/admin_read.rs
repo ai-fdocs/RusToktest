@@ -253,7 +253,8 @@ impl AdminInventoryReadService {
                         variant.inventory_quantity,
                         available_quantities_by_variant.get(&variant.id).copied(),
                     );
-                    let in_stock = inventory_quantity > 0 || variant.inventory_policy == "continue";
+                    let in_stock = inventory_quantity > 0
+                        || inventory_policy_allows_backorder(&variant.inventory_policy);
 
                     AdminInventoryVariant {
                         id: variant.id,
@@ -370,6 +371,10 @@ fn available_quantity_for_variant(
     inventory_level_available_quantity: Option<i32>,
 ) -> i32 {
     inventory_level_available_quantity.unwrap_or(legacy_variant_quantity)
+}
+
+fn inventory_policy_allows_backorder(inventory_policy: &str) -> bool {
+    inventory_policy.eq_ignore_ascii_case("continue")
 }
 
 fn normalized_search(search: Option<String>) -> Option<String> {
@@ -582,6 +587,13 @@ mod tests {
         assert_eq!(available_quantity_for_variant(12, Some(7)), 7);
         assert_eq!(available_quantity_for_variant(12, Some(0)), 0);
         assert_eq!(available_quantity_for_variant(12, None), 12);
+    }
+
+    #[test]
+    fn inventory_policy_backorder_matching_is_case_insensitive() {
+        assert!(inventory_policy_allows_backorder("continue"));
+        assert!(inventory_policy_allows_backorder("CONTINUE"));
+        assert!(!inventory_policy_allows_backorder("deny"));
     }
 
     #[test]
