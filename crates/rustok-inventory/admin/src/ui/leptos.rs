@@ -411,7 +411,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                 </div>
 
                                 <div class="rounded-2xl border border-border bg-background p-5 text-sm text-muted-foreground">
-                                    {t(ui_locale_for_detail.as_deref(), "inventory.detail.transportGap", "Dedicated inventory set-quantity transport is available for targeted stock corrections; remaining inventory mutations are still being split from the umbrella ecommerce surface.")}
+                                    {t(ui_locale_for_detail.as_deref(), "inventory.detail.transportGap", "Dedicated inventory set/adjust/reserve quantity transport is available for targeted stock corrections and reservation flows; remaining inventory mutations are still being split from the umbrella ecommerce surface.")}
                                 </div>
 
                                 <div class="rounded-2xl border border-border bg-background p-5">
