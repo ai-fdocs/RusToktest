@@ -109,9 +109,13 @@ fn native_write_path_targets_inventory_service() {
         r#"#[server(prefix = "/api/fn", endpoint = "inventory/variant/set-quantity")]"#,
         r#"#[server(prefix = "/api/fn", endpoint = "inventory/variant/adjust-quantity")]"#,
         r#"#[server(prefix = "/api/fn", endpoint = "inventory/variant/reserve-quantity")]"#,
+        r#"#[server(prefix = "/api/fn", endpoint = "inventory/variant/check-availability")]"#,
+        r#"#[server(prefix = "/api/fn", endpoint = "inventory/variant/release-reservation")]"#,
         "INVENTORY_SET_QUANTITY_REQUIRES_SSR_ERROR",
         "INVENTORY_ADJUST_QUANTITY_REQUIRES_SSR_ERROR",
         "INVENTORY_RESERVE_QUANTITY_REQUIRES_SSR_ERROR",
+        "INVENTORY_CHECK_AVAILABILITY_REQUIRES_SSR_ERROR",
+        "INVENTORY_RELEASE_RESERVATION_REQUIRES_SSR_ERROR",
         "transactional_event_bus_from_context",
         "assert_requested_tenant",
         "Permission::INVENTORY_UPDATE",
@@ -120,8 +124,14 @@ fn native_write_path_targets_inventory_service() {
         "set_variant_quantity",
         "adjust_variant_quantity",
         "reserve_variant_quantity",
+        "check_variant_availability",
+        "release_reservation_quantity",
         "InventoryQuantityWriteResult",
         "InventoryReservationWriteResult",
+        "InventoryAvailabilityCheckResult",
+        "InventoryReservationReleaseWriteResult",
+        "map_availability_result",
+        "map_release_result",
         "in_stock: result.in_stock",
     ] {
         assert!(
@@ -156,6 +166,20 @@ fn native_write_facades_stay_native_without_graphql_fallback() {
             [
                 "reserve_quantity_request",
                 "crate::native::reserve_variant_quantity",
+            ],
+        ),
+        (
+            "check_variant_availability",
+            [
+                "availability_check_request",
+                "crate::native::check_variant_availability",
+            ],
+        ),
+        (
+            "release_reservation_quantity",
+            [
+                "release_reservation_request",
+                "crate::native::release_reservation_quantity",
             ],
         ),
     ] {
@@ -211,8 +235,16 @@ fn ui_stock_quantity_controls_use_inventory_api_facade_only() {
         "crate::api::set_variant_quantity",
         "crate::api::adjust_variant_quantity",
         "crate::api::reserve_variant_quantity",
+        "crate::api::release_reservation_quantity",
+        "crate::api::check_variant_availability",
+        "inventory.action.checkAvailability",
+        "inventory.action.releaseReservation",
+        "inventory.notice.releasedReservation",
+        "inventory.notice.available",
+        "inventory.notice.unavailable",
         "apply_variant_quantity_update",
         "apply_variant_reservation_update",
+        "apply_variant_reservation_release_update",
         "set_quantity_input.set(result.quantity.to_string())",
         "set_quantity_input.set(result.available_quantity.to_string())",
     ] {
@@ -226,6 +258,8 @@ fn ui_stock_quantity_controls_use_inventory_api_facade_only() {
     for forbidden in [
         "crate::native::set_variant_quantity",
         "crate::native::reserve_variant_quantity",
+        "crate::native::check_variant_availability",
+        "crate::native::release_reservation_quantity",
         "CommerceGraphqlInventoryReadAdapter",
         "transitional_read_transport",
     ] {
@@ -261,6 +295,7 @@ fn transitional_graphql_adapter_is_read_only_with_documented_removal_criteria() 
         "setVariantQuantity",
         "adjustVariantQuantity",
         "reserveVariantQuantity",
+        "checkVariantAvailability",
     ] {
         assert!(
             !transport.contains(forbidden),
@@ -394,10 +429,15 @@ fn native_write_path_returns_quantity_contract_not_bare_integer() {
     for marker in [
         "pub struct InventoryQuantityWriteResult",
         "pub struct InventoryReservationWriteResult",
+        "pub struct InventoryAvailabilityCheckResult",
+        "pub struct InventoryReservationReleaseWriteResult",
         "pub quantity: i32",
         "pub reserved_quantity: i32",
         "pub available_quantity: i32",
         "pub in_stock: bool",
+        "pub available: bool",
+        "pub released_quantity: i32",
+        r#"#[serde(rename = "releasedQuantity")]"#,
         r#"#[serde(rename = "inStock")]"#,
     ] {
         assert!(
@@ -413,6 +453,8 @@ fn native_write_path_returns_quantity_contract_not_bare_integer() {
     for exported in [
         "InventoryQuantityWriteResult",
         "InventoryReservationWriteResult",
+        "InventoryAvailabilityCheckResult",
+        "InventoryReservationReleaseWriteResult",
     ] {
         assert!(
             lib.contains(exported),
@@ -429,13 +471,25 @@ fn native_write_path_returns_quantity_contract_not_bare_integer() {
             source.contains("Result<InventoryReservationWriteResult"),
             "native/API reservation write path must return InventoryReservationWriteResult instead of a bare unit"
         );
+        assert!(
+            source.contains("Result<InventoryAvailabilityCheckResult"),
+            "native/API availability check path must return InventoryAvailabilityCheckResult instead of a bare bool"
+        );
+        assert!(
+            source.contains("Result<InventoryReservationReleaseWriteResult"),
+            "native/API reservation release path must return InventoryReservationReleaseWriteResult instead of a bare unit"
+        );
     }
 
     for marker in [
         "set_variant_quantity",
         "adjust_variant_quantity",
         "reserve_variant_quantity",
+        "check_variant_availability",
+        "release_reservation_quantity",
         "map_reservation_result",
+        "map_availability_result",
+        "map_release_result",
         "in_stock: result.in_stock",
     ] {
         assert!(
@@ -469,5 +523,27 @@ fn native_write_path_returns_quantity_contract_not_bare_integer() {
     assert!(
         ui.contains("set_quantity_input.set(result.available_quantity.to_string())"),
         "UI must refresh the quantity input from the reservation available quantity contract"
+    );
+    assert!(
+        ui.contains("crate::api::release_reservation_quantity"),
+        "UI reservation release must go through the inventory-owned API facade"
+    );
+    assert!(
+        ui.contains(
+            "apply_variant_reservation_release_update(detail, variant_id.as_str(), result.clone())"
+        ),
+        "UI optimistic detail refresh must apply the full reservation release result contract"
+    );
+    assert!(
+        ui.contains("result.released_quantity"),
+        "UI reservation release must consume the typed released quantity result contract"
+    );
+    assert!(
+        ui.contains("crate::api::check_variant_availability"),
+        "UI availability validation must go through the inventory-owned API facade"
+    );
+    assert!(
+        ui.contains("if result.available"),
+        "UI availability validation must consume the typed availability result contract"
     );
 }

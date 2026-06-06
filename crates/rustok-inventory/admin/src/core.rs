@@ -1,6 +1,6 @@
 use crate::model::{
-    InventoryProductDetail, InventoryQuantityWriteResult, InventoryReservationWriteResult,
-    InventoryVariant,
+    InventoryProductDetail, InventoryQuantityWriteResult, InventoryReservationReleaseWriteResult,
+    InventoryReservationWriteResult, InventoryVariant,
 };
 
 pub(crate) const DEFAULT_PRODUCT_PAGE: u64 = 1;
@@ -68,6 +68,20 @@ pub(crate) struct InventoryReserveQuantityRequest {
     pub quantity: i32,
 }
 
+#[derive(Clone, Debug)]
+pub(crate) struct InventoryAvailabilityCheckRequest {
+    pub tenant_id: String,
+    pub variant_id: String,
+    pub requested_quantity: i32,
+}
+
+#[derive(Clone, Debug)]
+pub(crate) struct InventoryReleaseReservationRequest {
+    pub tenant_id: String,
+    pub variant_id: String,
+    pub quantity: i32,
+}
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct InventoryAdjustQuantityInput {
     pub tenant_id: String,
@@ -77,6 +91,20 @@ pub(crate) struct InventoryAdjustQuantityInput {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct InventoryReserveQuantityInput {
+    pub tenant_id: String,
+    pub variant_id: String,
+    pub quantity: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct InventoryAvailabilityCheckInput {
+    pub tenant_id: String,
+    pub variant_id: String,
+    pub requested_quantity: i32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct InventoryReleaseReservationInput {
     pub tenant_id: String,
     pub variant_id: String,
     pub quantity: i32,
@@ -167,6 +195,30 @@ pub(crate) fn normalized_reserve_quantity_input(
     }
 }
 
+pub(crate) fn normalized_availability_check_input(
+    tenant_id: String,
+    variant_id: String,
+    requested_quantity: i32,
+) -> InventoryAvailabilityCheckInput {
+    InventoryAvailabilityCheckInput {
+        tenant_id: tenant_id.trim().to_string(),
+        variant_id: variant_id.trim().to_string(),
+        requested_quantity,
+    }
+}
+
+pub(crate) fn normalized_release_reservation_input(
+    tenant_id: String,
+    variant_id: String,
+    quantity: i32,
+) -> InventoryReleaseReservationInput {
+    InventoryReleaseReservationInput {
+        tenant_id: tenant_id.trim().to_string(),
+        variant_id: variant_id.trim().to_string(),
+        quantity,
+    }
+}
+
 pub(crate) fn apply_variant_quantity_update(
     detail: &mut InventoryProductDetail,
     variant_id: &str,
@@ -189,6 +241,24 @@ pub(crate) fn apply_variant_reservation_update(
     detail: &mut InventoryProductDetail,
     variant_id: &str,
     result: InventoryReservationWriteResult,
+) -> bool {
+    let Some(variant) = detail
+        .variants
+        .iter_mut()
+        .find(|variant| variant.id == variant_id)
+    else {
+        return false;
+    };
+
+    variant.inventory_quantity = result.available_quantity;
+    variant.in_stock = result.in_stock;
+    true
+}
+
+pub(crate) fn apply_variant_reservation_release_update(
+    detail: &mut InventoryProductDetail,
+    variant_id: &str,
+    result: InventoryReservationReleaseWriteResult,
 ) -> bool {
     let Some(variant) = detail
         .variants
@@ -395,6 +465,32 @@ mod tests {
     }
 
     #[test]
+    fn normalized_release_reservation_input_trims_context() {
+        let input = normalized_release_reservation_input(
+            " tenant-id ".to_string(),
+            " variant-id ".to_string(),
+            2,
+        );
+
+        assert_eq!(input.tenant_id, "tenant-id");
+        assert_eq!(input.variant_id, "variant-id");
+        assert_eq!(input.quantity, 2);
+    }
+
+    #[test]
+    fn normalized_availability_check_input_trims_context() {
+        let input = normalized_availability_check_input(
+            " tenant-id ".to_string(),
+            " variant-id ".to_string(),
+            4,
+        );
+
+        assert_eq!(input.tenant_id, "tenant-id");
+        assert_eq!(input.variant_id, "variant-id");
+        assert_eq!(input.requested_quantity, 4);
+    }
+
+    #[test]
     fn parse_reserve_quantity_rejects_negative_values() {
         assert_eq!(parse_reserve_quantity(" 3 "), Ok(3));
         assert!(parse_reserve_quantity("-1").is_err());
@@ -420,6 +516,23 @@ mod tests {
             "variant-2-deny",
             InventoryQuantityWriteResult {
                 quantity: 7,
+                in_stock: true,
+            },
+        ));
+        assert_eq!(detail.variants[0].inventory_quantity, 7);
+        assert!(detail.variants[0].in_stock);
+    }
+
+    #[test]
+    fn apply_variant_reservation_release_update_uses_available_quantity_and_stock_flag() {
+        let mut detail = detail_with_variants(vec![variant(false, "deny", 1)]);
+
+        assert!(apply_variant_reservation_release_update(
+            &mut detail,
+            "variant-1-deny",
+            InventoryReservationReleaseWriteResult {
+                released_quantity: 2,
+                available_quantity: 7,
                 in_stock: true,
             },
         ));

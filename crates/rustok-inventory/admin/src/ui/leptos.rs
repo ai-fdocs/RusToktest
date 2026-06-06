@@ -5,8 +5,9 @@ use leptos_ui_routing::{use_route_query_value, use_route_query_writer};
 use rustok_api::{AdminQueryKey, UiRouteContext};
 
 use crate::core::{
-    apply_variant_quantity_update, apply_variant_reservation_update, inventory_health_state,
-    parse_reserve_quantity, parse_set_quantity, summarize_inventory, InventoryHealthState,
+    apply_variant_quantity_update, apply_variant_reservation_release_update,
+    apply_variant_reservation_update, inventory_health_state, parse_reserve_quantity,
+    parse_set_quantity, summarize_inventory, InventoryHealthState,
 };
 use crate::i18n::t;
 use crate::model::{
@@ -48,6 +49,7 @@ pub fn InventoryAdmin() -> impl IntoView {
     let (status_filter, set_status_filter) = signal(String::new());
     let (busy, set_busy) = signal(false);
     let (error, set_error) = signal(Option::<String>::None);
+    let (notice, set_notice) = signal(Option::<String>::None);
     let effective_locale_for_products = effective_locale.clone();
     let effective_locale_for_open = effective_locale.clone();
 
@@ -123,6 +125,7 @@ pub fn InventoryAdmin() -> impl IntoView {
         let load_error_label = open_load_product_error_label.clone();
         set_busy.set(true);
         set_error.set(None);
+        set_notice.set(None);
         spawn_local(async move {
             match crate::api::fetch_product(
                 token_value,
@@ -141,11 +144,13 @@ pub fn InventoryAdmin() -> impl IntoView {
                     set_selected_id.set(None);
                     set_selected.set(None);
                     set_error.set(Some(not_found_label));
+                    set_notice.set(None);
                 }
                 Err(err) => {
                     set_selected_id.set(None);
                     set_selected.set(None);
                     set_error.set(Some(format!("{load_error_label}: {err}")));
+                    set_notice.set(None);
                 }
             }
             set_busy.set(false);
@@ -178,6 +183,31 @@ pub fn InventoryAdmin() -> impl IntoView {
         "inventory.error.reserveQuantity",
         "Failed to reserve variant quantity",
     );
+    let release_reservation_error_label = t(
+        ui_locale.as_deref(),
+        "inventory.error.releaseReservation",
+        "Failed to release reserved variant quantity",
+    );
+    let release_reservation_notice_label = t(
+        ui_locale.as_deref(),
+        "inventory.notice.releasedReservation",
+        "Released reserved quantity",
+    );
+    let availability_quantity_error_label = t(
+        ui_locale.as_deref(),
+        "inventory.error.checkAvailability",
+        "Failed to check variant availability",
+    );
+    let availability_available_label = t(
+        ui_locale.as_deref(),
+        "inventory.notice.available",
+        "Requested quantity is available",
+    );
+    let availability_unavailable_label = t(
+        ui_locale.as_deref(),
+        "inventory.notice.unavailable",
+        "Requested quantity is not available",
+    );
     let effective_locale_for_detail = effective_locale.clone();
     let initial_open_product = open_product;
     let list_query_writer = query_writer.clone();
@@ -205,7 +235,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                         {t(ui_locale.as_deref(), "inventory.title", "Inventory Control")}
                     </h2>
                     <p class="max-w-3xl text-sm text-muted-foreground">
-                        {t(ui_locale.as_deref(), "inventory.subtitle", "Module-owned inventory read-side surface for stock visibility, low-stock triage and variant health signals while dedicated inventory mutations are still being split from the umbrella transport.")}
+                        {t(ui_locale.as_deref(), "inventory.subtitle", "Module-owned inventory surface for stock visibility, low-stock triage, variant health signals, targeted corrections, reservation release flows and availability checks while remaining inventory mutations are still being split from the umbrella transport.")}
                     </p>
                 </div>
             </header>
@@ -332,6 +362,11 @@ pub fn InventoryAdmin() -> impl IntoView {
                             {move || error.get().unwrap_or_default()}
                         </div>
                     </Show>
+                    <Show when=move || notice.get().is_some()>
+                        <div class="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-700">
+                            {move || notice.get().unwrap_or_default()}
+                        </div>
+                    </Show>
 
                     {move || selected.get().map(|detail| {
                         let resolved_translation = inventory_translation_for_locale(
@@ -411,7 +446,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                 </div>
 
                                 <div class="rounded-2xl border border-border bg-background p-5 text-sm text-muted-foreground">
-                                    {t(ui_locale_for_detail.as_deref(), "inventory.detail.transportGap", "Dedicated inventory set/adjust/reserve quantity transport is available for targeted stock corrections and reservation flows; remaining inventory mutations are still being split from the umbrella ecommerce surface.")}
+                                    {t(ui_locale_for_detail.as_deref(), "inventory.detail.transportGap", "Dedicated inventory set/adjust/reserve/release/check-availability transport is available for targeted stock corrections, validation and reservation flows; remaining inventory mutations are still being split from the umbrella ecommerce surface.")}
                                 </div>
 
                                 <div class="rounded-2xl border border-border bg-background p-5">
@@ -437,21 +472,34 @@ pub fn InventoryAdmin() -> impl IntoView {
                                             let variant_id_for_decrease = variant.id.clone();
                                             let variant_id_for_increase = variant.id.clone();
                                             let variant_id_for_reserve = variant.id.clone();
+                                            let variant_id_for_release = variant.id.clone();
+                                            let variant_id_for_availability = variant.id.clone();
                                             let variant_title_for_save = variant.title.clone();
                                             let variant_title_for_decrease = variant.title.clone();
                                             let variant_title_for_increase = variant.title.clone();
                                             let variant_title_for_reserve = variant.title.clone();
+                                            let variant_title_for_release = variant.title.clone();
+                                            let variant_title_for_availability = variant.title.clone();
                                             let (quantity_input, set_quantity_input) = signal(variant.inventory_quantity.to_string());
                                             let save_bootstrap_loading_label = set_quantity_bootstrap_loading_label.clone();
                                             let decrease_bootstrap_loading_label = set_quantity_bootstrap_loading_label.clone();
                                             let increase_bootstrap_loading_label = set_quantity_bootstrap_loading_label.clone();
                                             let reserve_bootstrap_loading_label = set_quantity_bootstrap_loading_label.clone();
+                                            let release_bootstrap_loading_label = set_quantity_bootstrap_loading_label.clone();
+                                            let availability_bootstrap_loading_label = set_quantity_bootstrap_loading_label.clone();
                                             let invalid_quantity_label = set_quantity_invalid_label.clone();
                                             let invalid_reserve_quantity_label = reserve_quantity_invalid_label.clone();
+                                            let invalid_release_quantity_label = reserve_quantity_invalid_label.clone();
+                                            let invalid_availability_quantity_label = reserve_quantity_invalid_label.clone();
                                             let save_error_label = set_quantity_error_label.clone();
                                             let decrease_error_label = set_quantity_error_label.clone();
                                             let increase_error_label = set_quantity_error_label.clone();
                                             let reserve_error_label = reserve_quantity_error_label.clone();
+                                            let release_error_label = release_reservation_error_label.clone();
+                                            let release_notice_label = release_reservation_notice_label.clone();
+                                            let availability_error_label = availability_quantity_error_label.clone();
+                                            let availability_yes_label = availability_available_label.clone();
+                                            let availability_no_label = availability_unavailable_label.clone();
                                             view! {
                                                 <article class="rounded-xl border border-border p-4">
                                                     <div class="flex flex-wrap items-start justify-between gap-3">
@@ -497,6 +545,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                                                         let error_label = decrease_error_label.clone();
                                                                         set_busy.set(true);
                                                                         set_error.set(None);
+                                                                        set_notice.set(None);
                                                                         spawn_local(async move {
                                                                             match crate::api::adjust_variant_quantity(tenant_id, variant_id.clone(), -1).await {
                                                                                 Ok(result) => {
@@ -534,6 +583,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                                                         let error_label = increase_error_label.clone();
                                                                         set_busy.set(true);
                                                                         set_error.set(None);
+                                                                        set_notice.set(None);
                                                                         spawn_local(async move {
                                                                             match crate::api::adjust_variant_quantity(tenant_id, variant_id.clone(), 1).await {
                                                                                 Ok(result) => {
@@ -577,6 +627,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                                                         let error_label = save_error_label.clone();
                                                                         set_busy.set(true);
                                                                         set_error.set(None);
+                                                                        set_notice.set(None);
                                                                         spawn_local(async move {
                                                                             match crate::api::set_variant_quantity(tenant_id, variant_id.clone(), quantity).await {
                                                                                 Ok(result) => {
@@ -601,6 +652,102 @@ pub fn InventoryAdmin() -> impl IntoView {
                                                                 <button
                                                                     type="button"
                                                                     class="inline-flex rounded-lg border border-border px-3 py-1 text-xs font-medium text-foreground transition hover:bg-accent disabled:opacity-50"
+                                                                    title=t(variant_locale.as_deref(), "inventory.action.checkAvailability", "Check availability")
+                                                                    disabled=move || busy.get()
+                                                                    on:click=move |_| {
+                                                                        let Some(InventoryAdminBootstrap { current_tenant }) = bootstrap.get_untracked().and_then(Result::ok) else {
+                                                                            set_error.set(Some(availability_bootstrap_loading_label.clone()));
+                                                                            set_notice.set(None);
+                                                                            return;
+                                                                        };
+                                                                        let quantity = match parse_reserve_quantity(quantity_input.get_untracked().as_str()) {
+                                                                            Ok(value) => value,
+                                                                            Err(_) => {
+                                                                                set_error.set(Some(invalid_availability_quantity_label.clone()));
+                                                                                set_notice.set(None);
+                                                                                return;
+                                                                            }
+                                                                        };
+                                                                        let tenant_id = current_tenant.id;
+                                                                        let variant_id = variant_id_for_availability.clone();
+                                                                        let variant_title = variant_title_for_availability.clone();
+                                                                        let error_label = availability_error_label.clone();
+                                                                        let available_label = availability_yes_label.clone();
+                                                                        let unavailable_label = availability_no_label.clone();
+                                                                        set_busy.set(true);
+                                                                        set_error.set(None);
+                                                                        set_notice.set(None);
+                                                                        spawn_local(async move {
+                                                                            match crate::api::check_variant_availability(tenant_id, variant_id, quantity).await {
+                                                                                Ok(result) => {
+                                                                                    let label = if result.available { available_label } else { unavailable_label };
+                                                                                    set_notice.set(Some(format!("{label} ({variant_title})")));
+                                                                                }
+                                                                                Err(err) => {
+                                                                                    set_error.set(Some(format!("{error_label} ({variant_title}): {err}")));
+                                                                                }
+                                                                            }
+                                                                            set_busy.set(false);
+                                                                        });
+                                                                    }
+                                                                >
+                                                                    {t(variant_locale.as_deref(), "inventory.action.checkAvailability", "Check")}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    class="inline-flex rounded-lg border border-border px-3 py-1 text-xs font-medium text-foreground transition hover:bg-accent disabled:opacity-50"
+                                                                    title=t(variant_locale.as_deref(), "inventory.action.releaseReservation", "Release reservation")
+                                                                    disabled=move || busy.get()
+                                                                    on:click=move |_| {
+                                                                        let Some(InventoryAdminBootstrap { current_tenant }) = bootstrap.get_untracked().and_then(Result::ok) else {
+                                                                            set_error.set(Some(release_bootstrap_loading_label.clone()));
+                                                                            set_notice.set(None);
+                                                                            return;
+                                                                        };
+                                                                        let quantity = match parse_reserve_quantity(quantity_input.get_untracked().as_str()) {
+                                                                            Ok(value) => value,
+                                                                            Err(_) => {
+                                                                                set_error.set(Some(invalid_release_quantity_label.clone()));
+                                                                                set_notice.set(None);
+                                                                                return;
+                                                                            }
+                                                                        };
+                                                                        let tenant_id = current_tenant.id;
+                                                                        let variant_id = variant_id_for_release.clone();
+                                                                        let variant_title = variant_title_for_release.clone();
+                                                                        let error_label = release_error_label.clone();
+                                                                        let notice_label = release_notice_label.clone();
+                                                                        set_busy.set(true);
+                                                                        set_error.set(None);
+                                                                        set_notice.set(None);
+                                                                        spawn_local(async move {
+                                                                            match crate::api::release_reservation_quantity(tenant_id, variant_id.clone(), quantity).await {
+                                                                                Ok(result) => {
+                                                                                    set_selected.update(|selected| {
+                                                                                        if let Some(detail) = selected {
+                                                                                            apply_variant_reservation_release_update(detail, variant_id.as_str(), result.clone());
+                                                                                        }
+                                                                                    });
+                                                                                    set_quantity_input.set(result.available_quantity.to_string());
+                                                                                    set_notice.set(Some(format!(
+                                                                                        "{notice_label} ({variant_title}): {}",
+                                                                                        result.released_quantity
+                                                                                    )));
+                                                                                    set_refresh_nonce.update(|value| *value += 1);
+                                                                                }
+                                                                                Err(err) => {
+                                                                                    set_error.set(Some(format!("{error_label} ({variant_title}): {err}")));
+                                                                                }
+                                                                            }
+                                                                            set_busy.set(false);
+                                                                        });
+                                                                    }
+                                                                >
+                                                                    {t(variant_locale.as_deref(), "inventory.action.releaseReservation", "Release")}
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    class="inline-flex rounded-lg border border-border px-3 py-1 text-xs font-medium text-foreground transition hover:bg-accent disabled:opacity-50"
                                                                     title=t(variant_locale.as_deref(), "inventory.action.reserveQuantity", "Reserve")
                                                                     disabled=move || busy.get()
                                                                     on:click=move |_| {
@@ -621,6 +768,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                                                         let error_label = reserve_error_label.clone();
                                                                         set_busy.set(true);
                                                                         set_error.set(None);
+                                                                        set_notice.set(None);
                                                                         spawn_local(async move {
                                                                             match crate::api::reserve_variant_quantity(tenant_id, variant_id.clone(), quantity).await {
                                                                                 Ok(result) => {

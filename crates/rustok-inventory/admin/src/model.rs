@@ -117,10 +117,26 @@ pub struct InventoryReservationWriteResult {
     pub in_stock: bool,
 }
 
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct InventoryAvailabilityCheckResult {
+    pub available: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct InventoryReservationReleaseWriteResult {
+    #[serde(rename = "releasedQuantity")]
+    pub released_quantity: i32,
+    #[serde(rename = "availableQuantity")]
+    pub available_quantity: i32,
+    #[serde(rename = "inStock")]
+    pub in_stock: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        InventoryProductDetail, InventoryProductList, InventoryQuantityWriteResult,
+        InventoryAvailabilityCheckResult, InventoryProductDetail, InventoryProductList,
+        InventoryQuantityWriteResult, InventoryReservationReleaseWriteResult,
         InventoryReservationWriteResult,
     };
 
@@ -139,6 +155,47 @@ mod tests {
 
         let serialized = serde_json::to_value(&result)
             .expect("inventory quantity write result compatibility snapshot should serialize");
+        assert_eq!(serialized, value);
+    }
+
+    #[test]
+    fn availability_check_result_keeps_native_endpoint_wire_shape() {
+        let value = serde_json::json!({
+            "available": true
+        });
+
+        let result: InventoryAvailabilityCheckResult = serde_json::from_value(value.clone())
+            .expect(
+                "inventory availability check result compatibility snapshot should deserialize",
+            );
+
+        assert!(result.available);
+
+        let serialized = serde_json::to_value(&result)
+            .expect("inventory availability check result compatibility snapshot should serialize");
+        assert_eq!(serialized, value);
+    }
+
+    #[test]
+    fn reservation_release_write_result_keeps_native_endpoint_wire_shape() {
+        let value = serde_json::json!({
+            "releasedQuantity": 2,
+            "availableQuantity": 10,
+            "inStock": true
+        });
+
+        let result: InventoryReservationReleaseWriteResult = serde_json::from_value(value.clone())
+            .expect(
+            "inventory reservation release write result compatibility snapshot should deserialize",
+        );
+
+        assert_eq!(result.released_quantity, 2);
+        assert_eq!(result.available_quantity, 10);
+        assert!(result.in_stock);
+
+        let serialized = serde_json::to_value(&result).expect(
+            "inventory reservation release write result compatibility snapshot should serialize",
+        );
         assert_eq!(serialized, value);
     }
 
