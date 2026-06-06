@@ -26,8 +26,8 @@ async fn run_postgres_zero_migration_smoke() -> Result<(), Box<dyn std::error::E
     assert_valid_database_name(&database_name);
 
     let target_url = database_url_from_admin_url(&admin_url, &database_name);
-    let keep_database = std::env::var("RUSTOK_MIGRATION_SMOKE_KEEP_DB").as_deref() == Ok("1");
-    let incremental = std::env::var("RUSTOK_MIGRATION_SMOKE_INCREMENTAL").as_deref() == Ok("1");
+    let keep_database = env_binary_flag("RUSTOK_MIGRATION_SMOKE_KEEP_DB")?;
+    let incremental = env_binary_flag("RUSTOK_MIGRATION_SMOKE_INCREMENTAL")?;
 
     let admin = connect_postgres(&admin_url)
         .await
@@ -176,6 +176,18 @@ async fn assert_table_exists(
     Ok(())
 }
 
+fn env_binary_flag(name: &str) -> Result<bool, Box<dyn std::error::Error>> {
+    parse_binary_flag(name, std::env::var(name).ok().as_deref())
+}
+
+fn parse_binary_flag(name: &str, value: Option<&str>) -> Result<bool, Box<dyn std::error::Error>> {
+    match value.unwrap_or("0") {
+        "0" => Ok(false),
+        "1" => Ok(true),
+        other => Err(format!("{name} must be 0 or 1, got {other:?}").into()),
+    }
+}
+
 fn assert_postgres_url(url: &str) {
     assert!(
         url.starts_with("postgres://") || url.starts_with("postgresql://"),
@@ -230,4 +242,35 @@ fn default_database_name() -> String {
 
 fn quoted_identifier(identifier: &str) -> String {
     format!("\"{}\"", identifier.replace('"', "\"\""))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::parse_binary_flag;
+
+    #[test]
+    fn binary_flag_defaults_to_false_when_missing() {
+        assert!(
+            !parse_binary_flag("RUSTOK_MIGRATION_SMOKE_INCREMENTAL", None)
+                .expect("missing flag should default to false")
+        );
+    }
+
+    #[test]
+    fn binary_flag_accepts_zero_and_one_only() {
+        assert!(
+            !parse_binary_flag("RUSTOK_MIGRATION_SMOKE_INCREMENTAL", Some("0"))
+                .expect("0 should be accepted")
+        );
+        assert!(
+            parse_binary_flag("RUSTOK_MIGRATION_SMOKE_INCREMENTAL", Some("1"))
+                .expect("1 should be accepted")
+        );
+        assert!(
+            parse_binary_flag("RUSTOK_MIGRATION_SMOKE_INCREMENTAL", Some("true"))
+                .expect_err("non-binary values should be rejected")
+                .to_string()
+                .contains("must be 0 or 1")
+        );
+    }
 }
