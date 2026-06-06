@@ -432,23 +432,32 @@ impl InventoryService {
             ));
         }
 
-        let state = self
-            .ensure_inventory_state(&txn, tenant_id, &variant)
+        let Some(inventory_item) = entities::inventory_item::Entity::find()
+            .filter(entities::inventory_item::Column::VariantId.eq(variant_id))
+            .one(&txn)
+            .await?
+        else {
+            return Err(insufficient_reserved_release_error(quantity, 0));
+        };
+
+        let levels = entities::inventory_level::Entity::find()
+            .filter(entities::inventory_level::Column::InventoryItemId.eq(inventory_item.id))
+            .all(&txn)
             .await?;
-        if quantity > state.level.reserved_quantity {
-            return Err(CommerceError::Validation(format!(
-                "Cannot release {quantity} reserved units; only {} are reserved",
-                state.level.reserved_quantity
-            )));
+        let total_reserved_quantity = levels
+            .iter()
+            .map(|level| level.reserved_quantity)
+            .sum::<i32>();
+        if quantity > total_reserved_quantity {
+            return Err(insufficient_reserved_release_error(
+                quantity,
+                total_reserved_quantity,
+            ));
         }
 
-        let new_reserved_quantity = state.level.reserved_quantity - quantity;
-        let mut level_active: entities::inventory_level::ActiveModel = state.level.clone().into();
-        level_active.reserved_quantity = Set(new_reserved_quantity);
-        level_active.updated_at = Set(Utc::now().into());
-        level_active.update(&txn).await?;
+        release_reserved_quantity_from_levels(&txn, levels, quantity).await?;
 
-        let available_quantity = state.level.stocked_quantity - new_reserved_quantity;
+        let available_quantity = self.available_quantity(&txn, inventory_item.id).await?;
         txn.commit().await?;
 
         Ok(InventoryReservationReleaseWriteResult::from_quantities(
@@ -628,6 +637,42 @@ impl InventoryService {
     }
 }
 
+async fn release_reserved_quantity_from_levels<C>(
+    conn: &C,
+    levels: Vec<entities::inventory_level::Model>,
+    quantity: i32,
+) -> CommerceResult<()>
+where
+    C: sea_orm::ConnectionTrait,
+{
+    let mut remaining_quantity = quantity;
+    for level in levels {
+        if remaining_quantity == 0 {
+            break;
+        }
+        if level.reserved_quantity <= 0 {
+            continue;
+        }
+
+        let released_quantity = remaining_quantity.min(level.reserved_quantity);
+        let new_reserved_quantity = level.reserved_quantity - released_quantity;
+        remaining_quantity -= released_quantity;
+
+        let mut level_active: entities::inventory_level::ActiveModel = level.into();
+        level_active.reserved_quantity = Set(new_reserved_quantity);
+        level_active.updated_at = Set(Utc::now().into());
+        level_active.update(conn).await?;
+    }
+
+    Ok(())
+}
+
+fn insufficient_reserved_release_error(requested: i32, reserved: i32) -> CommerceError {
+    CommerceError::Validation(format!(
+        "Cannot release {requested} reserved units; only {reserved} are reserved"
+    ))
+}
+
 fn validate_release_quantity(quantity: i32) -> CommerceResult<()> {
     if quantity < 0 {
         return Err(CommerceError::Validation(
@@ -651,10 +696,22 @@ fn validate_availability_request_quantity(requested_quantity: i32) -> CommerceRe
 #[cfg(test)]
 mod tests {
     use super::{
-        validate_availability_request_quantity, validate_release_quantity,
-        InventoryAvailabilityCheckResult, InventoryQuantityWriteResult,
+        insufficient_reserved_release_error, validate_availability_request_quantity,
+        validate_release_quantity, InventoryAvailabilityCheckResult, InventoryQuantityWriteResult,
         InventoryReservationReleaseWriteResult, InventoryReservationWriteResult,
     };
+
+    #[test]
+    fn reservation_release_error_reports_current_reserved_quantity_without_creating_state() {
+        let error = insufficient_reserved_release_error(3, 1);
+
+        assert!(
+            error
+                .to_string()
+                .contains("Cannot release 3 reserved units; only 1 are reserved"),
+            "reservation release errors should report observed reserved quantity"
+        );
+    }
 
     #[test]
     fn reservation_release_quantity_rejects_negative_requests_before_db_access() {
