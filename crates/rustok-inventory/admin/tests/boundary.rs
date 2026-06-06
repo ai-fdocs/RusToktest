@@ -219,3 +219,103 @@ fn ui_stock_quantity_controls_use_inventory_api_facade_only() {
         );
     }
 }
+
+#[test]
+fn native_read_mapper_and_transitional_adapter_keep_read_model_parity() {
+    let model = read_source("src/model.rs");
+    let native = read_source("src/native.rs");
+    let transport = read_source("src/transport.rs");
+    let backend = read_source("../src/services/admin_read.rs");
+
+    for (model_marker, backend_marker, native_marker, transport_marker) in [
+        (
+            "pub per_page: u64",
+            "pub per_page: u64",
+            "per_page: value.per_page",
+            "perPage",
+        ),
+        (
+            "pub has_next: bool",
+            "pub has_next: bool",
+            "has_next: value.has_next",
+            "hasNext",
+        ),
+        (
+            "pub shipping_profile_slug: Option<String>",
+            "pub shipping_profile_slug: Option<String>",
+            "shipping_profile_slug: value.shipping_profile_slug",
+            "shippingProfileSlug",
+        ),
+        (
+            "pub translations: Vec<InventoryProductTranslation>",
+            "pub translations: Vec<AdminInventoryProductTranslation>",
+            "translations: value",
+            "translations",
+        ),
+        (
+            "pub variants: Vec<InventoryVariant>",
+            "pub variants: Vec<AdminInventoryVariant>",
+            "variants: value.variants.into_iter().map(map_variant).collect()",
+            "variants",
+        ),
+        (
+            "pub prices: Vec<InventoryPrice>",
+            "pub prices: Vec<AdminInventoryPrice>",
+            "prices: value",
+            "prices",
+        ),
+        (
+            "pub inventory_quantity: i32",
+            "pub inventory_quantity: i32",
+            "inventory_quantity: value.inventory_quantity",
+            "inventoryQuantity",
+        ),
+        (
+            "pub inventory_policy: String",
+            "pub inventory_policy: String",
+            "inventory_policy: value.inventory_policy",
+            "inventoryPolicy",
+        ),
+        (
+            "pub in_stock: bool",
+            "pub in_stock: bool",
+            "in_stock: value.in_stock",
+            "inStock",
+        ),
+        (
+            "pub currency_code: String",
+            "pub currency_code: String",
+            "currency_code: price.currency_code",
+            "currencyCode",
+        ),
+        (
+            "pub compare_at_amount: Option<String>",
+            "pub compare_at_amount: Option<String>",
+            "compare_at_amount: price.compare_at_amount",
+            "compareAtAmount",
+        ),
+        (
+            "pub on_sale: bool",
+            "pub on_sale: bool",
+            "on_sale: price.on_sale",
+            "onSale",
+        ),
+    ] {
+        assert!(
+            model.contains(model_marker),
+            "admin read model must keep field marker `{model_marker}`"
+        );
+        assert!(
+            backend.contains(backend_marker),
+            "backend AdminInventoryReadService DTO must keep field marker `{backend_marker}`"
+        );
+        assert!(
+            native.contains(native_marker),
+            "native read mapper must keep DTO-to-admin-model marker `{native_marker}`"
+        );
+        assert!(
+            transport.contains(transport_marker),
+            "transitional GraphQL adapter must keep read-model marker `{transport_marker}`"
+        );
+    }
+}
