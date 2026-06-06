@@ -130,8 +130,8 @@ async fn render_tenant_locale_cache_metrics(ctx: &AppContext) -> String {
 
 fn format_tenant_locale_cache_metrics(stats: TenantLocaleCacheStats) -> String {
     format!(
-        "rustok_tenant_locale_cache_hits {hits}\n\
-rustok_tenant_locale_cache_misses {misses}\n\
+        "rustok_tenant_locale_cache_hits_total {hits}\n\
+rustok_tenant_locale_cache_misses_total {misses}\n\
 rustok_tenant_locale_db_queries_total {db_queries}\n\
 rustok_tenant_locale_cache_invalidations_total {invalidations}\n\
 rustok_tenant_locale_cache_entries {entries}\n",
@@ -690,11 +690,13 @@ mod tests {
             entries: 3,
         });
 
-        assert_metric_line(&payload, "rustok_tenant_locale_cache_hits");
-        assert_metric_line(&payload, "rustok_tenant_locale_cache_misses");
+        assert_metric_line(&payload, "rustok_tenant_locale_cache_hits_total");
+        assert_metric_line(&payload, "rustok_tenant_locale_cache_misses_total");
         assert_metric_line(&payload, "rustok_tenant_locale_db_queries_total");
         assert_metric_line(&payload, "rustok_tenant_locale_cache_invalidations_total");
         assert_metric_line(&payload, "rustok_tenant_locale_cache_entries");
+        assert!(payload.contains("rustok_tenant_locale_cache_hits_total 8"));
+        assert!(payload.contains("rustok_tenant_locale_cache_misses_total 2"));
         assert!(payload.contains("rustok_tenant_locale_db_queries_total 2"));
     }
 

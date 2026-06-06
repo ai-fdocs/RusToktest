@@ -40,11 +40,12 @@ node crates/rustok-page-builder/scripts/verify/verify-page-builder-consumer-read
 | Добавили новый endpoint | `./scripts/verify/verify-all.sh api-quality` |
 | Добавили новый event | `./scripts/verify/verify-all.sh events` |
 | Проверка anti-bypass drift | `./scripts/verify/verify-all.sh anti-bypass` |
-| Добавили миграцию | `./scripts/verify/verify-all.sh tenant-isolation` + `./scripts/verify/verify-migration-smoke.sh` |
+| Добавили миграцию | `./scripts/verify/verify-all.sh tenant-isolation` + `./scripts/verify/verify-migration-smoke.sh`; в CI тот же smoke закреплён отдельным job `migration-smoke` |
 | Подозрение на дыру в RBAC | `./scripts/verify/verify-all.sh rbac-coverage` |
 | Аудит безопасности | `./scripts/verify/verify-security.sh` |
 | Проверка deployment profile matrix | `./scripts/verify/verify-all.sh deployment-profiles` |
 | Проверка drift в Flex multilingual contract | `node scripts/verify/verify-flex-multilingual-contract.mjs` |
+| Проверка runtime-context/cache-key invariants | `node scripts/verify/verify-runtime-context-invariants.mjs` |
 | Проверка запрета lifecycle bypass helper в production | `node scripts/verify/verify-module-lifecycle-bypass-usage.mjs` |
 | Проверка parity provider/consumer для page-builder контракта | `node crates/rustok-page-builder/scripts/verify/verify-page-builder-contract-parity.mjs` |
 | Проверка machine-readable registry page-builder против manifests | `node crates/rustok-page-builder/scripts/verify/verify-page-builder-contract-registry.mjs` |
@@ -86,6 +87,25 @@ RUSTOK_MIGRATION_SMOKE_ADMIN_URL=postgres://postgres:postgres@localhost:5432/pos
 RUSTOK_MIGRATION_SMOKE_INCREMENTAL=1 \
 RUSTOK_MIGRATION_SMOKE_ADMIN_URL=postgres://postgres:postgres@localhost:5432/postgres \
   ./scripts/verify/verify-migration-smoke.sh
+```
+
+---
+
+### `verify-runtime-context-invariants.mjs`
+**Wave 6 runtime-context guardrail** — быстрый source-level gate для уже исправленных P0/P1 invariants без полной Rust-компиляции.
+
+Что проверяет:
+- `ChannelCacheKey` содержит OAuth/client и locale dimensions;
+- `RequestFacts` берёт `oauth_app_id` из `AuthContextExtension`, а `locale` — из `ResolvedRequestLocale.effective_locale`;
+- source-order middleware в `compose_application_router` сохраняет фактический порядок выполнения Axum `locale -> auth_context -> channel`;
+- tenant locale cache metrics экспортируют counter names с `_total` и gauge `rustok_tenant_locale_cache_entries`;
+- `modules.toml` и central registry evidence сохраняют `pages -> [content, page_builder]`.
+
+Пример:
+
+```bash
+node scripts/verify/verify-runtime-context-invariants.mjs
+./scripts/verify/verify-all.sh runtime-context-invariants
 ```
 
 ---
