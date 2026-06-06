@@ -257,7 +257,10 @@ impl InventoryService {
         }
 
         let mut level_active: entities::inventory_level::ActiveModel = state.level.clone().into();
-        level_active.stocked_quantity = Set(quantity);
+        level_active.stocked_quantity = Set(stocked_quantity_for_available(
+            quantity,
+            state.level.reserved_quantity,
+        ));
         level_active.updated_at = Set(Utc::now().into());
         level_active.update(&txn).await?;
 
@@ -329,11 +332,7 @@ impl InventoryService {
         variant_id: Uuid,
         quantity: i32,
     ) -> CommerceResult<InventoryReservationWriteResult> {
-        if quantity < 0 {
-            return Err(CommerceError::Validation(
-                "Reservation quantity must be non-negative".to_string(),
-            ));
-        }
+        validate_reservation_quantity(quantity)?;
 
         let txn = self.db.begin().await?;
         let variant = self.load_variant(&txn, tenant_id, variant_id).await?;
@@ -730,6 +729,20 @@ fn insufficient_reservation_items_release_error(requested: i32, tracked: i32) ->
     ))
 }
 
+fn stocked_quantity_for_available(available_quantity: i32, reserved_quantity: i32) -> i32 {
+    available_quantity + reserved_quantity
+}
+
+fn validate_reservation_quantity(quantity: i32) -> CommerceResult<()> {
+    if quantity < 0 {
+        return Err(CommerceError::Validation(
+            "Reservation quantity must be non-negative".to_string(),
+        ));
+    }
+
+    Ok(())
+}
+
 fn validate_release_quantity(quantity: i32) -> CommerceResult<()> {
     if quantity < 0 {
         return Err(CommerceError::Validation(
@@ -754,10 +767,18 @@ fn validate_availability_request_quantity(requested_quantity: i32) -> CommerceRe
 mod tests {
     use super::{
         insufficient_reservation_items_release_error, insufficient_reserved_release_error,
-        validate_availability_request_quantity, validate_release_quantity,
-        InventoryAvailabilityCheckResult, InventoryQuantityWriteResult,
-        InventoryReservationReleaseWriteResult, InventoryReservationWriteResult,
+        stocked_quantity_for_available, validate_availability_request_quantity,
+        validate_release_quantity, validate_reservation_quantity, InventoryAvailabilityCheckResult,
+        InventoryQuantityWriteResult, InventoryReservationReleaseWriteResult,
+        InventoryReservationWriteResult,
     };
+
+    #[test]
+    fn set_quantity_preserves_reserved_units_when_targeting_available_quantity() {
+        assert_eq!(stocked_quantity_for_available(10, 0), 10);
+        assert_eq!(stocked_quantity_for_available(10, 3), 13);
+        assert_eq!(stocked_quantity_for_available(0, 3), 3);
+    }
 
     #[test]
     fn reservation_release_error_reports_current_reserved_quantity_without_creating_state() {
@@ -781,6 +802,19 @@ mod tests {
                 .contains("Cannot release 4 reservation item units; only 2 are tracked"),
             "reservation item release errors should report tracked item quantity"
         );
+    }
+
+    #[test]
+    fn reservation_quantity_rejects_negative_requests_before_db_access() {
+        let error = validate_reservation_quantity(-1)
+            .expect_err("negative reservations must be rejected before DB lookup");
+
+        assert!(
+            error.to_string().contains("non-negative"),
+            "reservation validation should explain the non-negative invariant"
+        );
+        assert!(validate_reservation_quantity(0).is_ok());
+        assert!(validate_reservation_quantity(3).is_ok());
     }
 
     #[test]
