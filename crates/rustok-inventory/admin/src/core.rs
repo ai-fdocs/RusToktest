@@ -1,6 +1,6 @@
 use crate::model::{
-    InventoryProductDetail, InventoryQuantityWriteResult, InventoryReservationWriteResult,
-    InventoryVariant,
+    InventoryProductDetail, InventoryQuantityWriteResult, InventoryReservationReleaseWriteResult,
+    InventoryReservationWriteResult, InventoryVariant,
 };
 
 pub(crate) const DEFAULT_PRODUCT_PAGE: u64 = 1;
@@ -241,6 +241,24 @@ pub(crate) fn apply_variant_reservation_update(
     detail: &mut InventoryProductDetail,
     variant_id: &str,
     result: InventoryReservationWriteResult,
+) -> bool {
+    let Some(variant) = detail
+        .variants
+        .iter_mut()
+        .find(|variant| variant.id == variant_id)
+    else {
+        return false;
+    };
+
+    variant.inventory_quantity = result.available_quantity;
+    variant.in_stock = result.in_stock;
+    true
+}
+
+pub(crate) fn apply_variant_reservation_release_update(
+    detail: &mut InventoryProductDetail,
+    variant_id: &str,
+    result: InventoryReservationReleaseWriteResult,
 ) -> bool {
     let Some(variant) = detail
         .variants
@@ -498,6 +516,23 @@ mod tests {
             "variant-2-deny",
             InventoryQuantityWriteResult {
                 quantity: 7,
+                in_stock: true,
+            },
+        ));
+        assert_eq!(detail.variants[0].inventory_quantity, 7);
+        assert!(detail.variants[0].in_stock);
+    }
+
+    #[test]
+    fn apply_variant_reservation_release_update_uses_available_quantity_and_stock_flag() {
+        let mut detail = detail_with_variants(vec![variant(false, "deny", 1)]);
+
+        assert!(apply_variant_reservation_release_update(
+            &mut detail,
+            "variant-1-deny",
+            InventoryReservationReleaseWriteResult {
+                released_quantity: 2,
+                available_quantity: 7,
                 in_stock: true,
             },
         ));

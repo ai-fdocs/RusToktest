@@ -235,12 +235,16 @@ fn ui_stock_quantity_controls_use_inventory_api_facade_only() {
         "crate::api::set_variant_quantity",
         "crate::api::adjust_variant_quantity",
         "crate::api::reserve_variant_quantity",
+        "crate::api::release_reservation_quantity",
         "crate::api::check_variant_availability",
         "inventory.action.checkAvailability",
+        "inventory.action.releaseReservation",
+        "inventory.notice.releasedReservation",
         "inventory.notice.available",
         "inventory.notice.unavailable",
         "apply_variant_quantity_update",
         "apply_variant_reservation_update",
+        "apply_variant_reservation_release_update",
         "set_quantity_input.set(result.quantity.to_string())",
         "set_quantity_input.set(result.available_quantity.to_string())",
     ] {
@@ -255,6 +259,7 @@ fn ui_stock_quantity_controls_use_inventory_api_facade_only() {
         "crate::native::set_variant_quantity",
         "crate::native::reserve_variant_quantity",
         "crate::native::check_variant_availability",
+        "crate::native::release_reservation_quantity",
         "CommerceGraphqlInventoryReadAdapter",
         "transitional_read_transport",
     ] {
@@ -518,6 +523,20 @@ fn native_write_path_returns_quantity_contract_not_bare_integer() {
     assert!(
         ui.contains("set_quantity_input.set(result.available_quantity.to_string())"),
         "UI must refresh the quantity input from the reservation available quantity contract"
+    );
+    assert!(
+        ui.contains("crate::api::release_reservation_quantity"),
+        "UI reservation release must go through the inventory-owned API facade"
+    );
+    assert!(
+        ui.contains(
+            "apply_variant_reservation_release_update(detail, variant_id.as_str(), result.clone())"
+        ),
+        "UI optimistic detail refresh must apply the full reservation release result contract"
+    );
+    assert!(
+        ui.contains("result.released_quantity"),
+        "UI reservation release must consume the typed released quantity result contract"
     );
     assert!(
         ui.contains("crate::api::check_variant_availability"),
