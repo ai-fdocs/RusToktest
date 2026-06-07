@@ -12,8 +12,8 @@ post-v0 rollout policy lifecycle и runtime integration parity.
 ## Execution checkpoint
 
 - Current phase: ffa_admin_split
-- Last checkpoint: Admin-пакет переведён в FFA-структуру: `admin/src/core.rs` владеет policy выбора, `admin/src/transport.rs` владеет native/REST вызовами, `admin/src/ui/leptos.rs` владеет Leptos-рендерингом, а `admin/src/lib.rs` только подключает и реэкспортирует `ChannelAdmin`.
-- Next step: При расширении evidence по channel transport parity разделить смешанный transport facade на явные файлы native server-function adapter и REST fallback adapter.
+- Last checkpoint: Admin-пакет углублён до FFA-структуры: `admin/src/core.rs` владеет policy выбора, `admin/src/transport/mod.rs` владеет facade и fallback policy, `admin/src/transport/native_server_adapter.rs` содержит native server-function endpoints, `admin/src/transport/rest_adapter.rs` содержит REST fallback, `admin/src/ui/leptos.rs` владеет Leptos-рендерингом, а `admin/src/lib.rs` только подключает и реэкспортирует `ChannelAdmin`.
+- Next step: Расширить verifier fixtures/regression tests для `scripts/verify/verify-channel-admin-boundary.mjs`, затем переводить channel admin row к `phase_b_ready` после полного `cargo check`/`cargo test` evidence.
 - Open blockers: None.
 - Hand-off notes for next agent: Держать вызовы channel admin UI за `transport`, а route-selection policy — в `core` или shared route helpers; не возвращать raw transport calls в `ui/leptos.rs`.
 - Last updated at (UTC): 2026-06-07T00:00:00Z
@@ -26,9 +26,10 @@ post-v0 rollout policy lifecycle и runtime integration parity.
 - Evidence:
   - `crates/rustok-channel/admin/src/lib.rs` теперь является composition/re-export слоем для module-owned admin surface.
   - `crates/rustok-channel/admin/src/core.rs` содержит Leptos-free selection policy для очистки URL-owned channel selection.
-  - `crates/rustok-channel/admin/src/transport.rs` содержит module-owned native/REST transport facade; Leptos adapter больше не импортирует pre-FFA модуль `api`.
+  - `crates/rustok-channel/admin/src/transport/mod.rs` содержит module-owned transport facade и fallback policy, `native_server_adapter.rs` содержит server-function endpoints, а `rest_adapter.rs` содержит REST fallback; Leptos adapter больше не импортирует pre-FFA модуль `api`.
   - `crates/rustok-channel/admin/src/ui/leptos.rs` является явным Leptos render adapter и вызывает для channel operations только module-owned transport facade.
-- Следующий parity step: разделить `transport.rs` на явные native и REST fallback adapter modules перед переводом строки channel admin в `phase_b_ready`.
+  - `scripts/verify/verify-channel-admin-boundary.mjs` закрепляет split без полной Rust-компиляции: отсутствие `api.rs`/legacy `transport.rs`, отсутствие raw transport calls в UI, Leptos-free `core`, и разнесение `#[server]`/`reqwest` по adapter-файлам.
+- Следующий parity step: расширить fixture-based regression tests для `scripts/verify/verify-channel-admin-boundary.mjs` и собрать full Rust evidence перед переводом строки channel admin в `phase_b_ready`.
 
 ## Область работ
 
@@ -86,7 +87,7 @@ post-v0 rollout policy lifecycle и runtime integration parity.
 
 ### 4) Admin package (`rustok-channel/admin`)
 
-- закрыть native-first parity для policy operations в `admin/src/transport.rs`
+- закрыть native-first parity для policy operations в `admin/src/transport/`
   (`#[server]` path + REST fallback, как у channel/target/module flows);
 - расширить `PolicyWorkbench` / `PolicySetCard` (`admin/src/ui/leptos.rs`) до полного operator flow:
   - rule active toggle,
@@ -111,7 +112,7 @@ post-v0 rollout policy lifecycle и runtime integration parity.
 | Host REST | `apps/server/src/controllers/channel.rs` | thin channel bootstrap/write API | новые policy update/reorder endpoints |
 | Host middleware | `apps/server/src/middleware/channel.rs` | request -> `RequestFacts` -> `ChannelContext` | locale/oauth facts parity с runtime extensions |
 | Host composition | `apps/server/src/services/app_router.rs` | middleware chaining | при необходимости корректировка порядка middleware |
-| Admin transport | `crates/rustok-channel/admin/src/transport.rs` | module-owned native/REST facade после FFA split | дальше разделить явные native/server-function и REST fallback adapter files |
+| Admin transport | `crates/rustok-channel/admin/src/transport/` | facade + explicit native server-function adapter + REST fallback adapter после FFA split | добавить быстрый boundary verifier для отсутствия raw transport/API calls в UI |
 | Admin UI | `crates/rustok-channel/admin/src/ui/leptos.rs` | явный Leptos render adapter после FFA split | держать full operator flow за core/transport boundaries |
 | Shared UI routing | `crates/rustok-api/src/route_selection.rs` | channel query keys (`channel_id/target_id/module_slug/oauth_app_id`) + policy edit keys (`policy_set_id/policy_rule_id`) | поддерживать URL-owned selection contract и dependency cleanup (`policy_set_id -> policy_rule_id`) |
 
