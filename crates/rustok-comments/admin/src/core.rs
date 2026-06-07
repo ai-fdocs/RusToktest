@@ -3,7 +3,71 @@
 //! This layer owns request/view policy that can be reused by future host adapters
 //! without depending on framework runtime types.
 
-use rustok_comments::{CommentStatus, CommentThreadStatus};
+use rustok_comments::{
+    CommentRecord, CommentStatus, CommentThreadDetail, CommentThreadStatus, CommentThreadSummary,
+};
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CommentThreadListItemViewModel {
+    pub id: String,
+    pub target_label: String,
+    pub status_label: &'static str,
+    pub comment_count: i32,
+}
+
+impl CommentThreadListItemViewModel {
+    pub(crate) fn from_summary(thread: &CommentThreadSummary) -> Self {
+        Self {
+            id: thread.id.to_string(),
+            target_label: format_target_label(&thread.target_type, &thread.target_id.to_string()),
+            status_label: thread_status_label(thread.status),
+            comment_count: thread.comment_count,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CommentThreadDetailViewModel {
+    pub target_label: String,
+    pub status_label: &'static str,
+    pub comment_count: i32,
+}
+
+impl CommentThreadDetailViewModel {
+    pub(crate) fn from_detail(detail: &CommentThreadDetail) -> Self {
+        Self {
+            target_label: format_target_label(
+                &detail.thread.target_type,
+                &detail.thread.target_id.to_string(),
+            ),
+            status_label: thread_status_label(detail.thread.status),
+            comment_count: detail.thread.comment_count,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CommentRowViewModel {
+    pub id: String,
+    pub author_id: String,
+    pub created_at: String,
+    pub body: String,
+    pub requested_locale: String,
+    pub effective_locale: String,
+}
+
+impl CommentRowViewModel {
+    pub(crate) fn from_record(comment: &CommentRecord) -> Self {
+        Self {
+            id: comment.id.to_string(),
+            author_id: comment.author_id.to_string(),
+            created_at: comment.created_at.clone(),
+            body: comment.body.clone(),
+            requested_locale: comment.requested_locale.clone(),
+            effective_locale: comment.effective_locale.clone(),
+        }
+    }
+}
 
 pub(crate) fn parse_thread_status(value: &str) -> Option<CommentThreadStatus> {
     match value.trim() {
@@ -23,9 +87,21 @@ pub(crate) fn parse_comment_status(value: &str) -> Option<CommentStatus> {
     }
 }
 
+fn thread_status_label(status: CommentThreadStatus) -> &'static str {
+    match status {
+        CommentThreadStatus::Open => "open",
+        CommentThreadStatus::Closed => "closed",
+    }
+}
+
+fn format_target_label(target_type: &str, target_id: &str) -> String {
+    format!("{}:{}", target_type.trim(), target_id.trim())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uuid::Uuid;
 
     #[test]
     fn parses_thread_status_filters() {
@@ -51,5 +127,91 @@ mod tests {
         assert_eq!(parse_comment_status("spam"), Some(CommentStatus::Spam));
         assert_eq!(parse_comment_status("trash"), Some(CommentStatus::Trash));
         assert_eq!(parse_comment_status("all"), None);
+    }
+
+    #[test]
+    fn maps_thread_summary_to_list_view_model() {
+        let target_id = Uuid::parse_str("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").unwrap();
+        let thread = thread_summary(target_id, CommentThreadStatus::Closed, 7);
+
+        let view_model = CommentThreadListItemViewModel::from_summary(&thread);
+
+        assert_eq!(view_model.id, thread.id.to_string());
+        assert_eq!(
+            view_model.target_label,
+            "blog_post:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+        );
+        assert_eq!(view_model.status_label, "closed");
+        assert_eq!(view_model.comment_count, 7);
+    }
+
+    #[test]
+    fn maps_detail_summary_to_view_model() {
+        let target_id = Uuid::parse_str("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb").unwrap();
+        let detail = CommentThreadDetail {
+            thread: thread_summary(target_id, CommentThreadStatus::Open, 2),
+            comments: vec![],
+            total_comments: 2,
+        };
+
+        let view_model = CommentThreadDetailViewModel::from_detail(&detail);
+
+        assert_eq!(
+            view_model.target_label,
+            "blog_post:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+        );
+        assert_eq!(view_model.status_label, "open");
+        assert_eq!(view_model.comment_count, 2);
+    }
+
+    #[test]
+    fn maps_comment_record_to_row_view_model() {
+        let comment = comment_record();
+
+        let view_model = CommentRowViewModel::from_record(&comment);
+
+        assert_eq!(view_model.id, comment.id.to_string());
+        assert_eq!(view_model.author_id, comment.author_id.to_string());
+        assert_eq!(view_model.created_at, "2026-06-07T00:00:00Z");
+        assert_eq!(view_model.body, "Moderation body");
+        assert_eq!(view_model.requested_locale, "ru");
+        assert_eq!(view_model.effective_locale, "ru");
+    }
+
+    fn thread_summary(
+        target_id: Uuid,
+        status: CommentThreadStatus,
+        comment_count: i32,
+    ) -> CommentThreadSummary {
+        CommentThreadSummary {
+            id: Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap(),
+            tenant_id: Uuid::parse_str("22222222-2222-2222-2222-222222222222").unwrap(),
+            target_type: "blog_post".to_string(),
+            target_id,
+            status,
+            comment_count,
+            last_commented_at: Some("2026-06-07T00:00:00Z".to_string()),
+            created_at: "2026-06-07T00:00:00Z".to_string(),
+            updated_at: "2026-06-07T00:00:00Z".to_string(),
+        }
+    }
+
+    fn comment_record() -> CommentRecord {
+        CommentRecord {
+            id: Uuid::parse_str("33333333-3333-3333-3333-333333333333").unwrap(),
+            thread_id: Uuid::parse_str("11111111-1111-1111-1111-111111111111").unwrap(),
+            target_type: "blog_post".to_string(),
+            target_id: Uuid::parse_str("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa").unwrap(),
+            requested_locale: "ru".to_string(),
+            effective_locale: "ru".to_string(),
+            author_id: Uuid::parse_str("44444444-4444-4444-4444-444444444444").unwrap(),
+            parent_comment_id: None,
+            body: "Moderation body".to_string(),
+            body_format: "plain_text".to_string(),
+            status: CommentStatus::Pending,
+            position: 1,
+            created_at: "2026-06-07T00:00:00Z".to_string(),
+            updated_at: "2026-06-07T00:00:00Z".to_string(),
+        }
     }
 }

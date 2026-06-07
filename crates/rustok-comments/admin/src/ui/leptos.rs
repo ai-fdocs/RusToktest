@@ -5,7 +5,10 @@ use leptos_ui_routing::{use_route_query_value, use_route_query_writer};
 use rustok_api::{AdminQueryKey, UiRouteContext};
 use rustok_comments::{CommentStatus, CommentThreadStatus};
 
-use crate::core::{parse_comment_status, parse_thread_status};
+use crate::core::{
+    parse_comment_status, parse_thread_status, CommentRowViewModel, CommentThreadDetailViewModel,
+    CommentThreadListItemViewModel,
+};
 use crate::i18n::t;
 use crate::transport;
 
@@ -310,8 +313,8 @@ pub fn CommentsAdmin() -> impl IntoView {
                                         </div>
                                         <div class="space-y-2">
                                             {payload.items.into_iter().map(|thread| {
-                                                let thread_id = thread.id.to_string();
-                                                let status = format!("{:?}", thread.status).to_lowercase();
+                                                let view_model = CommentThreadListItemViewModel::from_summary(&thread);
+                                                let thread_id = view_model.id.clone();
                                                 let thread_query_writer = select_thread_query_writer.clone();
                                                 view! {
                                                     <button
@@ -322,10 +325,10 @@ pub fn CommentsAdmin() -> impl IntoView {
                                                         <div class="space-y-1">
                                                             <div class="flex items-center justify-between gap-3">
                                                                 <span class="text-sm font-semibold text-card-foreground">
-                                                                    {format!("{}:{}", thread.target_type, thread.target_id)}
+                                                                    {view_model.target_label}
                                                                 </span>
                                                                 <span class="rounded-full border border-border px-2 py-1 text-[11px] text-muted-foreground">
-                                                                    {status}
+                                                                    {view_model.status_label}
                                                                 </span>
                                                             </div>
                                                             <div class="text-xs text-muted-foreground">
@@ -333,7 +336,7 @@ pub fn CommentsAdmin() -> impl IntoView {
                                                                     locale.get().as_str().into(),
                                                                     "comments.threads.count",
                                                                     "{count} comments",
-                                                                ).replace("{count}", &thread.comment_count.to_string())}
+                                                                ).replace("{count}", &view_model.comment_count.to_string())}
                                                             </div>
                                                         </div>
                                                     </button>
@@ -375,12 +378,14 @@ pub fn CommentsAdmin() -> impl IntoView {
                     <Suspense fallback=move || view! { <div class="h-72 animate-pulse rounded-xl bg-muted"></div> }>
                         {move || {
                             detail.get().map(|result| match result {
-                                Ok(detail) => view! {
+                                Ok(detail) => {
+                                    let detail_view_model = CommentThreadDetailViewModel::from_detail(&detail);
+                                    view! {
                                     <div class="space-y-4">
                                         <div class="rounded-xl border border-border bg-background/60 p-4 text-sm">
                                             <div class="text-xs uppercase tracking-wide text-muted-foreground">{thread_label.clone()}</div>
                                             <div class="mt-2 font-medium text-card-foreground">
-                                                {format!("{}:{}", detail.thread.target_type, detail.thread.target_id)}
+                                                {detail_view_model.target_label}
                                             </div>
                                             <div class="mt-2 text-xs text-muted-foreground">
                                                 {t(
@@ -388,13 +393,14 @@ pub fn CommentsAdmin() -> impl IntoView {
                                                     "comments.detail.statusLine",
                                                     "{count} comments, status {status}",
                                                 )
-                                                .replace("{count}", &detail.thread.comment_count.to_string())
-                                                .replace("{status}", &format!("{:?}", detail.thread.status))}
+                                                .replace("{count}", &detail_view_model.comment_count.to_string())
+                                                .replace("{status}", detail_view_model.status_label)}
                                             </div>
                                         </div>
                                         <div class="space-y-3">
                                             {detail.comments.into_iter().map(|comment| {
-                                                let comment_id = comment.id.to_string();
+                                                let comment_view_model = CommentRowViewModel::from_record(&comment);
+                                                let comment_id = comment_view_model.id.clone();
                                                 view! {
                                                     <div class="rounded-xl border border-border p-4">
                                                         <div class="flex flex-wrap items-center justify-between gap-3">
@@ -404,8 +410,8 @@ pub fn CommentsAdmin() -> impl IntoView {
                                                                     "comments.detail.authorLine",
                                                                     "author {author} · {created_at}",
                                                                 )
-                                                                .replace("{author}", &comment.author_id.to_string())
-                                                                .replace("{created_at}", comment.created_at.as_str())}
+                                                                .replace("{author}", comment_view_model.author_id.as_str())
+                                                                .replace("{created_at}", comment_view_model.created_at.as_str())}
                                                             </div>
                                                             <div class="flex flex-wrap gap-2">
                                                                 <StatusButton
@@ -436,7 +442,7 @@ pub fn CommentsAdmin() -> impl IntoView {
                                                             </div>
                                                         </div>
                                                         <div class="mt-3 rounded-lg bg-muted/40 px-3 py-2 text-sm text-card-foreground">
-                                                            {comment.body}
+                                                            {comment_view_model.body}
                                                         </div>
                                                         <div class="mt-2 text-xs text-muted-foreground">
                                                             {t(
@@ -444,15 +450,16 @@ pub fn CommentsAdmin() -> impl IntoView {
                                                                 "comments.detail.localeLine",
                                                                 "locale {requested} -> {effective}",
                                                             )
-                                                            .replace("{requested}", comment.requested_locale.as_str())
-                                                            .replace("{effective}", comment.effective_locale.as_str())}
+                                                            .replace("{requested}", comment_view_model.requested_locale.as_str())
+                                                            .replace("{effective}", comment_view_model.effective_locale.as_str())}
                                                         </div>
                                                     </div>
                                                 }
                                             }).collect_view()}
                                         </div>
                                     </div>
-                                }.into_any(),
+                                }.into_any()
+                                },
                                 Err(err) => view! {
                                     <div class="rounded-xl border border-dashed border-border px-4 py-8 text-sm text-muted-foreground">
                                         {format!("{err}")}
