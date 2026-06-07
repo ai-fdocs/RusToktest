@@ -10,10 +10,11 @@ use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
 use crate::core::{
     build_product_admin_editor_form_state, build_product_admin_editor_view_model,
     build_product_admin_list_item_view_model, build_product_admin_save_command,
-    build_selected_product_summary_view_model, empty_product_admin_editor_form_state,
-    format_known_shipping_profiles, primary_catalog_currency, shipping_profile_choice_label,
-    text_or_none, ProductAdminDraftForm, ProductAdminEditorFormState,
-    ProductAdminPricingPreviewState, ProductAdminSaveMode, SelectedProductSummaryViewModel,
+    build_product_admin_status_mutation_command, build_selected_product_summary_view_model,
+    empty_product_admin_editor_form_state, format_known_shipping_profiles,
+    primary_catalog_currency, shipping_profile_choice_label, text_or_none, ProductAdminDraftForm,
+    ProductAdminEditorFormState, ProductAdminPricingPreviewState, ProductAdminSaveMode,
+    ProductAdminStatusTarget, SelectedProductSummaryViewModel,
 };
 use crate::i18n::t;
 use crate::model::{ProductAdminBootstrap, ProductDetail, ProductPricingDetail};
@@ -476,11 +477,11 @@ pub fn ProductAdmin() -> impl IntoView {
                                         let item_shipping_profile_label = item_view_model.shipping_profile_label.clone();
                                         let show_shipping_profile = item_shipping_profile_label.is_some();
                                         let item_timestamp_label = item_view_model.timestamp_label.clone();
-                                        let bootstrap_loading_label_for_publish = bootstrap_loading_label.clone();
+                                        let item_locale_for_publish = item_locale_for_buttons.clone();
+                                        let item_locale_for_draft = item_locale_for_buttons.clone();
+                                        let item_locale_for_archive = item_locale_for_buttons.clone();
                                         let change_status_error_label_for_publish = change_status_error_label.clone();
-                                        let bootstrap_loading_label_for_draft = bootstrap_loading_label.clone();
                                         let change_status_error_label_for_draft = change_status_error_label.clone();
-                                        let bootstrap_loading_label_for_archive = bootstrap_loading_label.clone();
                                         let change_status_error_label_for_archive = change_status_error_label.clone();
                                         let bootstrap_loading_label_for_delete = bootstrap_loading_label.clone();
                                         let delete_returned_false_label_for_delete = delete_returned_false_label.clone();
@@ -517,8 +518,8 @@ pub fn ProductAdmin() -> impl IntoView {
                                                             token.get_untracked(),
                                                             tenant.get_untracked(),
                                                             publish_id.clone(),
-                                                            "ACTIVE",
-                                                            bootstrap_loading_label_for_publish.clone(),
+                                                            ProductAdminStatusTarget::Active,
+                                                            item_locale_for_publish.clone(),
                                                             change_status_error_label_for_publish.clone(),
                                                             set_busy,
                                                             set_error,
@@ -531,8 +532,8 @@ pub fn ProductAdmin() -> impl IntoView {
                                                             token.get_untracked(),
                                                             tenant.get_untracked(),
                                                             draft_id.clone(),
-                                                            "DRAFT",
-                                                            bootstrap_loading_label_for_draft.clone(),
+                                                            ProductAdminStatusTarget::Draft,
+                                                            item_locale_for_draft.clone(),
                                                             change_status_error_label_for_draft.clone(),
                                                             set_busy,
                                                             set_error,
@@ -545,8 +546,8 @@ pub fn ProductAdmin() -> impl IntoView {
                                                             token.get_untracked(),
                                                             tenant.get_untracked(),
                                                             archive_id.clone(),
-                                                            "ARCHIVED",
-                                                            bootstrap_loading_label_for_archive.clone(),
+                                                            ProductAdminStatusTarget::Archived,
+                                                            item_locale_for_archive.clone(),
                                                             change_status_error_label_for_archive.clone(),
                                                             set_busy,
                                                             set_error,
@@ -974,28 +975,32 @@ fn mutate_status(
     token: Option<String>,
     tenant: Option<String>,
     product_id: String,
-    status: &str,
-    bootstrap_loading_label: String,
+    status: ProductAdminStatusTarget,
+    locale: Option<String>,
     change_status_error_label: String,
     set_busy: WriteSignal<bool>,
     set_error: WriteSignal<Option<String>>,
     set_refresh_nonce: WriteSignal<u64>,
 ) {
-    let Some(bootstrap) = bootstrap else {
-        set_error.set(Some(bootstrap_loading_label));
-        return;
-    };
-    let status = status.to_string();
+    let command =
+        match build_product_admin_status_mutation_command(bootstrap.as_ref(), product_id, status) {
+            Ok(command) => command,
+            Err(err) => {
+                set_error.set(Some(err.message(locale.as_deref())));
+                return;
+            }
+        };
+
     set_busy.set(true);
     set_error.set(None);
     spawn_local(async move {
         match transport::change_product_status(
             token,
             tenant,
-            bootstrap.current_tenant.id,
-            bootstrap.me.id,
-            product_id,
-            status.as_str(),
+            command.tenant_id,
+            command.actor_id,
+            command.product_id,
+            command.status.as_graphql_status(),
         )
         .await
         {

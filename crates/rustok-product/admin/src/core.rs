@@ -484,6 +484,64 @@ pub(crate) fn build_product_admin_editor_form_state(
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ProductAdminStatusTarget {
+    Active,
+    Draft,
+    Archived,
+}
+
+impl ProductAdminStatusTarget {
+    pub(crate) fn as_graphql_status(self) -> &'static str {
+        match self {
+            Self::Active => "ACTIVE",
+            Self::Draft => "DRAFT",
+            Self::Archived => "ARCHIVED",
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ProductAdminStatusMutationCommand {
+    pub tenant_id: String,
+    pub actor_id: String,
+    pub product_id: String,
+    pub status: ProductAdminStatusTarget,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum ProductAdminStatusMutationValidationError {
+    BootstrapUnavailable,
+}
+
+impl ProductAdminStatusMutationValidationError {
+    pub(crate) fn message(&self, locale: Option<&str>) -> String {
+        match self {
+            Self::BootstrapUnavailable => t(
+                locale,
+                "product.error.bootstrapLoading",
+                "Bootstrap is still loading.",
+            ),
+        }
+    }
+}
+
+pub(crate) fn build_product_admin_status_mutation_command(
+    bootstrap: Option<&ProductAdminBootstrap>,
+    product_id: String,
+    status: ProductAdminStatusTarget,
+) -> Result<ProductAdminStatusMutationCommand, ProductAdminStatusMutationValidationError> {
+    let bootstrap =
+        bootstrap.ok_or(ProductAdminStatusMutationValidationError::BootstrapUnavailable)?;
+
+    Ok(ProductAdminStatusMutationCommand {
+        tenant_id: bootstrap.current_tenant.id.clone(),
+        actor_id: bootstrap.me.id.clone(),
+        product_id,
+        status,
+    })
+}
+
 pub(crate) fn build_product_admin_save_command(
     form: ProductAdminDraftForm,
     editing_product_id: Option<String>,
@@ -680,6 +738,39 @@ mod tests {
             inventory_quantity: 7,
             publish_now: true,
         }
+    }
+
+    #[test]
+    fn product_admin_status_mutation_command_prepares_transport_payload() {
+        let command = build_product_admin_status_mutation_command(
+            Some(&admin_bootstrap()),
+            "product-1".to_string(),
+            ProductAdminStatusTarget::Archived,
+        )
+        .expect("status command");
+
+        assert_eq!(command.tenant_id, "tenant-1");
+        assert_eq!(command.actor_id, "user-1");
+        assert_eq!(command.product_id, "product-1");
+        assert_eq!(command.status.as_graphql_status(), "ARCHIVED");
+    }
+
+    #[test]
+    fn product_admin_status_mutation_command_validates_bootstrap() {
+        assert_eq!(
+            build_product_admin_status_mutation_command(
+                None,
+                "product-1".to_string(),
+                ProductAdminStatusTarget::Draft,
+            )
+            .unwrap_err(),
+            ProductAdminStatusMutationValidationError::BootstrapUnavailable
+        );
+        assert_eq!(
+            ProductAdminStatusTarget::Active.as_graphql_status(),
+            "ACTIVE"
+        );
+        assert_eq!(ProductAdminStatusTarget::Draft.as_graphql_status(), "DRAFT");
     }
 
     #[test]

@@ -5,9 +5,9 @@
 
 ## Execution checkpoint
 
-- Current phase: ffa_product_admin_editor_form_state_slice
-- Last checkpoint: Product admin editor reset/apply state now builds through `ProductAdminEditorFormState` in `admin/src/core.rs`; the Leptos adapter only applies prepared signal values and keeps selected-product ownership at the UI boundary.
-- Next step: Continue FFA-first sequencing by extracting remaining product status mutation command preparation into typed core helpers without changing the current GraphQL transport contract.
+- Current phase: ffa_product_admin_status_command_slice
+- Last checkpoint: Product admin status mutation command preparation now builds through `ProductAdminStatusMutationCommand` and typed `ProductAdminStatusTarget` in `admin/src/core.rs`; the Leptos adapter dispatches the prepared command through `admin/src/transport.rs` and no longer owns raw status strings or bootstrap mapping for publish/draft/archive actions.
+- Next step: Continue FFA-first sequencing by extracting remaining delete-product command preparation into typed core helpers without changing the current GraphQL transport contract.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
 - Last updated at (UTC): 2026-06-07T00:00:00Z
@@ -32,6 +32,7 @@
   - FFA slice: product admin editor shell state (create/edit mode, title, subtitle and submit label) is composed by `ProductAdminEditorViewModel` in `admin/src/core.rs`, keeping Leptos editor rendering as markup/action binding only;
   - FFA slice: product admin submit validation, locale/bootstrap guardrails, create/update mode selection and `ProductDraft` command preparation are composed by `ProductAdminSaveCommand` / `ProductAdminDraftForm` in `admin/src/core.rs`; Leptos submit handling remains a thin signal/effect adapter over `admin/src/transport.rs`;
   - FFA slice: product admin editor reset/apply signal values are composed by `ProductAdminEditorFormState` in `admin/src/core.rs`, keeping product-to-form mapping and default form policy outside Leptos;
+  - FFA slice: product admin publish/draft/archive command preparation is composed by `ProductAdminStatusMutationCommand` / `ProductAdminStatusTarget` in `admin/src/core.rs`; Leptos status actions dispatch typed core commands over `admin/src/transport.rs`;
   - дальнейшее повышение статуса выполняется только вместе с verification evidence и обновлением local+central docs.
 - Last verified at (UTC): 2026-06-07T00:00:00Z
 - Owner: `rustok-product` module team
@@ -57,7 +58,8 @@
   `ProductAdminListItemViewModel`, editor shell state собирается через
   `ProductAdminEditorViewModel`, а submit command/validation state собирается через
   `ProductAdminSaveCommand` / `ProductAdminDraftForm`, а editor reset/apply mapping — через
-  `ProductAdminEditorFormState` в `admin/src/core.rs`; Leptos слой
+  `ProductAdminEditorFormState`, а publish/draft/archive command mapping — через
+  `ProductAdminStatusMutationCommand` / `ProductAdminStatusTarget` в `admin/src/core.rs`; Leptos слой
   изолирован в `admin/src/ui/leptos.rs` как render/effect adapter;
 - module-owned storefront UI пакет `rustok-product/storefront` уже поднят и
   подключён в manifest-driven storefront composition для published catalog
