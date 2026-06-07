@@ -291,10 +291,32 @@ function assertCommercePublicChannelAvailabilityBoundary() {
   );
 }
 
+function assertInventoryDocsBoundaryEvidence() {
+  const planPath = "crates/rustok-inventory/docs/implementation-plan.md";
+  const plan = readRepo(planPath);
+
+  assertContains(
+    plan,
+    "- [x] перевести текущие inventory admin UI stock operations на inventory-owned native/API mutations",
+    `${planPath}: implementation plan must mark current inventory admin stock operations as native/API covered`,
+  );
+  assertContains(
+    plan,
+    "verification/CI evidence slice",
+    `${planPath}: next step must move to verification/CI evidence after current admin stock operations are native`,
+  );
+  assertNotContains(
+    plan,
+    "- [ ] перевести оставшиеся inventory admin UI stock operations",
+    `${planPath}: implementation plan must not keep stale unchecked admin UI stock-operation split item`,
+  );
+}
+
 
 assertInventoryServiceWriteResults();
 assertInventoryAdminTransportBoundary();
 assertCommercePublicChannelAvailabilityBoundary();
+assertInventoryDocsBoundaryEvidence();
 
 if (failures.length > 0) {
   console.error("Inventory admin boundary check failed:");

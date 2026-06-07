@@ -195,6 +195,7 @@ function withFixture(options = {}) {
   writeFixtureFile(root, "crates/rustok-inventory/admin/locales/en.json", "{\"inventory.subtitle\":\"native inventory facade\"}\n");
   writeFixtureFile(root, "crates/rustok-inventory/admin/locales/ru.json", "{\"inventory.subtitle\":\"native inventory facade\"}\n");
   writeFixtureFile(root, "crates/rustok-inventory/admin/Cargo.toml", "[package]\nname = \"rustok-inventory-admin\"\n");
+  writeFixtureFile(root, "crates/rustok-inventory/docs/implementation-plan.md", "- Next step: Перейти к завершающему verification/CI evidence slice для inventory boundary.\n- [x] перевести текущие inventory admin UI stock operations на inventory-owned native/API mutations\n");
   for (const relativePath of [
     "crates/rustok-commerce/src/graphql/mutation.rs",
     "crates/rustok-commerce/src/services/checkout.rs",
