@@ -18,10 +18,7 @@
 - backend read-side для админки теперь имеет inventory-owned service/DTO в
   `src/services/admin_read.rs`, который отдаёт tenant-scoped product/variant/price/translations
   model для native server-function read transport;
-- admin UI read-side теперь проходит только через inventory-owned core/facade в `admin/src/core.rs`,
-  `admin/src/api.rs`, `admin/src/native.rs`, native `#[server]` functions и explicit Leptos adapter
-  `admin/src/ui/leptos.rs`; прежний commerce GraphQL transitional adapter удалён вместе с
-  `admin/src/transport.rs`, `leptos-graphql` и token/tenant-slug fallback параметрами;
+- admin UI read-side теперь проходит только через inventory-owned `admin/src/core.rs`, `admin/src/transport/mod.rs`, explicit `admin/src/transport/native_server_adapter.rs`, `admin/src/native.rs` native `#[server]` functions и explicit Leptos adapter `admin/src/ui/leptos.rs`; прежний commerce GraphQL transitional adapter удалён вместе с legacy `admin/src/transport.rs`, pre-FFA `admin/src/api.rs`, `leptos-graphql` и token/tenant-slug fallback параметрами;
 - dedicated native inventory write/validation endpoints `inventory/variant/set-quantity`,
   `inventory/variant/adjust-quantity`, `inventory/variant/reserve-quantity`,
   `inventory/variant/release-reservation` и `inventory/variant/check-availability` уже вынесены

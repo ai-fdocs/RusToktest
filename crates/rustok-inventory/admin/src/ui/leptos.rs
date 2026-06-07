@@ -51,7 +51,7 @@ pub fn InventoryAdmin() -> impl IntoView {
 
     let bootstrap = local_resource(
         move || (),
-        move |()| async move { crate::api::fetch_bootstrap().await },
+        move |()| async move { crate::transport::fetch_bootstrap().await },
     );
 
     let products = local_resource(
@@ -64,8 +64,8 @@ pub fn InventoryAdmin() -> impl IntoView {
             )
         },
         move |(_, locale_value, search_value, status_value)| async move {
-            let bootstrap = crate::api::fetch_bootstrap().await?;
-            crate::api::fetch_products(
+            let bootstrap = crate::transport::fetch_bootstrap().await?;
+            crate::transport::fetch_products(
                 bootstrap.current_tenant.id,
                 locale_value,
                 text_or_none(search_value),
@@ -114,7 +114,8 @@ pub fn InventoryAdmin() -> impl IntoView {
         set_error.set(None);
         set_notice.set(None);
         spawn_local(async move {
-            match crate::api::fetch_product(current_tenant.id, product_id, locale_value).await {
+            match crate::transport::fetch_product(current_tenant.id, product_id, locale_value).await
+            {
                 Ok(Some(product)) => {
                     set_selected_id.set(Some(product.id.clone()));
                     set_selected.set(Some(product));
@@ -531,7 +532,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                                                         set_error.set(None);
                                                                         set_notice.set(None);
                                                                         spawn_local(async move {
-                                                                            match crate::api::adjust_variant_quantity(tenant_id, variant_id.clone(), -1).await {
+                                                                            match crate::transport::adjust_variant_quantity(tenant_id, variant_id.clone(), -1).await {
                                                                                 Ok(result) => {
                                                                                     set_selected.update(|selected| {
                                                                                         if let Some(detail) = selected {
@@ -569,7 +570,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                                                         set_error.set(None);
                                                                         set_notice.set(None);
                                                                         spawn_local(async move {
-                                                                            match crate::api::adjust_variant_quantity(tenant_id, variant_id.clone(), 1).await {
+                                                                            match crate::transport::adjust_variant_quantity(tenant_id, variant_id.clone(), 1).await {
                                                                                 Ok(result) => {
                                                                                     set_selected.update(|selected| {
                                                                                         if let Some(detail) = selected {
@@ -613,7 +614,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                                                         set_error.set(None);
                                                                         set_notice.set(None);
                                                                         spawn_local(async move {
-                                                                            match crate::api::set_variant_quantity(tenant_id, variant_id.clone(), quantity).await {
+                                                                            match crate::transport::set_variant_quantity(tenant_id, variant_id.clone(), quantity).await {
                                                                                 Ok(result) => {
                                                                                     set_selected.update(|selected| {
                                                                                         if let Some(detail) = selected {
@@ -662,7 +663,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                                                         set_error.set(None);
                                                                         set_notice.set(None);
                                                                         spawn_local(async move {
-                                                                            match crate::api::check_variant_availability(tenant_id, variant_id, quantity).await {
+                                                                            match crate::transport::check_variant_availability(tenant_id, variant_id, quantity).await {
                                                                                 Ok(result) => {
                                                                                     let label = if result.available { available_label } else { unavailable_label };
                                                                                     set_notice.set(Some(format!("{label} ({variant_title})")));
@@ -705,7 +706,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                                                         set_error.set(None);
                                                                         set_notice.set(None);
                                                                         spawn_local(async move {
-                                                                            match crate::api::release_reservation_quantity(tenant_id, variant_id.clone(), quantity).await {
+                                                                            match crate::transport::release_reservation_quantity(tenant_id, variant_id.clone(), quantity).await {
                                                                                 Ok(result) => {
                                                                                     set_selected.update(|selected| {
                                                                                         if let Some(detail) = selected {
@@ -754,7 +755,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                                                         set_error.set(None);
                                                                         set_notice.set(None);
                                                                         spawn_local(async move {
-                                                                            match crate::api::reserve_variant_quantity(tenant_id, variant_id.clone(), quantity).await {
+                                                                            match crate::transport::reserve_variant_quantity(tenant_id, variant_id.clone(), quantity).await {
                                                                                 Ok(result) => {
                                                                                     set_selected.update(|selected| {
                                                                                         if let Some(detail) = selected {

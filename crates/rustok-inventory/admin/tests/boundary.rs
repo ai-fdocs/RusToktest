@@ -30,10 +30,11 @@ fn graphql_runtime_details_are_removed_from_inventory_admin_package() {
     ];
 
     for source_path in [
-        "src/api.rs",
         "src/core.rs",
         "src/model.rs",
         "src/native.rs",
+        "src/transport/mod.rs",
+        "src/transport/native_server_adapter.rs",
         "src/ui/leptos.rs",
         "src/ui/mod.rs",
         "src/lib.rs",
@@ -54,6 +55,10 @@ fn graphql_runtime_details_are_removed_from_inventory_admin_package() {
         !manifest_dir().join("src/transport.rs").exists(),
         "src/transport.rs must stay removed after native-only read parity replaced the GraphQL adapter"
     );
+    assert!(
+        !manifest_dir().join("src/api.rs").exists(),
+        "src/api.rs must stay removed after FFA transport facade split"
+    );
 }
 
 #[test]
@@ -68,7 +73,6 @@ fn package_root_exports_ui_only_without_exposing_transport_adapter() {
     for forbidden_export in [
         "pub mod transport",
         "pub use transport",
-        "mod transport",
         "pub mod core",
         "pub use core",
         "pub mod native",
@@ -146,58 +150,63 @@ fn native_write_path_targets_inventory_service() {
 
 #[test]
 fn native_write_facades_stay_native_without_graphql_fallback() {
-    let api = read_source("src/api.rs");
+    let transport = read_source("src/transport/mod.rs");
 
     for (function_name, required_markers) in [
         (
             "set_variant_quantity",
             [
                 "set_quantity_request",
-                "crate::native::set_variant_quantity",
+                "native_server_adapter::set_variant_quantity",
             ],
         ),
         (
             "adjust_variant_quantity",
             [
                 "adjust_quantity_request",
-                "crate::native::adjust_variant_quantity",
+                "native_server_adapter::adjust_variant_quantity",
             ],
         ),
         (
             "reserve_variant_quantity",
             [
                 "reserve_quantity_request",
-                "crate::native::reserve_variant_quantity",
+                "native_server_adapter::reserve_variant_quantity",
             ],
         ),
         (
             "check_variant_availability",
             [
                 "availability_check_request",
-                "crate::native::check_variant_availability",
+                "native_server_adapter::check_variant_availability",
             ],
         ),
         (
             "release_reservation_quantity",
             [
                 "release_reservation_request",
-                "crate::native::release_reservation_quantity",
+                "native_server_adapter::release_reservation_quantity",
             ],
         ),
     ] {
-        let start = api
+        let start = transport
             .find(&format!("pub async fn {function_name}"))
-            .unwrap_or_else(|| panic!("src/api.rs should expose {} facade", function_name));
-        let end = api[start..]
+            .unwrap_or_else(|| {
+                panic!(
+                    "src/transport/mod.rs should expose {} facade",
+                    function_name
+                )
+            });
+        let end = transport[start..]
             .find("\npub async fn ")
             .map(|offset| start + offset)
             .or_else(|| {
-                api[start..]
+                transport[start..]
                     .find("#[cfg(test)]")
                     .map(|offset| start + offset)
             })
-            .unwrap_or(api.len());
-        let write_facade = &api[start..end];
+            .unwrap_or(transport.len());
+        let write_facade = &transport[start..end];
 
         for required in required_markers {
             assert!(
@@ -208,7 +217,7 @@ fn native_write_facades_stay_native_without_graphql_fallback() {
         }
         assert!(
             write_facade.contains(".map_err(Into::into)"),
-            "{} facade must map native server errors through ApiError",
+            "{} facade must map native server errors through InventoryTransportError",
             function_name
         );
 
@@ -229,17 +238,17 @@ fn native_write_facades_stay_native_without_graphql_fallback() {
 }
 
 #[test]
-fn ui_stock_quantity_controls_use_inventory_api_facade_only() {
+fn ui_stock_quantity_controls_use_inventory_transport_facade_only() {
     let ui = read_source("src/ui/leptos.rs");
 
     for required in [
         "parse_set_quantity",
         "parse_availability_quantity",
-        "crate::api::set_variant_quantity",
-        "crate::api::adjust_variant_quantity",
-        "crate::api::reserve_variant_quantity",
-        "crate::api::release_reservation_quantity",
-        "crate::api::check_variant_availability",
+        "crate::transport::set_variant_quantity",
+        "crate::transport::adjust_variant_quantity",
+        "crate::transport::reserve_variant_quantity",
+        "crate::transport::release_reservation_quantity",
+        "crate::transport::check_variant_availability",
         "inventory.action.checkAvailability",
         "inventory.error.invalidAvailabilityQuantity",
         "inventory.error.invalidReservationQuantity",
@@ -270,7 +279,7 @@ fn ui_stock_quantity_controls_use_inventory_api_facade_only() {
     ] {
         assert!(
             !ui.contains(forbidden),
-            "inventory UI must not bypass the API facade or use removed fallback marker `{}`",
+            "inventory UI must not bypass the transport facade or use removed fallback marker `{}`",
             forbidden
         );
     }
@@ -282,7 +291,7 @@ fn native_only_graphql_adapter_removal_is_documented() {
 
     for marker in [
         "Native-only transport status",
-        "CommerceGraphqlInventoryReadAdapter has been removed",
+        "`CommerceGraphqlInventoryReadAdapter` has been removed",
         "No GraphQL fallback remains",
     ] {
         assert!(
@@ -390,7 +399,7 @@ fn native_read_mapper_keeps_backend_read_model_parity() {
 fn native_write_path_returns_quantity_contract_not_bare_integer() {
     let model = read_source("src/model.rs");
     let native = read_source("src/native.rs");
-    let api = read_source("src/api.rs");
+    let transport = read_source("src/transport/mod.rs");
     let core = read_source("src/core.rs");
     let ui = read_source("src/ui/leptos.rs");
     let backend = read_source("../src/services/inventory.rs");
@@ -432,22 +441,22 @@ fn native_write_path_returns_quantity_contract_not_bare_integer() {
         );
     }
 
-    for source in [&native, &api] {
+    for source in [&native, &transport] {
         assert!(
             source.contains("Result<InventoryQuantityWriteResult"),
-            "native/API quantity write path must return InventoryQuantityWriteResult instead of a bare i32"
+            "native/transport quantity write path must return InventoryQuantityWriteResult instead of a bare i32"
         );
         assert!(
             source.contains("Result<InventoryReservationWriteResult"),
-            "native/API reservation write path must return InventoryReservationWriteResult instead of a bare unit"
+            "native/transport reservation write path must return InventoryReservationWriteResult instead of a bare unit"
         );
         assert!(
             source.contains("Result<InventoryAvailabilityCheckResult"),
-            "native/API availability check path must return InventoryAvailabilityCheckResult instead of a bare bool"
+            "native/transport availability check path must return InventoryAvailabilityCheckResult instead of a bare bool"
         );
         assert!(
             source.contains("Result<InventoryReservationReleaseWriteResult"),
-            "native/API reservation release path must return InventoryReservationReleaseWriteResult instead of a bare unit"
+            "native/transport reservation release path must return InventoryReservationReleaseWriteResult instead of a bare unit"
         );
     }
 
@@ -495,8 +504,8 @@ fn native_write_path_returns_quantity_contract_not_bare_integer() {
         "UI must refresh the quantity input from the reservation available quantity contract"
     );
     assert!(
-        ui.contains("crate::api::release_reservation_quantity"),
-        "UI reservation release must go through the inventory-owned API facade"
+        ui.contains("crate::transport::release_reservation_quantity"),
+        "UI reservation release must go through the inventory-owned transport facade"
     );
     assert!(
         ui.contains(
@@ -509,8 +518,8 @@ fn native_write_path_returns_quantity_contract_not_bare_integer() {
         "UI reservation release must consume the typed released quantity result contract"
     );
     assert!(
-        ui.contains("crate::api::check_variant_availability"),
-        "UI availability validation must go through the inventory-owned API facade"
+        ui.contains("crate::transport::check_variant_availability"),
+        "UI availability validation must go through the inventory-owned transport facade"
     );
     assert!(
         ui.contains("if result.available"),

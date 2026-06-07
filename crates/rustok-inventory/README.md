@@ -30,9 +30,7 @@
 - Depends on `rustok-product` data model through variant references.
 - Used by `rustok-commerce` as the umbrella/root module of the ecommerce family.
 - `apps/admin` consumes `rustok-inventory-admin` through manifest-driven composition;
-  the admin package now uses native Leptos server functions backed by
-  `AdminInventoryReadService` as the only read transport, with the previous transitional
-  commerce GraphQL adapter removed, and uses native inventory-owned set/adjust/reserve/release
+  the admin package now routes Leptos UI through a private `transport/` facade and explicit native server-function adapter backed by `AdminInventoryReadService`, with the previous transitional commerce GraphQL adapter and pre-FFA `api.rs` facade removed, and uses native inventory-owned set/adjust/reserve/release
   quantity write endpoints plus check-availability validation for targeted stock corrections,
   +/-1 adjustments, reservation flows, and availability checks; set-quantity targets available
   quantity while preserving reserved units, while remaining non-admin write parity is split
