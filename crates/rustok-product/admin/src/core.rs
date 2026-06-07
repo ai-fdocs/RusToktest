@@ -755,6 +755,63 @@ pub(crate) fn product_admin_list_actions_disabled(is_busy: bool) -> bool {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) enum ProductAdminListStateKind {
+    Loading,
+    Empty,
+    Error,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ProductAdminListStateViewModel {
+    pub kind: ProductAdminListStateKind,
+    pub message: String,
+    pub container_class: &'static str,
+}
+
+pub(crate) fn build_product_admin_list_loading_view_model(
+    locale: Option<&str>,
+) -> ProductAdminListStateViewModel {
+    ProductAdminListStateViewModel {
+        kind: ProductAdminListStateKind::Loading,
+        message: t(locale, "product.list.loading", "Loading products..."),
+        container_class: PRODUCT_ADMIN_LIST_NEUTRAL_STATE_CLASS,
+    }
+}
+
+pub(crate) fn build_product_admin_list_empty_view_model(
+    locale: Option<&str>,
+) -> ProductAdminListStateViewModel {
+    ProductAdminListStateViewModel {
+        kind: ProductAdminListStateKind::Empty,
+        message: t(locale, "product.list.empty", "No products yet."),
+        container_class: PRODUCT_ADMIN_LIST_NEUTRAL_STATE_CLASS,
+    }
+}
+
+pub(crate) fn build_product_admin_list_error_view_model(
+    locale: Option<&str>,
+    error: impl std::fmt::Display,
+) -> ProductAdminListStateViewModel {
+    ProductAdminListStateViewModel {
+        kind: ProductAdminListStateKind::Error,
+        message: format!(
+            "{}: {error}",
+            t(
+                locale,
+                "product.error.loadProducts",
+                "Failed to load products"
+            )
+        ),
+        container_class: PRODUCT_ADMIN_LIST_ERROR_STATE_CLASS,
+    }
+}
+
+const PRODUCT_ADMIN_LIST_NEUTRAL_STATE_CLASS: &str =
+    "rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground";
+const PRODUCT_ADMIN_LIST_ERROR_STATE_CLASS: &str =
+    "rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive";
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ProductAdminListItemViewModel {
     pub id: String,
     pub status: String,
@@ -850,6 +907,24 @@ mod tests {
             inventory_quantity: 7,
             publish_now: true,
         }
+    }
+
+    #[test]
+    fn product_admin_list_state_view_models_keep_copy_and_classes_in_core() {
+        let loading = build_product_admin_list_loading_view_model(Some("en"));
+        assert_eq!(loading.kind, ProductAdminListStateKind::Loading);
+        assert_eq!(loading.message, "Loading products...");
+        assert!(loading.container_class.contains("border-dashed"));
+
+        let empty = build_product_admin_list_empty_view_model(Some("en"));
+        assert_eq!(empty.kind, ProductAdminListStateKind::Empty);
+        assert_eq!(empty.message, "No products yet.");
+        assert!(empty.container_class.contains("border-dashed"));
+
+        let error = build_product_admin_list_error_view_model(Some("en"), "network");
+        assert_eq!(error.kind, ProductAdminListStateKind::Error);
+        assert_eq!(error.message, "Failed to load products: network");
+        assert!(error.container_class.contains("border-destructive"));
     }
 
     #[test]

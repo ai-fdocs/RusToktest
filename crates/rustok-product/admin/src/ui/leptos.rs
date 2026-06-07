@@ -9,12 +9,14 @@ use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
 
 use crate::core::{
     build_product_admin_editor_form_state, build_product_admin_editor_view_model,
-    build_product_admin_list_item_view_model, build_product_admin_save_command,
-    build_product_admin_status_mutation_command, build_selected_product_summary_view_model,
-    empty_product_admin_editor_form_state, format_known_shipping_profiles,
-    primary_catalog_currency, shipping_profile_choice_label, text_or_none, ProductAdminDraftForm,
-    ProductAdminEditorFormState, ProductAdminPricingPreviewState, ProductAdminSaveMode,
-    ProductAdminStatusTarget, SelectedProductSummaryViewModel,
+    build_product_admin_list_empty_view_model, build_product_admin_list_error_view_model,
+    build_product_admin_list_item_view_model, build_product_admin_list_loading_view_model,
+    build_product_admin_save_command, build_product_admin_status_mutation_command,
+    build_selected_product_summary_view_model, empty_product_admin_editor_form_state,
+    format_known_shipping_profiles, primary_catalog_currency, shipping_profile_choice_label,
+    text_or_none, ProductAdminDraftForm, ProductAdminEditorFormState,
+    ProductAdminPricingPreviewState, ProductAdminSaveMode, ProductAdminStatusTarget,
+    SelectedProductSummaryViewModel,
 };
 use crate::i18n::t;
 use crate::model::{ProductAdminBootstrap, ProductDetail, ProductPricingDetail};
@@ -427,21 +429,37 @@ pub fn ProductAdmin() -> impl IntoView {
 
                     <div class="mt-5 space-y-3">
                         {move || match products.get() {
-                            None => view! {
-                                <div class="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                                    {t(ui_locale_for_list.as_deref(), "product.list.loading", "Loading products...")}
-                                </div>
-                            }.into_any(),
-                            Some(Err(err)) => view! {
-                                <div class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                                    {format!("{}: {err}", t(ui_locale_for_list.as_deref(), "product.error.loadProducts", "Failed to load products"))}
-                                </div>
-                            }.into_any(),
-                            Some(Ok(list)) if list.items.is_empty() => view! {
-                                <div class="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                                    {t(ui_locale_for_list.as_deref(), "product.list.empty", "No products yet.")}
-                                </div>
-                            }.into_any(),
+                            None => {
+                                let state = build_product_admin_list_loading_view_model(
+                                    ui_locale_for_list.as_deref(),
+                                );
+                                view! {
+                                    <div class=state.container_class>
+                                        {state.message}
+                                    </div>
+                                }.into_any()
+                            },
+                            Some(Err(err)) => {
+                                let state = build_product_admin_list_error_view_model(
+                                    ui_locale_for_list.as_deref(),
+                                    err,
+                                );
+                                view! {
+                                    <div class=state.container_class>
+                                        {state.message}
+                                    </div>
+                                }.into_any()
+                            },
+                            Some(Ok(list)) if list.items.is_empty() => {
+                                let state = build_product_admin_list_empty_view_model(
+                                    ui_locale_for_list.as_deref(),
+                                );
+                                view! {
+                                    <div class=state.container_class>
+                                        {state.message}
+                                    </div>
+                                }.into_any()
+                            },
                             Some(Ok(list)) => view! {
                                 <>
                                     {list.items.into_iter().map(|product| {

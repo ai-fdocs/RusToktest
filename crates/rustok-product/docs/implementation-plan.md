@@ -5,9 +5,9 @@
 
 ## Execution checkpoint
 
-- Current phase: ffa_product_admin_list_action_policy_slice
-- Last checkpoint: Product admin list action labels and busy-state availability policy now build through `ProductAdminListActionLabels` / `product_admin_list_actions_disabled` in `admin/src/core.rs`; the Leptos list adapter only binds prepared labels and applies the core disabled predicate.
-- Next step: Continue FFA-first sequencing by extracting remaining admin list empty/loading/error copy into typed core helpers without changing the current GraphQL transport contract.
+- Current phase: ffa_product_admin_list_state_policy_slice
+- Last checkpoint: Product admin list loading/empty/error state copy and container policy now build through `ProductAdminListStateViewModel` helpers in `admin/src/core.rs`; the Leptos list adapter only renders the prepared message/class around transport results.
+- Next step: Continue FFA-first sequencing by extracting remaining admin list filter/search option copy and route/query policy into typed core helpers without changing the current GraphQL transport contract.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
 - Last updated at (UTC): 2026-06-07T00:00:00Z
@@ -36,6 +36,7 @@
   - FFA slice: product admin delete command preparation is composed by `ProductAdminDeleteCommand` in `admin/src/core.rs`; Leptos delete action dispatches a typed core command and clears the editor through the shared core-owned empty form state;
   - FFA slice: product admin delete-result view policy (clear-selection intent, refresh intent, no-op/error copy) is composed by `ProductAdminDeleteResultViewModel` / `ProductAdminDeleteOutcome` in `admin/src/core.rs`; Leptos delete action only applies those intents;
   - FFA slice: product admin list action labels and busy-state availability are composed by `ProductAdminListActionLabels` / `product_admin_list_actions_disabled` in `admin/src/core.rs`; Leptos list actions bind prepared labels and use the core disabled predicate;
+  - FFA slice: product admin list loading/empty/error state copy and container policy are composed by `ProductAdminListStateViewModel` helpers in `admin/src/core.rs`; Leptos list rendering only binds the prepared state view-model;
   - дальнейшее повышение статуса выполняется только вместе с verification evidence и обновлением local+central docs.
 - Last verified at (UTC): 2026-06-07T00:00:00Z
 - Owner: `rustok-product` module team
@@ -65,7 +66,7 @@
   `ProductAdminStatusMutationCommand` / `ProductAdminStatusTarget`, а delete command mapping — через
   `ProductAdminDeleteCommand`, а delete-result policy — через
   `ProductAdminDeleteResultViewModel` / `ProductAdminDeleteOutcome`, а list action labels/availability — через
-  `ProductAdminListActionLabels` / `product_admin_list_actions_disabled` в `admin/src/core.rs`; Leptos слой
+  `ProductAdminListActionLabels` / `product_admin_list_actions_disabled`, а также loading/empty/error list state — через `ProductAdminListStateViewModel` helpers в `admin/src/core.rs`; Leptos слой
   изолирован в `admin/src/ui/leptos.rs` как render/effect adapter;
 - module-owned storefront UI пакет `rustok-product/storefront` уже поднят и
   подключён в manifest-driven storefront composition для published catalog
