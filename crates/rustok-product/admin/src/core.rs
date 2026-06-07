@@ -730,6 +730,31 @@ pub(crate) fn format_product_shipping_profile(locale: Option<&str>, slug: &str) 
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ProductAdminListActionLabels {
+    pub edit: String,
+    pub publish: String,
+    pub move_to_draft: String,
+    pub archive: String,
+    pub delete: String,
+}
+
+pub(crate) fn build_product_admin_list_action_labels(
+    locale: Option<&str>,
+) -> ProductAdminListActionLabels {
+    ProductAdminListActionLabels {
+        edit: t(locale, "product.action.edit", "Edit"),
+        publish: t(locale, "product.action.publish", "Publish"),
+        move_to_draft: t(locale, "product.action.moveToDraft", "Move to Draft"),
+        archive: t(locale, "product.action.archive", "Archive"),
+        delete: t(locale, "product.action.delete", "Delete"),
+    }
+}
+
+pub(crate) fn product_admin_list_actions_disabled(is_busy: bool) -> bool {
+    is_busy
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ProductAdminListItemViewModel {
     pub id: String,
     pub status: String,
@@ -1072,6 +1097,19 @@ mod tests {
             edit.subtitle,
             "Single-SKU catalog editor backed by the existing commerce GraphQL contract."
         );
+    }
+
+    #[test]
+    fn product_admin_list_action_labels_and_availability_are_core_owned() {
+        let labels = build_product_admin_list_action_labels(Some("en"));
+
+        assert_eq!(labels.edit, "Edit");
+        assert_eq!(labels.publish, "Publish");
+        assert_eq!(labels.move_to_draft, "Move to Draft");
+        assert_eq!(labels.archive, "Archive");
+        assert_eq!(labels.delete, "Delete");
+        assert!(product_admin_list_actions_disabled(true));
+        assert!(!product_admin_list_actions_disabled(false));
     }
 
     #[test]

@@ -467,6 +467,14 @@ pub fn ProductAdmin() -> impl IntoView {
                                         let item_shipping_profile_label = item_view_model.shipping_profile_label.clone();
                                         let show_shipping_profile = item_shipping_profile_label.is_some();
                                         let item_timestamp_label = item_view_model.timestamp_label.clone();
+                                        let action_labels = build_product_admin_list_action_labels(
+                                            item_locale_for_buttons.as_deref(),
+                                        );
+                                        let edit_label = action_labels.edit.clone();
+                                        let publish_label = action_labels.publish.clone();
+                                        let draft_label = action_labels.move_to_draft.clone();
+                                        let archive_label = action_labels.archive.clone();
+                                        let delete_label = action_labels.delete.clone();
                                         let item_locale_for_publish = item_locale_for_buttons.clone();
                                         let item_locale_for_draft = item_locale_for_buttons.clone();
                                         let item_locale_for_archive = item_locale_for_buttons.clone();
@@ -498,10 +506,10 @@ pub fn ProductAdmin() -> impl IntoView {
                                                         </p>
                                                     </div>
                                                     <div class="flex flex-wrap gap-2">
-                                                        <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || busy.get() on:click=move |_| item_query_writer.push_value(AdminQueryKey::ProductId.as_str(), edit_id.clone())>
-                                                            {t(item_locale_for_edit.as_deref(), "product.action.edit", "Edit")}
+                                                        <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || product_admin_list_actions_disabled(busy.get()) on:click=move |_| item_query_writer.push_value(AdminQueryKey::ProductId.as_str(), edit_id.clone())>
+                                                            {edit_label.clone()}
                                                         </button>
-                                                        <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || busy.get() on:click=move |_| mutate_status(
+                                                        <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || product_admin_list_actions_disabled(busy.get()) on:click=move |_| mutate_status(
                                                             bootstrap.get_untracked().and_then(Result::ok),
                                                             token.get_untracked(),
                                                             tenant.get_untracked(),
@@ -513,9 +521,9 @@ pub fn ProductAdmin() -> impl IntoView {
                                                             set_error,
                                                             set_refresh_nonce,
                                                         )>
-                                                            {t(item_locale_for_buttons.as_deref(), "product.action.publish", "Publish")}
+                                                            {publish_label.clone()}
                                                         </button>
-                                                        <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || busy.get() on:click=move |_| mutate_status(
+                                                        <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || product_admin_list_actions_disabled(busy.get()) on:click=move |_| mutate_status(
                                                             bootstrap.get_untracked().and_then(Result::ok),
                                                             token.get_untracked(),
                                                             tenant.get_untracked(),
@@ -527,9 +535,9 @@ pub fn ProductAdmin() -> impl IntoView {
                                                             set_error,
                                                             set_refresh_nonce,
                                                         )>
-                                                            {t(item_locale_for_buttons.as_deref(), "product.action.moveToDraft", "Move to Draft")}
+                                                            {draft_label.clone()}
                                                         </button>
-                                                        <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || busy.get() on:click=move |_| mutate_status(
+                                                        <button type="button" class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50" disabled=move || product_admin_list_actions_disabled(busy.get()) on:click=move |_| mutate_status(
                                                             bootstrap.get_untracked().and_then(Result::ok),
                                                             token.get_untracked(),
                                                             tenant.get_untracked(),
@@ -541,9 +549,9 @@ pub fn ProductAdmin() -> impl IntoView {
                                                             set_error,
                                                             set_refresh_nonce,
                                                         )>
-                                                            {t(item_locale_for_buttons.as_deref(), "product.action.archive", "Archive")}
+                                                            {archive_label.clone()}
                                                         </button>
-                                                        <button type="button" class="inline-flex rounded-lg border border-rose-200 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:opacity-50" disabled=move || busy.get() on:click=move |_| mutate_delete(
+                                                        <button type="button" class="inline-flex rounded-lg border border-rose-200 px-3 py-2 text-sm font-medium text-rose-700 transition hover:bg-rose-50 disabled:opacity-50" disabled=move || product_admin_list_actions_disabled(busy.get()) on:click=move |_| mutate_delete(
                                                             bootstrap.get_untracked().and_then(Result::ok),
                                                             token.get_untracked(),
                                                             tenant.get_untracked(),
@@ -571,7 +579,7 @@ pub fn ProductAdmin() -> impl IntoView {
                                                             set_error,
                                                             set_refresh_nonce,
                                                         )>
-                                                            {t(item_locale_for_buttons.as_deref(), "product.action.delete", "Delete")}
+                                                            {delete_label.clone()}
                                                         </button>
                                                     </div>
                                                 </div>
