@@ -765,7 +765,6 @@ pub(crate) enum ProductAdminListStateKind {
 pub(crate) struct ProductAdminListStateViewModel {
     pub kind: ProductAdminListStateKind,
     pub message: String,
-    pub container_class: &'static str,
 }
 
 pub(crate) fn build_product_admin_list_loading_view_model(
@@ -774,7 +773,6 @@ pub(crate) fn build_product_admin_list_loading_view_model(
     ProductAdminListStateViewModel {
         kind: ProductAdminListStateKind::Loading,
         message: t(locale, "product.list.loading", "Loading products..."),
-        container_class: PRODUCT_ADMIN_LIST_NEUTRAL_STATE_CLASS,
     }
 }
 
@@ -784,7 +782,6 @@ pub(crate) fn build_product_admin_list_empty_view_model(
     ProductAdminListStateViewModel {
         kind: ProductAdminListStateKind::Empty,
         message: t(locale, "product.list.empty", "No products yet."),
-        container_class: PRODUCT_ADMIN_LIST_NEUTRAL_STATE_CLASS,
     }
 }
 
@@ -802,14 +799,54 @@ pub(crate) fn build_product_admin_list_error_view_model(
                 "Failed to load products"
             )
         ),
-        container_class: PRODUCT_ADMIN_LIST_ERROR_STATE_CLASS,
     }
 }
 
-const PRODUCT_ADMIN_LIST_NEUTRAL_STATE_CLASS: &str =
-    "rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground";
-const PRODUCT_ADMIN_LIST_ERROR_STATE_CLASS: &str =
-    "rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive";
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ProductAdminStatusFilterOption {
+    pub value: &'static str,
+    pub label: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ProductAdminListControlsViewModel {
+    pub title: String,
+    pub subtitle: String,
+    pub search_placeholder: String,
+    pub status_options: Vec<ProductAdminStatusFilterOption>,
+}
+
+pub(crate) fn build_product_admin_list_controls_view_model(
+    locale: Option<&str>,
+) -> ProductAdminListControlsViewModel {
+    ProductAdminListControlsViewModel {
+        title: t(locale, "product.list.title", "Catalog Feed"),
+        subtitle: t(
+            locale,
+            "product.list.subtitle",
+            "Search, open, publish and archive products from the product-owned package.",
+        ),
+        search_placeholder: t(locale, "product.list.search", "Search title"),
+        status_options: vec![
+            ProductAdminStatusFilterOption {
+                value: "",
+                label: t(locale, "product.status.all", "All statuses"),
+            },
+            ProductAdminStatusFilterOption {
+                value: "DRAFT",
+                label: t(locale, "product.status.draft", "Draft"),
+            },
+            ProductAdminStatusFilterOption {
+                value: "ACTIVE",
+                label: t(locale, "product.status.active", "Active"),
+            },
+            ProductAdminStatusFilterOption {
+                value: "ARCHIVED",
+                label: t(locale, "product.status.archived", "Archived"),
+            },
+        ],
+    }
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ProductAdminListItemViewModel {
@@ -910,21 +947,31 @@ mod tests {
     }
 
     #[test]
-    fn product_admin_list_state_view_models_keep_copy_and_classes_in_core() {
+    fn product_admin_list_state_view_models_keep_copy_in_core() {
         let loading = build_product_admin_list_loading_view_model(Some("en"));
         assert_eq!(loading.kind, ProductAdminListStateKind::Loading);
         assert_eq!(loading.message, "Loading products...");
-        assert!(loading.container_class.contains("border-dashed"));
 
         let empty = build_product_admin_list_empty_view_model(Some("en"));
         assert_eq!(empty.kind, ProductAdminListStateKind::Empty);
         assert_eq!(empty.message, "No products yet.");
-        assert!(empty.container_class.contains("border-dashed"));
 
         let error = build_product_admin_list_error_view_model(Some("en"), "network");
         assert_eq!(error.kind, ProductAdminListStateKind::Error);
         assert_eq!(error.message, "Failed to load products: network");
-        assert!(error.container_class.contains("border-destructive"));
+    }
+
+    #[test]
+    fn product_admin_list_controls_view_model_keeps_filter_copy_in_core() {
+        let controls = build_product_admin_list_controls_view_model(Some("en"));
+
+        assert_eq!(controls.title, "Catalog Feed");
+        assert_eq!(controls.search_placeholder, "Search title");
+        assert_eq!(controls.status_options.len(), 4);
+        assert_eq!(controls.status_options[0].value, "");
+        assert_eq!(controls.status_options[0].label, "All statuses");
+        assert_eq!(controls.status_options[2].value, "ACTIVE");
+        assert_eq!(controls.status_options[2].label, "Active");
     }
 
     #[test]
