@@ -309,7 +309,7 @@ flowchart LR
 1. **Canonical graph для `pages`:** подтверждаем ли `pages -> page_builder` как runtime dependency? Рекомендация: да, потому что это уже зафиксировано в `modules.toml` и `docs/modules/registry.md`.
 2. **Locale cache freshness:** достаточно ли TTL 60 секунд как стартового baseline? Рекомендация: да, затем перейти к versioned invalidation.
 3. **Migration smoke scope:** нужен ли только `up from zero` или ещё incremental apply по одной migration? Рекомендация: начать с `up from zero`, затем добавить incremental smoke для критичных migrations.
-4. **Inventory adapter deprecation date:** когда временный commerce GraphQL adapter должен быть удалён? Рекомендация: назначить removal criteria после появления inventory-owned facade tests.
+4. **Inventory adapter deprecation date:** ✅ решено — временный commerce GraphQL adapter удалён из `crates/rustok-inventory/admin`; текущие guardrails запрещают `src/transport.rs`, GraphQL runtime markers и token/tenant-slug fallback inputs.
 5. **CI runtime budget:** сколько минут допустимо добавить к CI? Рекомендация: держать P0 checks быстрыми, migration smoke вынести в отдельный job с PostgreSQL service.
 
 ## Рекомендуемые команды проверки

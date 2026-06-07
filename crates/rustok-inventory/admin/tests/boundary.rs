@@ -52,7 +52,7 @@ fn graphql_runtime_details_are_removed_from_inventory_admin_package() {
 
     assert!(
         !manifest_dir().join("src/transport.rs").exists(),
-        "src/transport.rs must be removed after native read parity replaces the transitional GraphQL adapter"
+        "src/transport.rs must stay removed after native-only read parity replaced the GraphQL adapter"
     );
 }
 
@@ -221,7 +221,7 @@ fn native_write_facades_stay_native_without_graphql_fallback() {
         ] {
             assert!(
                 !write_facade.contains(forbidden),
-                "{function_name} facade must not use transitional read/fallback marker `{}`",
+                "{function_name} facade must not use removed read/fallback marker `{}`",
                 forbidden
             );
         }
@@ -270,7 +270,7 @@ fn ui_stock_quantity_controls_use_inventory_api_facade_only() {
     ] {
         assert!(
             !ui.contains(forbidden),
-            "inventory UI must not bypass the API facade or use transitional marker `{}`",
+            "inventory UI must not bypass the API facade or use removed fallback marker `{}`",
             forbidden
         );
     }
