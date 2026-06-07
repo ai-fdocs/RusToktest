@@ -144,7 +144,17 @@ pub async fn load_inventory_projection_by_variant_for_public_channel(
     )
     .await?;
 
-    Ok(variants
+    Ok(public_channel_inventory_projection_map(
+        variants,
+        &available_by_variant,
+    ))
+}
+
+fn public_channel_inventory_projection_map(
+    variants: &[PublicChannelInventoryVariantProjectionInput<'_>],
+    available_by_variant: &HashMap<Uuid, i32>,
+) -> HashMap<Uuid, PublicChannelInventoryProjection> {
+    variants
         .iter()
         .map(|variant| {
             let available_quantity = available_by_variant
@@ -156,7 +166,7 @@ pub async fn load_inventory_projection_by_variant_for_public_channel(
                 public_channel_inventory_projection(available_quantity, variant.inventory_policy),
             )
         })
-        .collect())
+        .collect()
 }
 
 pub async fn load_available_inventory_by_variant_for_public_channel(
@@ -244,7 +254,11 @@ mod tests {
         check_public_channel_inventory_request, extract_allowed_channel_slugs,
         is_allowlist_visible_for_public_channel, is_metadata_visible_for_public_channel,
         normalize_public_channel_slug, public_channel_inventory_projection,
+        public_channel_inventory_projection_map, PublicChannelInventoryVariantProjectionInput,
     };
+
+    use std::collections::HashMap;
+    use uuid::Uuid;
 
     #[test]
     fn normalize_public_channel_slug_trims_and_lowercases() {
@@ -308,6 +322,38 @@ mod tests {
             Some("mobile")
         ));
         assert!(!is_metadata_visible_for_public_channel(&metadata, None));
+    }
+
+    #[test]
+    fn public_channel_inventory_projection_map_defaults_missing_levels_and_keeps_policy_semantics()
+    {
+        let backorder_variant_id = Uuid::nil();
+        let available_variant_id = Uuid::from_u128(1);
+        let unavailable_variant_id = Uuid::from_u128(2);
+        let variants = vec![
+            PublicChannelInventoryVariantProjectionInput {
+                variant_id: backorder_variant_id,
+                inventory_policy: " CONTINUE ",
+            },
+            PublicChannelInventoryVariantProjectionInput {
+                variant_id: available_variant_id,
+                inventory_policy: "deny",
+            },
+            PublicChannelInventoryVariantProjectionInput {
+                variant_id: unavailable_variant_id,
+                inventory_policy: "deny",
+            },
+        ];
+        let available_by_variant = HashMap::from([(available_variant_id, 3)]);
+
+        let projections = public_channel_inventory_projection_map(&variants, &available_by_variant);
+
+        assert_eq!(projections[&backorder_variant_id].available_quantity, 0);
+        assert!(projections[&backorder_variant_id].in_stock);
+        assert_eq!(projections[&available_variant_id].available_quantity, 3);
+        assert!(projections[&available_variant_id].in_stock);
+        assert_eq!(projections[&unavailable_variant_id].available_quantity, 0);
+        assert!(!projections[&unavailable_variant_id].in_stock);
     }
 
     #[test]
