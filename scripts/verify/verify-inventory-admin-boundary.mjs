@@ -166,6 +166,9 @@ function assertInventoryAdminTransportBoundary() {
     assertContains(body, nativeCall, `${apiPath}: ${functionName} must use the inventory-owned native facade`);
     assertNotContains(body, "fallback_", `${apiPath}: ${functionName} must not use transitional GraphQL fallback`);
     assertNotContains(body, "transitional_read_transport", `${apiPath}: ${functionName} must not use transitional read transport`);
+    assertNotContains(body, "CommerceGraphqlInventoryReadAdapter", `${apiPath}: ${functionName} must not instantiate the transitional GraphQL adapter`);
+    assertNotContains(body, "token", `${apiPath}: ${functionName} must not accept auth tokens for a GraphQL fallback path`);
+    assertNotContains(body, "tenant_slug", `${apiPath}: ${functionName} must not accept tenant slugs for a GraphQL fallback path`);
   }
 
   for (const endpoint of [

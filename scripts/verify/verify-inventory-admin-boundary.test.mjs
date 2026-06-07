@@ -84,7 +84,21 @@ struct InventoryQuantityUpdate {
 `;
 }
 
-function apiSource() {
+function apiSource({ includeWriteFallback = false } = {}) {
+  if (includeWriteFallback) {
+    return `
+pub async fn set_variant_quantity(token: Option<String>, tenant_slug: Option<String>) {
+    fallback_products(token, tenant_slug, "tenant".to_string(), None, None, None).await;
+    transitional_read_transport().fetch_products().await;
+    CommerceGraphqlInventoryReadAdapter;
+}
+pub async fn adjust_variant_quantity() { crate::native::adjust_variant_quantity().await; }
+pub async fn reserve_variant_quantity() { crate::native::reserve_variant_quantity().await; }
+pub async fn release_reservation_quantity() { crate::native::release_reservation_quantity().await; }
+pub async fn check_variant_availability() { crate::native::check_variant_availability().await; }
+`;
+  }
+
   return `
 pub async fn set_variant_quantity() { crate::native::set_variant_quantity().await; }
 pub async fn adjust_variant_quantity() { crate::native::adjust_variant_quantity().await; }
@@ -121,7 +135,7 @@ async fn inventory_check_availability_native() {}
 function withFixture(options = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "rustok-inventory-boundary-"));
   writeFixtureFile(root, "crates/rustok-inventory/src/services/inventory.rs", inventorySource(options));
-  writeFixtureFile(root, "crates/rustok-inventory/admin/src/api.rs", apiSource());
+  writeFixtureFile(root, "crates/rustok-inventory/admin/src/api.rs", apiSource(options));
   writeFixtureFile(root, "crates/rustok-inventory/admin/src/transport.rs", transportSource(options));
   writeFixtureFile(root, "crates/rustok-inventory/admin/src/native.rs", nativeSource());
   return root;
@@ -163,6 +177,18 @@ test("inventory admin boundary verifier rejects GraphQL mutation drift", () => {
     const result = runVerifier(root);
     assert.notEqual(result.status, 0, "Expected GraphQL mutation fixture to fail");
     assert.match(result.stderr, /transitional GraphQL adapter must remain read-only/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+test("inventory admin boundary verifier rejects transitional write fallback", () => {
+  const root = withFixture({ includeWriteFallback: true });
+  try {
+    const result = runVerifier(root);
+    assert.notEqual(result.status, 0, "Expected transitional write fallback fixture to fail");
+    assert.match(result.stderr, /must not use transitional GraphQL fallback/);
+    assert.match(result.stderr, /must not accept auth tokens for a GraphQL fallback path/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }
