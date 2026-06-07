@@ -2,6 +2,7 @@ use std::collections::{BTreeSet, HashMap, HashSet};
 
 use rustok_api::RequestContext;
 use rustok_channel::{error::ChannelError, ChannelService};
+use rustok_inventory::inventory_policy_allows_backorder;
 use sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter};
 use serde_json::Value;
 use uuid::Uuid;
@@ -186,7 +187,8 @@ pub(crate) async fn apply_public_channel_inventory_to_product(
     for variant in &mut product.variants {
         let available_inventory = available_by_variant.get(&variant.id).copied().unwrap_or(0);
         variant.inventory_quantity = available_inventory;
-        variant.in_stock = available_inventory > 0 || variant.inventory_policy == "continue";
+        variant.in_stock =
+            available_inventory > 0 || inventory_policy_allows_backorder(&variant.inventory_policy);
     }
 
     Ok(())

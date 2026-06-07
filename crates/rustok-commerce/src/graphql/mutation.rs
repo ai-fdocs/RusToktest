@@ -5,6 +5,7 @@ use rustok_api::{
     AuthContext, RequestContext, TenantContext,
 };
 use rustok_core::{locale_tags_match, Permission};
+use rustok_inventory::inventory_policy_allows_backorder;
 use rustok_pricing::PriceResolutionContext;
 use sea_orm::{ColumnTrait, EntityTrait, QueryFilter};
 use serde_json::Value;
@@ -3340,7 +3341,7 @@ async fn validate_storefront_variant_inventory(
     requested_quantity: i32,
     public_channel_slug: Option<&str>,
 ) -> Result<()> {
-    if variant.inventory_policy == "continue" {
+    if inventory_policy_allows_backorder(&variant.inventory_policy) {
         return Ok(());
     }
 

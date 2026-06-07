@@ -6,6 +6,7 @@ use validator::Validate;
 use rustok_cart::error::CartError;
 use rustok_core::{normalize_locale_tag, PLATFORM_FALLBACK_LOCALE};
 use rustok_fulfillment::error::FulfillmentError;
+use rustok_inventory::inventory_policy_allows_backorder;
 use rustok_order::error::OrderError;
 use rustok_outbox::TransactionalEventBus;
 use rustok_payment::error::PaymentError;
@@ -530,7 +531,7 @@ impl CheckoutService {
                 )));
             }
 
-            if variant.inventory_policy == "continue" {
+            if inventory_policy_allows_backorder(&variant.inventory_policy) {
                 continue;
             }
 

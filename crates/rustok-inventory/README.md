@@ -16,7 +16,8 @@
 - Provide a module-owned Leptos admin UI package in `admin/` for inventory visibility,
   low-stock triage, stock-health inspection, targeted set-quantity corrections, +/-1 adjustments, reserve/release reservation transport coverage, and availability validation.
 - Treat the backorder policy value `continue` case-insensitively across service write results,
-  set/adjust/reserve/check-availability guardrails, and admin read-side stock state.
+  set/adjust/reserve/check-availability guardrails, admin read-side stock state, and
+  commerce checkout/storefront compatibility paths through the exported policy helper.
 
 ## Interactions
 

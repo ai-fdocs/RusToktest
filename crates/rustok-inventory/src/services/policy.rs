@@ -1,4 +1,4 @@
-pub(crate) fn inventory_policy_allows_backorder(inventory_policy: &str) -> bool {
+pub fn inventory_policy_allows_backorder(inventory_policy: &str) -> bool {
     inventory_policy.eq_ignore_ascii_case("continue")
 }
 

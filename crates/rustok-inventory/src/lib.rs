@@ -8,11 +8,11 @@ pub mod services;
 
 pub use rustok_commerce_foundation::entities::product::ProductStatus;
 pub use services::{
-    AdminInventoryPrice, AdminInventoryProductDetail, AdminInventoryProductList,
-    AdminInventoryProductListItem, AdminInventoryProductTranslation, AdminInventoryProductsFilter,
-    AdminInventoryReadService, AdminInventoryVariant, InventoryAvailabilityCheckResult,
-    InventoryQuantityWriteResult, InventoryReservationReleaseWriteResult,
-    InventoryReservationWriteResult, InventoryService,
+    inventory_policy_allows_backorder, AdminInventoryPrice, AdminInventoryProductDetail,
+    AdminInventoryProductList, AdminInventoryProductListItem, AdminInventoryProductTranslation,
+    AdminInventoryProductsFilter, AdminInventoryReadService, AdminInventoryVariant,
+    InventoryAvailabilityCheckResult, InventoryQuantityWriteResult,
+    InventoryReservationReleaseWriteResult, InventoryReservationWriteResult, InventoryService,
 };
 
 pub struct InventoryModule;

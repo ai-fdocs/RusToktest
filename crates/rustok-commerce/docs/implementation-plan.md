@@ -137,7 +137,7 @@ Fluid Frontend Architecture (FFA) и Fluid Backend Architecture (FBA):
 | --- | --- | --- |
 | `BL-01` | umbrella module vs дальнейший split | продолжать вынос устойчивых bounded contexts в отдельные crates, оставляя `rustok-commerce` orchestration/root layer |
 | `BL-02` | entities vs migrations vs indexer SQL | держать schema hardening, migration smoke и Postgres-first tests обязательными |
-| `BL-03` | inventory model hardening | выравнивать read/write path вокруг stock locations, levels, reservations, case-insensitive backorder policy и channel-aware availability |
+| `BL-03` | inventory model hardening | выравнивать read/write path вокруг stock locations, levels, reservations, exported inventory-owned case-insensitive backorder policy helper и channel-aware availability |
 | `BL-04` | transport parity vs domain completeness | не путать наличие `/store/*` и `/admin/*` transport с фактическим Medusa parity по домену |
 | `BL-05` | `/admin/*` и `/store/*` vs embedded UI routes | держать route precedence, OpenAPI и router smoke tests под постоянной регрессией |
 | `BL-06` | Medusa parity scope | расширять contract tests по официальным Medusa docs, не inventing local semantics |

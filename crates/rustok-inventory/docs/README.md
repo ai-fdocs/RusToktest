@@ -28,7 +28,8 @@
   в module-owned surface без GraphQL fallback и возвращают typed write/validation results;
   set-quantity трактует requested quantity как целевую available quantity и сохраняет
   существующий reserved stock, а backorder policy `continue` нормализуется case-insensitive
-  в service/read-side semantics; remaining write parity ещё добирается из umbrella `rustok-commerce`;
+  в service/read-side и commerce checkout/storefront compatibility semantics через exported
+  inventory-owned policy helper; remaining write parity ещё добирается из umbrella `rustok-commerce`;
 - общие DTO, entities и error surface приходят из `rustok-commerce-foundation`.
 
 ## Интеграция
