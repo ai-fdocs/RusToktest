@@ -126,6 +126,7 @@ node scripts/verify/verify-runtime-context-invariants.mjs
 ```bash
 node scripts/verify/verify-inventory-admin-boundary.mjs
 ./scripts/verify/verify-all.sh inventory-admin-boundary
+node scripts/verify/verify-inventory-admin-boundary.test.mjs
 ```
 
 ---
