@@ -273,7 +273,6 @@ pub fn SeoRecommendationsCard(
     }
 }
 
-
 #[component]
 pub fn SeoControlPlaneWidgetStateCard(
     state: Signal<SeoControlPlaneWidgetState>,
