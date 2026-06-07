@@ -393,6 +393,97 @@ impl ProductAdminSaveValidationError {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct ProductAdminEditorFormState {
+    pub editing_id: Option<String>,
+    pub title: String,
+    pub handle: String,
+    pub description: String,
+    pub seller_id: String,
+    pub vendor: String,
+    pub product_type: String,
+    pub shipping_profile_slug: String,
+    pub sku: String,
+    pub barcode: String,
+    pub currency_code: String,
+    pub amount: String,
+    pub compare_at_amount: String,
+    pub inventory_quantity: i32,
+    pub publish_now: bool,
+}
+
+pub(crate) fn empty_product_admin_editor_form_state() -> ProductAdminEditorFormState {
+    ProductAdminEditorFormState {
+        editing_id: None,
+        title: String::new(),
+        handle: String::new(),
+        description: String::new(),
+        seller_id: String::new(),
+        vendor: String::new(),
+        product_type: String::new(),
+        shipping_profile_slug: String::new(),
+        sku: String::new(),
+        barcode: String::new(),
+        currency_code: "USD".to_string(),
+        amount: "0.00".to_string(),
+        compare_at_amount: String::new(),
+        inventory_quantity: 0,
+        publish_now: false,
+    }
+}
+
+pub(crate) fn build_product_admin_editor_form_state(
+    product: &ProductDetail,
+    requested_locale: Option<&str>,
+) -> ProductAdminEditorFormState {
+    let translation = translation_for_locale(&product.translations, requested_locale);
+    let variant = product.variants.first().cloned();
+    let price = variant
+        .as_ref()
+        .and_then(|item| item.prices.first().cloned());
+
+    ProductAdminEditorFormState {
+        editing_id: Some(product.id.clone()),
+        title: translation
+            .as_ref()
+            .map(|item| item.title.clone())
+            .unwrap_or_default(),
+        handle: translation
+            .as_ref()
+            .map(|item| item.handle.clone())
+            .unwrap_or_default(),
+        description: translation
+            .and_then(|item| item.description)
+            .unwrap_or_default(),
+        seller_id: product.seller_id.clone().unwrap_or_default(),
+        vendor: product.vendor.clone().unwrap_or_default(),
+        product_type: product.product_type.clone().unwrap_or_default(),
+        shipping_profile_slug: product.shipping_profile_slug.clone().unwrap_or_default(),
+        sku: variant
+            .as_ref()
+            .and_then(|item| item.sku.clone())
+            .unwrap_or_default(),
+        barcode: variant.and_then(|item| item.barcode).unwrap_or_default(),
+        currency_code: price
+            .as_ref()
+            .map(|item| item.currency_code.clone())
+            .unwrap_or_else(|| "USD".to_string()),
+        amount: price
+            .as_ref()
+            .map(|item| item.amount.clone())
+            .unwrap_or_else(|| "0.00".to_string()),
+        compare_at_amount: price
+            .and_then(|item| item.compare_at_amount)
+            .unwrap_or_default(),
+        inventory_quantity: product
+            .variants
+            .first()
+            .map(|item| item.inventory_quantity)
+            .unwrap_or(0),
+        publish_now: product.status == "ACTIVE",
+    }
+}
+
 pub(crate) fn build_product_admin_save_command(
     form: ProductAdminDraftForm,
     editing_product_id: Option<String>,
@@ -643,6 +734,79 @@ mod tests {
             build_product_admin_save_command(draft_form(), None, None).unwrap_err(),
             ProductAdminSaveValidationError::BootstrapUnavailable
         );
+    }
+
+    #[test]
+    fn product_admin_editor_form_state_maps_empty_defaults() {
+        let state = empty_product_admin_editor_form_state();
+
+        assert_eq!(state.editing_id, None);
+        assert_eq!(state.currency_code, "USD");
+        assert_eq!(state.amount, "0.00");
+        assert_eq!(state.inventory_quantity, 0);
+        assert!(!state.publish_now);
+    }
+
+    #[test]
+    fn product_admin_editor_form_state_maps_product_detail() {
+        let product = ProductDetail {
+            id: "product-1".to_string(),
+            status: "ACTIVE".to_string(),
+            seller_id: Some("seller-1".to_string()),
+            vendor: Some("Acme".to_string()),
+            product_type: Some("coat".to_string()),
+            shipping_profile_slug: Some("standard".to_string()),
+            tags: Vec::new(),
+            created_at: "2026-01-01T00:00:00Z".to_string(),
+            updated_at: "2026-01-01T00:00:00Z".to_string(),
+            published_at: Some("2026-01-01T00:00:00Z".to_string()),
+            translations: vec![ProductTranslation {
+                locale: "en".to_string(),
+                title: "Winter coat".to_string(),
+                handle: "winter-coat".to_string(),
+                description: Some("Warm coat".to_string()),
+                meta_title: None,
+                meta_description: None,
+            }],
+            options: Vec::new(),
+            variants: vec![crate::model::ProductVariant {
+                id: "variant-1".to_string(),
+                sku: Some("COAT-1".to_string()),
+                barcode: Some("123".to_string()),
+                shipping_profile_slug: None,
+                title: "Default".to_string(),
+                option1: None,
+                option2: None,
+                option3: None,
+                prices: vec![crate::model::ProductPrice {
+                    currency_code: "EUR".to_string(),
+                    amount: "12.00".to_string(),
+                    compare_at_amount: Some("15.00".to_string()),
+                    on_sale: true,
+                }],
+                inventory_quantity: 9,
+                inventory_policy: "DENY".to_string(),
+                in_stock: true,
+            }],
+        };
+
+        let state = build_product_admin_editor_form_state(&product, Some("en"));
+
+        assert_eq!(state.editing_id, Some("product-1".to_string()));
+        assert_eq!(state.title, "Winter coat");
+        assert_eq!(state.handle, "winter-coat");
+        assert_eq!(state.description, "Warm coat");
+        assert_eq!(state.seller_id, "seller-1");
+        assert_eq!(state.vendor, "Acme");
+        assert_eq!(state.product_type, "coat");
+        assert_eq!(state.shipping_profile_slug, "standard");
+        assert_eq!(state.sku, "COAT-1");
+        assert_eq!(state.barcode, "123");
+        assert_eq!(state.currency_code, "EUR");
+        assert_eq!(state.amount, "12.00");
+        assert_eq!(state.compare_at_amount, "15.00");
+        assert_eq!(state.inventory_quantity, 9);
+        assert!(state.publish_now);
     }
 
     #[test]

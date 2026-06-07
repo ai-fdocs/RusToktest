@@ -8,11 +8,12 @@ use rustok_seo_admin_support::SeoEntityPanel;
 use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
 
 use crate::core::{
-    build_product_admin_editor_view_model, build_product_admin_list_item_view_model,
-    build_product_admin_save_command, build_selected_product_summary_view_model,
+    build_product_admin_editor_form_state, build_product_admin_editor_view_model,
+    build_product_admin_list_item_view_model, build_product_admin_save_command,
+    build_selected_product_summary_view_model, empty_product_admin_editor_form_state,
     format_known_shipping_profiles, primary_catalog_currency, shipping_profile_choice_label,
-    text_or_none, translation_for_locale, ProductAdminDraftForm, ProductAdminPricingPreviewState,
-    ProductAdminSaveMode, SelectedProductSummaryViewModel,
+    text_or_none, ProductAdminDraftForm, ProductAdminEditorFormState,
+    ProductAdminPricingPreviewState, ProductAdminSaveMode, SelectedProductSummaryViewModel,
 };
 use crate::i18n::t;
 use crate::model::{ProductAdminBootstrap, ProductDetail, ProductPricingDetail};
@@ -238,22 +239,24 @@ pub fn ProductAdmin() -> impl IntoView {
     });
 
     let reset_form = move || {
-        set_editing_id.set(None);
-        set_selected.set(None);
-        set_title.set(String::new());
-        set_handle.set(String::new());
-        set_description.set(String::new());
-        set_seller_id.set(String::new());
-        set_vendor.set(String::new());
-        set_product_type.set(String::new());
-        set_shipping_profile_slug.set(String::new());
-        set_sku.set(String::new());
-        set_barcode.set(String::new());
-        set_currency_code.set("USD".to_string());
-        set_amount.set("0.00".to_string());
-        set_compare_at_amount.set(String::new());
-        set_inventory_quantity.set(0);
-        set_publish_now.set(false);
+        clear_product_form(
+            set_editing_id,
+            set_selected,
+            set_title,
+            set_handle,
+            set_description,
+            set_seller_id,
+            set_vendor,
+            set_product_type,
+            set_shipping_profile_slug,
+            set_sku,
+            set_barcode,
+            set_currency_code,
+            set_amount,
+            set_compare_at_amount,
+            set_inventory_quantity,
+            set_publish_now,
+        );
         set_error.set(None);
     };
 
@@ -869,22 +872,25 @@ fn clear_product_form(
     set_inventory_quantity: WriteSignal<i32>,
     set_publish_now: WriteSignal<bool>,
 ) {
-    set_editing_id.set(None);
     set_selected.set(None);
-    set_title.set(String::new());
-    set_handle.set(String::new());
-    set_description.set(String::new());
-    set_seller_id.set(String::new());
-    set_vendor.set(String::new());
-    set_product_type.set(String::new());
-    set_shipping_profile_slug.set(String::new());
-    set_sku.set(String::new());
-    set_barcode.set(String::new());
-    set_currency_code.set("USD".to_string());
-    set_amount.set("0.00".to_string());
-    set_compare_at_amount.set(String::new());
-    set_inventory_quantity.set(0);
-    set_publish_now.set(false);
+    apply_product_editor_form_state(
+        empty_product_admin_editor_form_state(),
+        set_editing_id,
+        set_title,
+        set_handle,
+        set_description,
+        set_seller_id,
+        set_vendor,
+        set_product_type,
+        set_shipping_profile_slug,
+        set_sku,
+        set_barcode,
+        set_currency_code,
+        set_amount,
+        set_compare_at_amount,
+        set_inventory_quantity,
+        set_publish_now,
+    );
 }
 
 fn apply_product(
@@ -907,67 +913,60 @@ fn apply_product(
     set_inventory_quantity: WriteSignal<i32>,
     set_publish_now: WriteSignal<bool>,
 ) {
-    let translation = translation_for_locale(&product.translations, requested_locale);
-    let variant = product.variants.first().cloned();
-    let price = variant
-        .as_ref()
-        .and_then(|item| item.prices.first().cloned());
-
-    set_editing_id.set(Some(product.id.clone()));
     set_selected.set(Some(product.clone()));
-    set_title.set(
-        translation
-            .as_ref()
-            .map(|item| item.title.clone())
-            .unwrap_or_default(),
+    apply_product_editor_form_state(
+        build_product_admin_editor_form_state(product, requested_locale),
+        set_editing_id,
+        set_title,
+        set_handle,
+        set_description,
+        set_seller_id,
+        set_vendor,
+        set_product_type,
+        set_shipping_profile_slug,
+        set_sku,
+        set_barcode,
+        set_currency_code,
+        set_amount,
+        set_compare_at_amount,
+        set_inventory_quantity,
+        set_publish_now,
     );
-    set_handle.set(
-        translation
-            .as_ref()
-            .map(|item| item.handle.clone())
-            .unwrap_or_default(),
-    );
-    set_description.set(
-        translation
-            .and_then(|item| item.description)
-            .unwrap_or_default(),
-    );
-    set_seller_id.set(product.seller_id.clone().unwrap_or_default());
-    set_vendor.set(product.vendor.clone().unwrap_or_default());
-    set_product_type.set(product.product_type.clone().unwrap_or_default());
-    set_shipping_profile_slug.set(product.shipping_profile_slug.clone().unwrap_or_default());
-    set_sku.set(
-        variant
-            .as_ref()
-            .and_then(|item| item.sku.clone())
-            .unwrap_or_default(),
-    );
-    set_barcode.set(variant.and_then(|item| item.barcode).unwrap_or_default());
-    set_currency_code.set(
-        price
-            .as_ref()
-            .map(|item| item.currency_code.clone())
-            .unwrap_or_else(|| "USD".to_string()),
-    );
-    set_amount.set(
-        price
-            .as_ref()
-            .map(|item| item.amount.clone())
-            .unwrap_or_else(|| "0.00".to_string()),
-    );
-    set_compare_at_amount.set(
-        price
-            .and_then(|item| item.compare_at_amount)
-            .unwrap_or_default(),
-    );
-    set_inventory_quantity.set(
-        product
-            .variants
-            .first()
-            .map(|item| item.inventory_quantity)
-            .unwrap_or(0),
-    );
-    set_publish_now.set(product.status == "ACTIVE");
+}
+
+fn apply_product_editor_form_state(
+    state: ProductAdminEditorFormState,
+    set_editing_id: WriteSignal<Option<String>>,
+    set_title: WriteSignal<String>,
+    set_handle: WriteSignal<String>,
+    set_description: WriteSignal<String>,
+    set_seller_id: WriteSignal<String>,
+    set_vendor: WriteSignal<String>,
+    set_product_type: WriteSignal<String>,
+    set_shipping_profile_slug: WriteSignal<String>,
+    set_sku: WriteSignal<String>,
+    set_barcode: WriteSignal<String>,
+    set_currency_code: WriteSignal<String>,
+    set_amount: WriteSignal<String>,
+    set_compare_at_amount: WriteSignal<String>,
+    set_inventory_quantity: WriteSignal<i32>,
+    set_publish_now: WriteSignal<bool>,
+) {
+    set_editing_id.set(state.editing_id);
+    set_title.set(state.title);
+    set_handle.set(state.handle);
+    set_description.set(state.description);
+    set_seller_id.set(state.seller_id);
+    set_vendor.set(state.vendor);
+    set_product_type.set(state.product_type);
+    set_shipping_profile_slug.set(state.shipping_profile_slug);
+    set_sku.set(state.sku);
+    set_barcode.set(state.barcode);
+    set_currency_code.set(state.currency_code);
+    set_amount.set(state.amount);
+    set_compare_at_amount.set(state.compare_at_amount);
+    set_inventory_quantity.set(state.inventory_quantity);
+    set_publish_now.set(state.publish_now);
 }
 
 fn mutate_status(
