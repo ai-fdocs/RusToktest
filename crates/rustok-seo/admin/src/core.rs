@@ -3,8 +3,9 @@ use rustok_seo::{
     seo_builtin_slug, SeoBulkApplyInput, SeoBulkApplyMode, SeoBulkBoolFieldPatch,
     SeoBulkExportInput, SeoBulkFieldPatchMode, SeoBulkImportInput, SeoBulkJsonFieldPatch,
     SeoBulkListInput, SeoBulkMetaPatchInput, SeoBulkSelectionInput, SeoBulkSelectionMode,
-    SeoBulkSource, SeoBulkStringFieldPatch, SeoIndexRepairReplayInput, SeoModuleSettings,
-    SeoRedirectInput, SeoRedirectMatchType, SeoTargetSlug, SeoTemplateRuleSet,
+    SeoBulkSource, SeoBulkStringFieldPatch, SeoIndexRepairReplayInput,
+    SeoIndexRepairReplayResultRecord, SeoModuleSettings, SeoRedirectInput, SeoRedirectMatchType,
+    SeoTargetSlug, SeoTemplateRuleSet,
 };
 use serde_json::Value;
 use std::collections::BTreeMap;
@@ -80,6 +81,10 @@ impl Default for SeoIndexReplayForm {
 }
 
 impl SeoIndexReplayForm {
+    pub fn status_target_type(&self) -> Option<String> {
+        trim_to_option(self.target_type.as_str())
+    }
+
     pub fn build_input(
         &self,
         replay_historical: bool,
@@ -90,6 +95,46 @@ impl SeoIndexReplayForm {
             limit: self.limit.clamp(1, 500),
             replay_historical,
         })
+    }
+
+    pub fn build_confirmed_input(
+        &self,
+        replay_historical: bool,
+    ) -> Result<SeoIndexRepairReplayInput, String> {
+        if replay_historical {
+            if !self.confirm_replay_historical {
+                return Err(
+                    "Confirm historical replay execution before running the operation.".to_string(),
+                );
+            }
+        } else if !self.confirm_repair_only {
+            return Err("Confirm repair-only execution before running the operation.".to_string());
+        }
+
+        self.build_input(replay_historical)
+    }
+}
+
+pub fn format_index_repair_replay_result(
+    result: &SeoIndexRepairReplayResultRecord,
+    replay_historical: bool,
+) -> String {
+    if replay_historical {
+        format!(
+            "Replay completed: repaired={} replayed={} scanned={} run_id={}",
+            result.repaired_count,
+            result.replayed_count,
+            result.historical_events_scanned,
+            result
+                .replay_run_id
+                .map(|value| value.to_string())
+                .unwrap_or_else(|| "n/a".to_string())
+        )
+    } else {
+        format!(
+            "Repair completed: repaired={} replayed={} scanned={}.",
+            result.repaired_count, result.replayed_count, result.historical_events_scanned
+        )
     }
 }
 
@@ -286,6 +331,21 @@ impl SeoBulkActionForm {
             csv_utf8: csv_utf8.to_string(),
             publish_after_write: self.publish_after_write,
         })
+    }
+
+    pub fn prefill_schema_fix(&mut self, apply_mode: SeoBulkApplyMode, payload: String) {
+        self.apply_mode = apply_mode;
+        self.structured_data.mode = SeoBulkFieldPatchMode::Set;
+        self.structured_data.value = payload;
+        self.title.mode = SeoBulkFieldPatchMode::Keep;
+        self.description.mode = SeoBulkFieldPatchMode::Keep;
+        self.keywords.mode = SeoBulkFieldPatchMode::Keep;
+        self.canonical_url.mode = SeoBulkFieldPatchMode::Keep;
+        self.og_title.mode = SeoBulkFieldPatchMode::Keep;
+        self.og_description.mode = SeoBulkFieldPatchMode::Keep;
+        self.og_image.mode = SeoBulkFieldPatchMode::Keep;
+        self.noindex.mode = SeoBulkFieldPatchMode::Keep;
+        self.nofollow.mode = SeoBulkFieldPatchMode::Keep;
     }
 }
 
@@ -707,5 +767,37 @@ mod tests {
             .build_input(false)
             .expect_err("unknown target type should fail");
         assert_eq!(err, "Index target type must be `content` or `product`");
+    }
+
+    #[test]
+    fn index_replay_form_enforces_confirmation_in_core() {
+        let form = SeoIndexReplayForm::default();
+
+        assert_eq!(
+            form.build_confirmed_input(false)
+                .expect_err("confirmation required"),
+            "Confirm repair-only execution before running the operation."
+        );
+        assert_eq!(
+            form.build_confirmed_input(true)
+                .expect_err("confirmation required"),
+            "Confirm historical replay execution before running the operation."
+        );
+    }
+
+    #[test]
+    fn schema_fix_prefill_keeps_non_schema_fields() {
+        let mut form = SeoBulkActionForm::default();
+        form.title.mode = SeoBulkFieldPatchMode::Set;
+
+        form.prefill_schema_fix(
+            SeoBulkApplyMode::OverwriteGeneratedOnly,
+            r#"{"@type":"FAQPage"}"#.to_string(),
+        );
+
+        assert_eq!(form.apply_mode, SeoBulkApplyMode::OverwriteGeneratedOnly);
+        assert_eq!(form.structured_data.mode, SeoBulkFieldPatchMode::Set);
+        assert_eq!(form.title.mode, SeoBulkFieldPatchMode::Keep);
+        assert_eq!(form.nofollow.mode, SeoBulkFieldPatchMode::Keep);
     }
 }

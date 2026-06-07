@@ -6,15 +6,14 @@ use rustok_api::{AdminQueryKey, UiRouteContext};
 use uuid::Uuid;
 
 use crate::core::{
-    SeoAdminTab, SeoBulkActionForm, SeoBulkFilterForm, SeoIndexReplayForm, SeoRedirectForm,
-    SeoSettingsForm,
+    format_index_repair_replay_result, SeoAdminTab, SeoBulkActionForm, SeoBulkFilterForm,
+    SeoIndexReplayForm, SeoRedirectForm, SeoSettingsForm,
 };
 use crate::sections::{
     SeoAdminHeader, SeoAdminTabs, SeoBulkPane, SeoBusyFooter, SeoDefaultsPane, SeoDiagnosticsPane,
     SeoIndexPane, SeoRedirectsPane, SeoRobotsPane, SeoSitemapsPane,
 };
 use crate::transport;
-use rustok_seo::SeoBulkFieldPatchMode;
 
 #[component]
 pub fn SeoAdmin() -> impl IntoView {
@@ -64,18 +63,13 @@ pub fn SeoAdmin() -> impl IntoView {
         move |_| async move { transport::fetch_sitemap_status().await },
     );
     let index_status = Resource::new(
-        move || (index_nonce.get(), index_replay_form.get().target_type),
-        move |(_, target_type)| async move {
-            let target_type = {
-                let trimmed = target_type.trim();
-                if trimmed.is_empty() {
-                    None
-                } else {
-                    Some(trimmed.to_string())
-                }
-            };
-            transport::fetch_index_delivery_status(target_type).await
+        move || {
+            (
+                index_nonce.get(),
+                index_replay_form.get().status_target_type(),
+            )
         },
+        move |(_, target_type)| async move { transport::fetch_index_delivery_status(target_type).await },
     );
     let bulk_items = Resource::new(
         move || bulk_nonce.get(),
@@ -205,30 +199,22 @@ pub fn SeoAdmin() -> impl IntoView {
 
     let run_index_repair_only = Callback::new(move |_| {
         status_message.set(None);
-        let input = match index_replay_form.get_untracked().build_input(false) {
+        let input = match index_replay_form
+            .get_untracked()
+            .build_confirmed_input(false)
+        {
             Ok(input) => input,
             Err(err) => {
                 status_message.set(Some(err));
                 return;
             }
         };
-        if !index_replay_form.get_untracked().confirm_repair_only {
-            status_message.set(Some(
-                "Confirm repair-only execution before running the operation.".to_string(),
-            ));
-            return;
-        }
 
         busy_key.set(Some("index-repair-only".to_string()));
         spawn_local(async move {
             match transport::run_index_repair_replay(input).await {
                 Ok(result) => {
-                    status_message.set(Some(format!(
-                        "Repair completed: repaired={} replayed={} scanned={}.",
-                        result.repaired_count,
-                        result.replayed_count,
-                        result.historical_events_scanned
-                    )));
+                    status_message.set(Some(format_index_repair_replay_result(&result, false)));
                     index_nonce.update(|value| *value += 1);
                 }
                 Err(err) => status_message.set(Some(err.to_string())),
@@ -239,34 +225,22 @@ pub fn SeoAdmin() -> impl IntoView {
 
     let run_index_repair_replay = Callback::new(move |_| {
         status_message.set(None);
-        let input = match index_replay_form.get_untracked().build_input(true) {
+        let input = match index_replay_form
+            .get_untracked()
+            .build_confirmed_input(true)
+        {
             Ok(input) => input,
             Err(err) => {
                 status_message.set(Some(err));
                 return;
             }
         };
-        if !index_replay_form.get_untracked().confirm_replay_historical {
-            status_message.set(Some(
-                "Confirm historical replay execution before running the operation.".to_string(),
-            ));
-            return;
-        }
 
         busy_key.set(Some("index-repair-replay".to_string()));
         spawn_local(async move {
             match transport::run_index_repair_replay(input).await {
                 Ok(result) => {
-                    status_message.set(Some(format!(
-                        "Replay completed: repaired={} replayed={} scanned={} run_id={}",
-                        result.repaired_count,
-                        result.replayed_count,
-                        result.historical_events_scanned,
-                        result
-                            .replay_run_id
-                            .map(|value| value.to_string())
-                            .unwrap_or_else(|| "n/a".to_string())
-                    )));
+                    status_message.set(Some(format_index_repair_replay_result(&result, true)));
                     index_nonce.update(|value| *value += 1);
                 }
                 Err(err) => status_message.set(Some(err.to_string())),
@@ -411,18 +385,7 @@ pub fn SeoAdmin() -> impl IntoView {
             let select_tab = select_tab.clone();
             select_tab.run(SeoAdminTab::Bulk);
             bulk_action_form.update(|draft| {
-                draft.apply_mode = apply_mode;
-                draft.structured_data.mode = SeoBulkFieldPatchMode::Set;
-                draft.structured_data.value = payload;
-                draft.title.mode = SeoBulkFieldPatchMode::Keep;
-                draft.description.mode = SeoBulkFieldPatchMode::Keep;
-                draft.keywords.mode = SeoBulkFieldPatchMode::Keep;
-                draft.canonical_url.mode = SeoBulkFieldPatchMode::Keep;
-                draft.og_title.mode = SeoBulkFieldPatchMode::Keep;
-                draft.og_description.mode = SeoBulkFieldPatchMode::Keep;
-                draft.og_image.mode = SeoBulkFieldPatchMode::Keep;
-                draft.noindex.mode = SeoBulkFieldPatchMode::Keep;
-                draft.nofollow.mode = SeoBulkFieldPatchMode::Keep;
+                draft.prefill_schema_fix(apply_mode, payload);
             });
             bulk_filter_form.update(|draft| {
                 draft.target_kind = target_kind;
