@@ -8,7 +8,7 @@ rule и scope write paths, а полный promotions engine и остально
 ## Execution checkpoint
 
 - Current phase: ffa_admin_transport_ui_split
-- Last checkpoint: Admin pricing core переведён из крупного `admin/src/core.rs` в обязательный для нескольких поддоменов каталог `admin/src/core/` с явными `presentation`, `routing` и `requests` submodules; Leptos adapter продолжает потреблять только re-exported core helpers.
+- Last checkpoint: Admin pricing request sanitization продолжила FFA split: GraphQL/native input sanitizers (`currency_code`, UUID strings, channel slug, resolution context quantity) перенесены из `admin/src/api.rs` в Leptos-free `admin/src/core/requests.rs`, а `api.rs` теперь мапит core errors в existing transport error envelope.
 - Next step: Продолжать сокращать admin/storefront `api.rs` до transport adapter implementation: вынести remaining GraphQL/native mapping policy в typed adapter helpers без изменения native-first + GraphQL fallback contract.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок.
@@ -29,7 +29,8 @@ rule и scope write paths, а полный promotions engine и остально
   - parity evidence: `cargo test -p rustok-pricing-storefront --lib` подтверждает existing transport validation tests, pure-core route/channel formatting tests, core request validation tests и transport facade fallback tests без изменения native/GraphQL fallback contract;
   - admin FFA slice добавил module-owned `admin/src/transport.rs` facade и явный Leptos render adapter `admin/src/ui/leptos.rs`; `admin/src/lib.rs` теперь только wires modules и re-export `PricingAdmin`, а Leptos adapter больше не вызывает raw `api::*` напрямую для covered flows;
   - admin pricing presentation/request policy продолжает FFA-декомпозицию в `admin/src/core/`: `presentation.rs` владеет summary/labels/formatters, `routing.rs` — channel scope/query helpers, `requests.rs` — resolution context normalization и write draft builders; targeted pure-core tests покрывают pricing summary, resolution context normalization, channel-key policy и DTO builders;
-  - admin write request construction для variant price, percentage discount и price-list rule/scope остаётся в core-owned draft builders; Leptos adapter использует explicit core imports вместо wildcard и не конструирует covered write DTO inline.
+  - admin write request construction для variant price, percentage discount и price-list rule/scope остаётся в core-owned draft builders; Leptos adapter использует explicit core imports вместо wildcard и не конструирует covered write DTO inline;
+  - admin GraphQL/native input sanitization для active price-list/product context (`currency_code`, UUID strings, channel slug, resolution quantity/context) перенесена из `admin/src/api.rs` в `core/requests.rs`; API layer сохраняет existing `ApiError`/`ServerFnError` envelope через adapter mapping.
 - Last verified at (UTC): 2026-06-07T00:00:00Z
 - Owner: `rustok-pricing` module team
 

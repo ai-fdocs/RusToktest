@@ -6,6 +6,27 @@ use crate::model::{
     PricingPriceListScopeDraft, PricingResolutionContext,
 };
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub(crate) struct PricingAdminRequestError {
+    message: String,
+}
+
+impl PricingAdminRequestError {
+    fn new(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+        }
+    }
+}
+
+impl std::fmt::Display for PricingAdminRequestError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.message)
+    }
+}
+
+impl std::error::Error for PricingAdminRequestError {}
+
 pub(crate) fn text_or_none(value: String) -> Option<String> {
     let trimmed = value.trim();
     if trimmed.is_empty() {
@@ -48,6 +69,87 @@ pub(crate) fn normalized_quantity(value: String) -> Option<i32> {
         .parse::<i32>()
         .ok()
         .filter(|quantity| *quantity > 0)
+}
+
+pub(crate) fn parse_optional_currency_code(
+    currency_code: Option<String>,
+) -> Result<Option<String>, PricingAdminRequestError> {
+    let Some(currency_code) = currency_code.and_then(text_or_none) else {
+        return Ok(None);
+    };
+    let normalized = currency_code.to_ascii_uppercase();
+    if normalized.len() != 3 || !normalized.chars().all(|ch| ch.is_ascii_alphabetic()) {
+        return Err(PricingAdminRequestError::new(
+            "currency_code must be a 3-letter code",
+        ));
+    }
+
+    Ok(Some(normalized))
+}
+
+pub(crate) fn parse_optional_uuid_string(
+    value: Option<String>,
+    field_name: &str,
+) -> Result<Option<String>, PricingAdminRequestError> {
+    let Some(value) = value.and_then(text_or_none) else {
+        return Ok(None);
+    };
+
+    Uuid::parse_str(value.as_str())
+        .map(|_| Some(value))
+        .map_err(|_| PricingAdminRequestError::new(format!("Invalid {field_name}")))
+}
+
+pub(crate) fn parse_resolution_quantity(
+    quantity: Option<i32>,
+) -> Result<i32, PricingAdminRequestError> {
+    match quantity {
+        Some(value) if value < 1 => {
+            Err(PricingAdminRequestError::new("quantity must be at least 1"))
+        }
+        Some(value) => Ok(value),
+        None => Ok(1),
+    }
+}
+
+pub(crate) fn sanitize_channel_slug(channel_slug: Option<String>) -> Option<String> {
+    channel_slug
+        .map(|value| value.trim().to_ascii_lowercase())
+        .filter(|value| !value.is_empty())
+}
+
+pub(crate) fn sanitize_resolution_context(
+    currency_code: Option<String>,
+    region_id: Option<String>,
+    price_list_id: Option<String>,
+    quantity: Option<i32>,
+) -> Result<Option<PricingResolutionContext>, PricingAdminRequestError> {
+    let requires_currency = region_id
+        .as_ref()
+        .and_then(|value| text_or_none(value.clone()))
+        .is_some()
+        || price_list_id
+            .as_ref()
+            .and_then(|value| text_or_none(value.clone()))
+            .is_some()
+        || quantity.is_some();
+    let Some(currency_code) = parse_optional_currency_code(currency_code)? else {
+        if requires_currency {
+            return Err(PricingAdminRequestError::new(
+                "currency_code is required for pricing resolution context",
+            ));
+        }
+        return Ok(None);
+    };
+
+    Ok(Some(PricingResolutionContext {
+        currency_code,
+        region_id: parse_optional_uuid_string(region_id, "region_id")?,
+        price_list_id: parse_optional_uuid_string(price_list_id, "price_list_id")?,
+        channel_id: None,
+        channel_slug: None,
+        quantity: parse_resolution_quantity(quantity)?,
+    }))
 }
 
 pub(crate) fn build_product_admin_href(module_route_base: &str, product_id: &str) -> String {
@@ -189,6 +291,46 @@ mod tests {
         assert_eq!(context.channel_id.as_deref(), Some("channel-id"));
         assert_eq!(context.channel_slug.as_deref(), Some("channel-slug"));
         assert_eq!(context.quantity, 1);
+    }
+
+    #[test]
+    fn sanitize_resolution_context_requires_currency_for_context_fields() {
+        let error = sanitize_resolution_context(
+            None,
+            Some("550e8400-e29b-41d4-a716-446655440000".to_string()),
+            None,
+            None,
+        )
+        .expect_err("region-scoped context without currency should fail");
+
+        assert_eq!(
+            error.to_string(),
+            "currency_code is required for pricing resolution context"
+        );
+
+        let context = sanitize_resolution_context(Some(" usd ".to_string()), None, None, Some(2))
+            .expect("valid context should parse")
+            .expect("quantity requires an explicit context");
+
+        assert_eq!(context.currency_code, "USD");
+        assert_eq!(context.quantity, 2);
+    }
+
+    #[test]
+    fn parse_optional_uuid_string_trims_and_validates_values() {
+        assert_eq!(
+            parse_optional_uuid_string(
+                Some(" 550e8400-e29b-41d4-a716-446655440000 ".to_string()),
+                "price_list_id",
+            )
+            .expect("valid UUID should parse")
+            .as_deref(),
+            Some("550e8400-e29b-41d4-a716-446655440000")
+        );
+
+        let error = parse_optional_uuid_string(Some("not-a-uuid".to_string()), "price_list_id")
+            .expect_err("invalid UUID should fail");
+        assert_eq!(error.to_string(), "Invalid price_list_id");
     }
 
     #[test]
