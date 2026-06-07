@@ -1,3 +1,5 @@
+mod native_server_adapter;
+
 use leptos::prelude::*;
 use std::fmt::{Display, Formatter};
 
@@ -16,11 +18,11 @@ use crate::model::{
 };
 
 #[derive(Debug, Clone)]
-pub enum ApiError {
+pub enum InventoryTransportError {
     ServerFn(String),
 }
 
-impl Display for ApiError {
+impl Display for InventoryTransportError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::ServerFn(error) => write!(f, "{error}"),
@@ -28,9 +30,9 @@ impl Display for ApiError {
     }
 }
 
-impl std::error::Error for ApiError {}
+impl std::error::Error for InventoryTransportError {}
 
-impl From<ServerFnError> for ApiError {
+impl From<ServerFnError> for InventoryTransportError {
     fn from(value: ServerFnError) -> Self {
         Self::ServerFn(value.to_string())
     }
@@ -127,8 +129,10 @@ fn release_reservation_request(
     }
 }
 
-pub async fn fetch_bootstrap() -> Result<InventoryAdminBootstrap, ApiError> {
-    crate::native::fetch_bootstrap().await.map_err(Into::into)
+pub async fn fetch_bootstrap() -> Result<InventoryAdminBootstrap, InventoryTransportError> {
+    native_server_adapter::fetch_bootstrap()
+        .await
+        .map_err(Into::into)
 }
 
 pub async fn fetch_products(
@@ -136,9 +140,9 @@ pub async fn fetch_products(
     locale: Option<String>,
     search: Option<String>,
     status: Option<String>,
-) -> Result<InventoryProductList, ApiError> {
+) -> Result<InventoryProductList, InventoryTransportError> {
     let request = products_request(tenant_id, locale, search, status);
-    crate::native::fetch_products(
+    native_server_adapter::fetch_products(
         request.tenant_id,
         request.locale,
         request.search,
@@ -152,9 +156,9 @@ pub async fn fetch_product(
     tenant_id: String,
     id: String,
     locale: Option<String>,
-) -> Result<Option<InventoryProductDetail>, ApiError> {
+) -> Result<Option<InventoryProductDetail>, InventoryTransportError> {
     let request = product_request(tenant_id, id, locale);
-    crate::native::fetch_product(request.tenant_id, request.id, request.locale)
+    native_server_adapter::fetch_product(request.tenant_id, request.id, request.locale)
         .await
         .map_err(Into::into)
 }
@@ -163,20 +167,24 @@ pub async fn set_variant_quantity(
     tenant_id: String,
     variant_id: String,
     quantity: i32,
-) -> Result<InventoryQuantityWriteResult, ApiError> {
+) -> Result<InventoryQuantityWriteResult, InventoryTransportError> {
     let request = set_quantity_request(tenant_id, variant_id, quantity);
-    crate::native::set_variant_quantity(request.tenant_id, request.variant_id, request.quantity)
-        .await
-        .map_err(Into::into)
+    native_server_adapter::set_variant_quantity(
+        request.tenant_id,
+        request.variant_id,
+        request.quantity,
+    )
+    .await
+    .map_err(Into::into)
 }
 
 pub async fn adjust_variant_quantity(
     tenant_id: String,
     variant_id: String,
     adjustment: i32,
-) -> Result<InventoryQuantityWriteResult, ApiError> {
+) -> Result<InventoryQuantityWriteResult, InventoryTransportError> {
     let request = adjust_quantity_request(tenant_id, variant_id, adjustment);
-    crate::native::adjust_variant_quantity(
+    native_server_adapter::adjust_variant_quantity(
         request.tenant_id,
         request.variant_id,
         request.adjustment,
@@ -189,20 +197,24 @@ pub async fn reserve_variant_quantity(
     tenant_id: String,
     variant_id: String,
     quantity: i32,
-) -> Result<InventoryReservationWriteResult, ApiError> {
+) -> Result<InventoryReservationWriteResult, InventoryTransportError> {
     let request = reserve_quantity_request(tenant_id, variant_id, quantity);
-    crate::native::reserve_variant_quantity(request.tenant_id, request.variant_id, request.quantity)
-        .await
-        .map_err(Into::into)
+    native_server_adapter::reserve_variant_quantity(
+        request.tenant_id,
+        request.variant_id,
+        request.quantity,
+    )
+    .await
+    .map_err(Into::into)
 }
 
 pub async fn check_variant_availability(
     tenant_id: String,
     variant_id: String,
     requested_quantity: i32,
-) -> Result<InventoryAvailabilityCheckResult, ApiError> {
+) -> Result<InventoryAvailabilityCheckResult, InventoryTransportError> {
     let request = availability_check_request(tenant_id, variant_id, requested_quantity);
-    crate::native::check_variant_availability(
+    native_server_adapter::check_variant_availability(
         request.tenant_id,
         request.variant_id,
         request.requested_quantity,
@@ -215,9 +227,9 @@ pub async fn release_reservation_quantity(
     tenant_id: String,
     variant_id: String,
     quantity: i32,
-) -> Result<InventoryReservationReleaseWriteResult, ApiError> {
+) -> Result<InventoryReservationReleaseWriteResult, InventoryTransportError> {
     let request = release_reservation_request(tenant_id, variant_id, quantity);
-    crate::native::release_reservation_quantity(
+    native_server_adapter::release_reservation_quantity(
         request.tenant_id,
         request.variant_id,
         request.quantity,

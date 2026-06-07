@@ -84,7 +84,20 @@ struct InventoryQuantityUpdate {
 `;
 }
 
-function apiSource({ includeWriteFallback = false } = {}) {
+function transportFacadeSource() {
+  return `
+pub async fn fetch_bootstrap() { native_server_adapter::fetch_bootstrap().await; }
+pub async fn fetch_products() { native_server_adapter::fetch_products().await; }
+pub async fn fetch_product() { native_server_adapter::fetch_product().await; }
+pub async fn set_variant_quantity() { native_server_adapter::set_variant_quantity().await; }
+pub async fn adjust_variant_quantity() { native_server_adapter::adjust_variant_quantity().await; }
+pub async fn reserve_variant_quantity() { native_server_adapter::reserve_variant_quantity().await; }
+pub async fn release_reservation_quantity() { native_server_adapter::release_reservation_quantity().await; }
+pub async fn check_variant_availability() { native_server_adapter::check_variant_availability().await; }
+`;
+}
+
+function nativeAdapterSource({ includeWriteFallback = false } = {}) {
   if (includeWriteFallback) {
     return `
 pub async fn set_variant_quantity(token: Option<String>, tenant_slug: Option<String>) {
@@ -96,6 +109,9 @@ pub async fn adjust_variant_quantity() { crate::native::adjust_variant_quantity(
 pub async fn reserve_variant_quantity() { crate::native::reserve_variant_quantity().await; }
 pub async fn release_reservation_quantity() { crate::native::release_reservation_quantity().await; }
 pub async fn check_variant_availability() { crate::native::check_variant_availability().await; }
+pub async fn fetch_bootstrap() { crate::native::fetch_bootstrap().await; }
+pub async fn fetch_products() { crate::native::fetch_products().await; }
+pub async fn fetch_product() { crate::native::fetch_product().await; }
 `;
   }
 
@@ -183,19 +199,23 @@ async fn apply_public_channel_inventory_to_product() {
 function withFixture(options = {}) {
   const root = mkdtempSync(path.join(tmpdir(), "rustok-inventory-boundary-"));
   writeFixtureFile(root, "crates/rustok-inventory/src/services/inventory.rs", inventorySource(options));
-  writeFixtureFile(root, "crates/rustok-inventory/admin/src/api.rs", apiSource(options));
+  writeFixtureFile(root, "crates/rustok-inventory/admin/src/transport/mod.rs", transportFacadeSource());
+  writeFixtureFile(root, "crates/rustok-inventory/admin/src/transport/native_server_adapter.rs", nativeAdapterSource(options));
   if (options.includeTransportFile) {
     writeFixtureFile(root, "crates/rustok-inventory/admin/src/transport.rs", transportSource());
   }
+  if (options.includeLegacyApiFile) {
+    writeFixtureFile(root, "crates/rustok-inventory/admin/src/api.rs", transportFacadeSource());
+  }
   writeFixtureFile(root, "crates/rustok-inventory/admin/src/native.rs", nativeSource());
-  writeFixtureFile(root, "crates/rustok-inventory/admin/src/lib.rs", "mod api;\nmod core;\nmod native;\n");
+  writeFixtureFile(root, "crates/rustok-inventory/admin/src/lib.rs", "mod core;\nmod native;\nmod transport;\n");
   writeFixtureFile(root, "crates/rustok-inventory/admin/src/core.rs", "");
   writeFixtureFile(root, "crates/rustok-inventory/admin/src/model.rs", "");
   writeFixtureFile(root, "crates/rustok-inventory/admin/src/ui/leptos.rs", "native inventory facade");
   writeFixtureFile(root, "crates/rustok-inventory/admin/locales/en.json", "{\"inventory.subtitle\":\"native inventory facade\"}\n");
   writeFixtureFile(root, "crates/rustok-inventory/admin/locales/ru.json", "{\"inventory.subtitle\":\"native inventory facade\"}\n");
   writeFixtureFile(root, "crates/rustok-inventory/admin/Cargo.toml", "[package]\nname = \"rustok-inventory-admin\"\n");
-  writeFixtureFile(root, "crates/rustok-inventory/docs/implementation-plan.md", "- Next step: Перейти к завершающему verification/CI evidence slice для inventory boundary.\n- [x] перевести текущие inventory admin UI stock operations на inventory-owned native/API mutations\n");
+  writeFixtureFile(root, "crates/rustok-inventory/docs/implementation-plan.md", "- Next step: Перейти к завершающему verification/CI evidence slice для inventory boundary.\n- [x] перевести текущие inventory admin UI stock operations на inventory-owned native/transport mutations\n");
   for (const relativePath of [
     "crates/rustok-commerce/src/graphql/mutation.rs",
     "crates/rustok-commerce/src/services/checkout.rs",
@@ -243,6 +263,18 @@ test("inventory admin boundary verifier rejects leftover GraphQL transport file"
     const result = runVerifier(root);
     assert.notEqual(result.status, 0, "Expected leftover transport fixture to fail");
     assert.match(result.stderr, /remove the transitional GraphQL adapter file/);
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
+
+
+test("inventory admin boundary verifier rejects leftover pre-FFA api facade", () => {
+  const root = withFixture({ includeLegacyApiFile: true });
+  try {
+    const result = runVerifier(root);
+    assert.notEqual(result.status, 0, "Expected leftover api fixture to fail");
+    assert.match(result.stderr, /remove the pre-FFA api facade/);
   } finally {
     rmSync(root, { recursive: true, force: true });
   }

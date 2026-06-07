@@ -235,6 +235,7 @@ fn map_release_result(
     }
 }
 
+#[cfg(feature = "ssr")]
 fn map_variant(value: rustok_inventory::AdminInventoryVariant) -> crate::model::InventoryVariant {
     crate::model::InventoryVariant {
         id: value.id.to_string(),
