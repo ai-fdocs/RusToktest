@@ -9,12 +9,14 @@ use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
 
 use crate::core::{
     build_product_admin_editor_form_state, build_product_admin_editor_view_model,
-    build_product_admin_list_item_view_model, build_product_admin_save_command,
+    build_product_admin_list_controls_view_model, build_product_admin_list_empty_view_model,
+    build_product_admin_list_error_view_model, build_product_admin_list_item_view_model,
+    build_product_admin_list_loading_view_model, build_product_admin_save_command,
     build_product_admin_status_mutation_command, build_selected_product_summary_view_model,
     empty_product_admin_editor_form_state, format_known_shipping_profiles,
     primary_catalog_currency, shipping_profile_choice_label, text_or_none, ProductAdminDraftForm,
-    ProductAdminEditorFormState, ProductAdminPricingPreviewState, ProductAdminSaveMode,
-    ProductAdminStatusTarget, SelectedProductSummaryViewModel,
+    ProductAdminEditorFormState, ProductAdminListStateKind, ProductAdminPricingPreviewState,
+    ProductAdminSaveMode, ProductAdminStatusTarget, SelectedProductSummaryViewModel,
 };
 use crate::i18n::t;
 use crate::model::{ProductAdminBootstrap, ProductDetail, ProductPricingDetail};
@@ -30,6 +32,17 @@ where
     T: 'static,
 {
     LocalResource::new(move || fetcher(source()))
+}
+
+fn product_admin_list_state_class(kind: &ProductAdminListStateKind) -> &'static str {
+    match kind {
+        ProductAdminListStateKind::Loading | ProductAdminListStateKind::Empty => {
+            "rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground"
+        }
+        ProductAdminListStateKind::Error => {
+            "rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        }
+    }
 }
 
 #[component]
@@ -393,55 +406,78 @@ pub fn ProductAdmin() -> impl IntoView {
             <div class="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
                 <section class="rounded-3xl border border-border bg-card p-6 shadow-sm">
                     <div class="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-                        <div>
-                            <h3 class="text-lg font-semibold text-card-foreground">
-                                {t(ui_locale.as_deref(), "product.list.title", "Catalog Feed")}
-                            </h3>
-                            <p class="text-sm text-muted-foreground">
-                                {t(
-                                    ui_locale.as_deref(),
-                                    "product.list.subtitle",
-                                    "Search, open, publish and archive products from the product-owned package.",
-                                )}
-                            </p>
-                        </div>
-                        <div class="grid gap-3 md:grid-cols-2">
-                            <input
-                                class="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
-                                placeholder=t(ui_locale.as_deref(), "product.list.search", "Search title")
-                                prop:value=move || search.get()
-                                on:input=move |ev| set_search.set(event_target_value(&ev))
-                            />
-                            <select
-                                class="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
-                                prop:value=move || status_filter.get()
-                                on:change=move |ev| set_status_filter.set(event_target_value(&ev))
-                            >
-                                <option value="">{t(ui_locale.as_deref(), "product.status.all", "All statuses")}</option>
-                                <option value="DRAFT">{t(ui_locale.as_deref(), "product.status.draft", "Draft")}</option>
-                                <option value="ACTIVE">{t(ui_locale.as_deref(), "product.status.active", "Active")}</option>
-                                <option value="ARCHIVED">{t(ui_locale.as_deref(), "product.status.archived", "Archived")}</option>
-                            </select>
-                        </div>
+                        {
+                            let controls = build_product_admin_list_controls_view_model(ui_locale.as_deref());
+                            let controls_title = controls.title;
+                            let controls_subtitle = controls.subtitle;
+                            let search_placeholder = controls.search_placeholder;
+                            let status_options = controls.status_options;
+
+                            view! {
+                                <div>
+                                    <h3 class="text-lg font-semibold text-card-foreground">
+                                        {controls_title}
+                                    </h3>
+                                    <p class="text-sm text-muted-foreground">
+                                        {controls_subtitle}
+                                    </p>
+                                </div>
+                                <div class="grid gap-3 md:grid-cols-2">
+                                    <input
+                                        class="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                                        placeholder=search_placeholder
+                                        prop:value=move || search.get()
+                                        on:input=move |ev| set_search.set(event_target_value(&ev))
+                                    />
+                                    <select
+                                        class="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary"
+                                        prop:value=move || status_filter.get()
+                                        on:change=move |ev| set_status_filter.set(event_target_value(&ev))
+                                    >
+                                        {status_options.into_iter().map(|option| {
+                                            view! {
+                                                <option value=option.value>{option.label}</option>
+                                            }
+                                        }).collect_view()}
+                                    </select>
+                                </div>
+                            }
+                        }
                     </div>
 
                     <div class="mt-5 space-y-3">
                         {move || match products.get() {
-                            None => view! {
-                                <div class="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                                    {t(ui_locale_for_list.as_deref(), "product.list.loading", "Loading products...")}
-                                </div>
-                            }.into_any(),
-                            Some(Err(err)) => view! {
-                                <div class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-                                    {format!("{}: {err}", t(ui_locale_for_list.as_deref(), "product.error.loadProducts", "Failed to load products"))}
-                                </div>
-                            }.into_any(),
-                            Some(Ok(list)) if list.items.is_empty() => view! {
-                                <div class="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                                    {t(ui_locale_for_list.as_deref(), "product.list.empty", "No products yet.")}
-                                </div>
-                            }.into_any(),
+                            None => {
+                                let state = build_product_admin_list_loading_view_model(
+                                    ui_locale_for_list.as_deref(),
+                                );
+                                view! {
+                                    <div class=product_admin_list_state_class(&state.kind)>
+                                        {state.message}
+                                    </div>
+                                }.into_any()
+                            },
+                            Some(Err(err)) => {
+                                let state = build_product_admin_list_error_view_model(
+                                    ui_locale_for_list.as_deref(),
+                                    err,
+                                );
+                                view! {
+                                    <div class=product_admin_list_state_class(&state.kind)>
+                                        {state.message}
+                                    </div>
+                                }.into_any()
+                            },
+                            Some(Ok(list)) if list.items.is_empty() => {
+                                let state = build_product_admin_list_empty_view_model(
+                                    ui_locale_for_list.as_deref(),
+                                );
+                                view! {
+                                    <div class=product_admin_list_state_class(&state.kind)>
+                                        {state.message}
+                                    </div>
+                                }.into_any()
+                            },
                             Some(Ok(list)) => view! {
                                 <>
                                     {list.items.into_iter().map(|product| {
