@@ -4,9 +4,9 @@
 
 ## Execution checkpoint
 
-- Current phase: FFA admin transport adapter seam
-- Last checkpoint: Comments admin продолжил FFA slice: module-owned transport теперь разделён на facade `admin/src/transport/mod.rs` и explicit `admin/src/transport/native_server_adapter.rs`; active path зафиксирован enum/const как temporary native-only state, а Leptos adapter остаётся потребителем facade без доступа к raw `api::*`.
-- Next step: Добавить GraphQL/headless fallback parity adapter или зафиксировать contract freeze evidence, если comments admin остаётся native-only в ближайшей wave.
+- Current phase: FFA admin core-owned transport requests
+- Last checkpoint: Comments admin продолжил FFA slice: request/command construction для thread list/detail/status mutations перенесён в `admin/src/core.rs` (`CommentThreadsRequest`, `CommentThreadDetailRequest`, `SetThreadStatusCommand`, `SetCommentStatusCommand`), а transport facade/native adapter теперь принимают core-owned DTO вместо UI-built primitive argument lists.
+- Next step: Добавить GraphQL/headless fallback adapter поверх тех же core-owned request/command DTO или зафиксировать contract freeze evidence, если comments admin остаётся native-only в ближайшей wave.
 - Open blockers: GraphQL fallback для comments admin пока отсутствует; этот срез зафиксирован как temporary single-adapter native state.
 - Hand-off notes for next agent: После каждого FFA/FBA инкремента обновлять этот блок, локальный FFA/FBA status block и central readiness board в одном PR.
 - Last updated at (UTC): 2026-06-07T00:00:00Z
@@ -19,7 +19,7 @@
 - Evidence:
   - `rustok-comments-admin` теперь имеет явные `admin/src/core.rs`, `admin/src/transport/mod.rs`, `admin/src/transport/native_server_adapter.rs` и `admin/src/ui/leptos.rs`; `admin/src/lib.rs` больше не содержит render/business logic и публикует только `CommentsAdmin`;
   - covered admin UI больше не вызывает raw `api::*` напрямую из Leptos render layer, а идёт через module-owned transport facade;
-  - status filter parsing, thread list/detail target/status labels и comment row identity/locale/body mapping вынесены в Leptos-free core и покрыты unit tests;
+  - status filter parsing, thread list/detail target/status labels, comment row identity/locale/body mapping и transport request/command DTO construction вынесены в Leptos-free core и покрыты unit tests;
   - текущий admin transport остаётся temporary single-adapter native server-function path, но path зафиксирован typed `CommentsAdminTransportPath`/`ACTIVE_TRANSPORT_PATH`, а GraphQL/headless parity adapter запланирован следующим срезом.
 - Owner: `rustok-comments` module team
 

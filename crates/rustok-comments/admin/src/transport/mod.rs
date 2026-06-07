@@ -10,9 +10,11 @@ pub(crate) mod native_server_adapter;
 
 pub(crate) use crate::api::ApiError;
 use crate::api::CommentThreadsPayload;
-use rustok_comments::{
-    CommentRecord, CommentStatus, CommentThreadDetail, CommentThreadStatus, CommentThreadSummary,
+use crate::core::{
+    CommentThreadDetailRequest, CommentThreadsRequest, SetCommentStatusCommand,
+    SetThreadStatusCommand,
 };
+use rustok_comments::{CommentRecord, CommentThreadDetail, CommentThreadSummary};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum CommentsAdminTransportPath {
@@ -23,58 +25,41 @@ pub(crate) const ACTIVE_TRANSPORT_PATH: CommentsAdminTransportPath =
     CommentsAdminTransportPath::NativeServer;
 
 pub(crate) async fn fetch_threads(
-    page: u64,
-    per_page: u64,
-    target_type: String,
-    thread_status: Option<CommentThreadStatus>,
-    comment_status: Option<CommentStatus>,
+    request: CommentThreadsRequest,
 ) -> Result<CommentThreadsPayload, ApiError> {
     match ACTIVE_TRANSPORT_PATH {
         CommentsAdminTransportPath::NativeServer => {
-            native_server_adapter::fetch_threads(
-                page,
-                per_page,
-                target_type,
-                thread_status,
-                comment_status,
-            )
-            .await
+            native_server_adapter::fetch_threads(request).await
         }
     }
 }
 
 pub(crate) async fn fetch_thread_detail(
-    thread_id: String,
-    locale: String,
-    page: u64,
-    per_page: u64,
+    request: CommentThreadDetailRequest,
 ) -> Result<CommentThreadDetail, ApiError> {
     match ACTIVE_TRANSPORT_PATH {
         CommentsAdminTransportPath::NativeServer => {
-            native_server_adapter::fetch_thread_detail(thread_id, locale, page, per_page).await
+            native_server_adapter::fetch_thread_detail(request).await
         }
     }
 }
 
 pub(crate) async fn set_thread_status(
-    thread_id: String,
-    status: CommentThreadStatus,
+    command: SetThreadStatusCommand,
 ) -> Result<CommentThreadSummary, ApiError> {
     match ACTIVE_TRANSPORT_PATH {
         CommentsAdminTransportPath::NativeServer => {
-            native_server_adapter::set_thread_status(thread_id, status).await
+            native_server_adapter::set_thread_status(command).await
         }
     }
 }
 
 pub(crate) async fn set_comment_status(
-    comment_id: String,
-    status: CommentStatus,
-    locale: String,
+    command: SetCommentStatusCommand,
 ) -> Result<CommentRecord, ApiError> {
     match ACTIVE_TRANSPORT_PATH {
         CommentsAdminTransportPath::NativeServer => {
-            native_server_adapter::set_comment_status(comment_id, status, locale).await
+            native_server_adapter::set_comment_status(command).await
         }
     }
 }

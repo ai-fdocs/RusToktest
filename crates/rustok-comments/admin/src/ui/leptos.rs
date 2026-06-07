@@ -6,8 +6,9 @@ use rustok_api::{AdminQueryKey, UiRouteContext};
 use rustok_comments::{CommentStatus, CommentThreadStatus};
 
 use crate::core::{
-    parse_comment_status, parse_thread_status, CommentRowViewModel, CommentThreadDetailViewModel,
-    CommentThreadListItemViewModel,
+    CommentRowViewModel, CommentThreadDetailRequest, CommentThreadDetailViewModel,
+    CommentThreadListItemViewModel, CommentThreadsRequest, SetCommentStatusCommand,
+    SetThreadStatusCommand,
 };
 use crate::i18n::t;
 use crate::transport;
@@ -119,14 +120,14 @@ pub fn CommentsAdmin() -> impl IntoView {
             )
         },
         move |(_, _, page_value, _, target_type, thread_status, comment_status)| async move {
-            transport::fetch_threads(
+            let request = CommentThreadsRequest::from_filters(
                 page_value,
                 20,
                 target_type,
-                parse_thread_status(&thread_status),
-                parse_comment_status(&comment_status),
-            )
-            .await
+                &thread_status,
+                &comment_status,
+            );
+            transport::fetch_threads(request).await
         },
     );
 
@@ -145,7 +146,9 @@ pub fn CommentsAdmin() -> impl IntoView {
             async move {
                 match thread_id {
                     Some(thread_id) => {
-                        transport::fetch_thread_detail(thread_id, locale_value, 1, 100).await
+                        let request =
+                            CommentThreadDetailRequest::new(thread_id, locale_value, 1, 100);
+                        transport::fetch_thread_detail(request).await
                     }
                     None => Err(transport::ApiError::ServerFn(t(
                         detail_error_locale.as_deref(),
@@ -174,7 +177,8 @@ pub fn CommentsAdmin() -> impl IntoView {
         };
         set_busy_key.set(Some(format!("thread:{thread_id}")));
         spawn_local(async move {
-            match transport::set_thread_status(thread_id, status).await {
+            let command = SetThreadStatusCommand::new(thread_id, status);
+            match transport::set_thread_status(command).await {
                 Ok(_) => set_refresh_nonce.update(|value| *value += 1),
                 Err(err) => set_mutation_error.set(Some(format!(
                     "{}: {err}",
@@ -193,7 +197,8 @@ pub fn CommentsAdmin() -> impl IntoView {
         let locale_value = locale.get_untracked();
         set_busy_key.set(Some(format!("comment:{comment_id}")));
         spawn_local(async move {
-            match transport::set_comment_status(comment_id, status, locale_value.clone()).await {
+            let command = SetCommentStatusCommand::new(comment_id, status, locale_value.clone());
+            match transport::set_comment_status(command).await {
                 Ok(_) => set_refresh_nonce.update(|value| *value += 1),
                 Err(err) => set_mutation_error.set(Some(format!(
                     "{}: {err}",

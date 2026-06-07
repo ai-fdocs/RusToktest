@@ -8,6 +8,81 @@ use rustok_comments::{
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CommentThreadsRequest {
+    pub page: u64,
+    pub per_page: u64,
+    pub target_type: String,
+    pub thread_status: Option<CommentThreadStatus>,
+    pub comment_status: Option<CommentStatus>,
+}
+
+impl CommentThreadsRequest {
+    pub(crate) fn from_filters(
+        page: u64,
+        per_page: u64,
+        target_type: String,
+        thread_status_filter: &str,
+        comment_status_filter: &str,
+    ) -> Self {
+        Self {
+            page: page.max(1),
+            per_page: per_page.max(1),
+            target_type: target_type.trim().to_string(),
+            thread_status: parse_thread_status(thread_status_filter),
+            comment_status: parse_comment_status(comment_status_filter),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct CommentThreadDetailRequest {
+    pub thread_id: String,
+    pub locale: String,
+    pub page: u64,
+    pub per_page: u64,
+}
+
+impl CommentThreadDetailRequest {
+    pub(crate) fn new(thread_id: String, locale: String, page: u64, per_page: u64) -> Self {
+        Self {
+            thread_id,
+            locale: locale.trim().to_string(),
+            page: page.max(1),
+            per_page: per_page.max(1),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct SetThreadStatusCommand {
+    pub thread_id: String,
+    pub status: CommentThreadStatus,
+}
+
+impl SetThreadStatusCommand {
+    pub(crate) fn new(thread_id: String, status: CommentThreadStatus) -> Self {
+        Self { thread_id, status }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) struct SetCommentStatusCommand {
+    pub comment_id: String,
+    pub status: CommentStatus,
+    pub locale: String,
+}
+
+impl SetCommentStatusCommand {
+    pub(crate) fn new(comment_id: String, status: CommentStatus, locale: String) -> Self {
+        Self {
+            comment_id,
+            status,
+            locale: locale.trim().to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CommentThreadListItemViewModel {
     pub id: String,
     pub target_label: String,
@@ -127,6 +202,47 @@ mod tests {
         assert_eq!(parse_comment_status("spam"), Some(CommentStatus::Spam));
         assert_eq!(parse_comment_status("trash"), Some(CommentStatus::Trash));
         assert_eq!(parse_comment_status("all"), None);
+    }
+
+    #[test]
+    fn builds_thread_list_request_from_ui_filters() {
+        let request = CommentThreadsRequest::from_filters(
+            0,
+            0,
+            " blog_post ".to_string(),
+            "closed",
+            "approved",
+        );
+
+        assert_eq!(request.page, 1);
+        assert_eq!(request.per_page, 1);
+        assert_eq!(request.target_type, "blog_post");
+        assert_eq!(request.thread_status, Some(CommentThreadStatus::Closed));
+        assert_eq!(request.comment_status, Some(CommentStatus::Approved));
+    }
+
+    #[test]
+    fn normalizes_detail_request_pagination_and_locale() {
+        let request =
+            CommentThreadDetailRequest::new("thread-1".to_string(), " ru ".to_string(), 0, 0);
+
+        assert_eq!(request.thread_id, "thread-1");
+        assert_eq!(request.locale, "ru");
+        assert_eq!(request.page, 1);
+        assert_eq!(request.per_page, 1);
+    }
+
+    #[test]
+    fn normalizes_comment_status_command_locale() {
+        let command = SetCommentStatusCommand::new(
+            "comment-1".to_string(),
+            CommentStatus::Spam,
+            " en ".to_string(),
+        );
+
+        assert_eq!(command.comment_id, "comment-1");
+        assert_eq!(command.status, CommentStatus::Spam);
+        assert_eq!(command.locale, "en");
     }
 
     #[test]

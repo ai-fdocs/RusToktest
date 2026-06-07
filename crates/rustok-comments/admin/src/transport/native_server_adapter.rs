@@ -1,38 +1,43 @@
 use crate::api::{self, ApiError, CommentThreadsPayload};
-use rustok_comments::{
-    CommentRecord, CommentStatus, CommentThreadDetail, CommentThreadStatus, CommentThreadSummary,
+use crate::core::{
+    CommentThreadDetailRequest, CommentThreadsRequest, SetCommentStatusCommand,
+    SetThreadStatusCommand,
 };
+use rustok_comments::{CommentRecord, CommentThreadDetail, CommentThreadSummary};
 
 pub(crate) async fn fetch_threads(
-    page: u64,
-    per_page: u64,
-    target_type: String,
-    thread_status: Option<CommentThreadStatus>,
-    comment_status: Option<CommentStatus>,
+    request: CommentThreadsRequest,
 ) -> Result<CommentThreadsPayload, ApiError> {
-    api::fetch_threads(page, per_page, target_type, thread_status, comment_status).await
+    api::fetch_threads(
+        request.page,
+        request.per_page,
+        request.target_type,
+        request.thread_status,
+        request.comment_status,
+    )
+    .await
 }
 
 pub(crate) async fn fetch_thread_detail(
-    thread_id: String,
-    locale: String,
-    page: u64,
-    per_page: u64,
+    request: CommentThreadDetailRequest,
 ) -> Result<CommentThreadDetail, ApiError> {
-    api::fetch_thread_detail(thread_id, locale, page, per_page).await
+    api::fetch_thread_detail(
+        request.thread_id,
+        request.locale,
+        request.page,
+        request.per_page,
+    )
+    .await
 }
 
 pub(crate) async fn set_thread_status(
-    thread_id: String,
-    status: CommentThreadStatus,
+    command: SetThreadStatusCommand,
 ) -> Result<CommentThreadSummary, ApiError> {
-    api::set_thread_status(thread_id, status).await
+    api::set_thread_status(command.thread_id, command.status).await
 }
 
 pub(crate) async fn set_comment_status(
-    comment_id: String,
-    status: CommentStatus,
-    locale: String,
+    command: SetCommentStatusCommand,
 ) -> Result<CommentRecord, ApiError> {
-    api::set_comment_status(comment_id, status, locale).await
+    api::set_comment_status(command.comment_id, command.status, command.locale).await
 }
