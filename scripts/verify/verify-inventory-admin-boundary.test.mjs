@@ -191,7 +191,9 @@ function withFixture(options = {}) {
   writeFixtureFile(root, "crates/rustok-inventory/admin/src/lib.rs", "mod api;\nmod core;\nmod native;\n");
   writeFixtureFile(root, "crates/rustok-inventory/admin/src/core.rs", "");
   writeFixtureFile(root, "crates/rustok-inventory/admin/src/model.rs", "");
-  writeFixtureFile(root, "crates/rustok-inventory/admin/src/ui/leptos.rs", "");
+  writeFixtureFile(root, "crates/rustok-inventory/admin/src/ui/leptos.rs", "native inventory facade");
+  writeFixtureFile(root, "crates/rustok-inventory/admin/locales/en.json", "{\"inventory.subtitle\":\"native inventory facade\"}\n");
+  writeFixtureFile(root, "crates/rustok-inventory/admin/locales/ru.json", "{\"inventory.subtitle\":\"native inventory facade\"}\n");
   writeFixtureFile(root, "crates/rustok-inventory/admin/Cargo.toml", "[package]\nname = \"rustok-inventory-admin\"\n");
   for (const relativePath of [
     "crates/rustok-commerce/src/graphql/mutation.rs",

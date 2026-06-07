@@ -212,6 +212,28 @@ function assertInventoryAdminTransportBoundary() {
   ]) {
     assertContains(native, endpoint, `${nativePath}: missing native server-function endpoint ${endpoint}`);
   }
+
+  for (const [relativePath, source] of [
+    ["crates/rustok-inventory/admin/src/ui/leptos.rs", readRepo("crates/rustok-inventory/admin/src/ui/leptos.rs")],
+    ["crates/rustok-inventory/admin/locales/en.json", readRepo("crates/rustok-inventory/admin/locales/en.json")],
+    ["crates/rustok-inventory/admin/locales/ru.json", readRepo("crates/rustok-inventory/admin/locales/ru.json")],
+  ]) {
+    assertNotContains(
+      source,
+      "remaining inventory mutations",
+      `${relativePath}: admin UI copy must not claim current stock operations are still split from umbrella transport`,
+    );
+    assertNotContains(
+      source,
+      "оставшиеся inventory mutations",
+      `${relativePath}: admin UI copy must not claim current stock operations are still split from umbrella transport`,
+    );
+    assertContains(
+      source,
+      "native inventory facade",
+      `${relativePath}: admin UI copy should describe the module-owned native inventory facade`,
+    );
+  }
 }
 
 function assertCommercePublicChannelAvailabilityBoundary() {
