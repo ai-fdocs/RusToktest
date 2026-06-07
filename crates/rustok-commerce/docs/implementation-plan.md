@@ -202,6 +202,49 @@ Fluid Frontend Architecture (FFA) и Fluid Backend Architecture (FBA):
 - реализованы admin routes для `products`;
 - OpenAPI и route contract tests привязаны к live surface без legacy compatibility layer.
 
+
+### Inventory availability compatibility tail
+
+Статус: `in progress`
+
+Этот хвост относится к umbrella ecommerce orchestration, а не к inventory admin UI scope.
+`rustok-inventory` уже владеет admin read/write facade и public-channel inventory
+availability/projection helpers; `rustok-commerce` должен оставаться thin compatibility
+layer для storefront/checkout flows.
+
+Текущие правила:
+
+- GraphQL cart line quantity mutations, checkout cart inventory validation и store REST cart
+  validation должны вызывать `rustok_inventory::check_variant_availability_for_public_channel`
+  вместо прямой связки backorder policy + channel-visible inventory loader.
+- Storefront product DTO projection должна вызывать
+  `rustok_inventory::load_inventory_projection_by_variant_for_public_channel` и только
+  применять `PublicChannelInventoryProjection.available_quantity/in_stock` к commerce DTO.
+- Commerce callers не должны напрямую вызывать
+  `load_available_inventory_for_variant_in_public_channel`,
+  `load_available_inventory_by_variant_for_public_channel` или
+  `inventory_policy_allows_backorder` для storefront availability decisions.
+- Дальнейшая работа по stock locations, reservations и channel-aware availability edge-cases
+  фиксируется здесь как umbrella compatibility/parity work и должна сопровождаться
+  integration tests для checkout/catalog visibility flows.
+
+Быстрые guardrails:
+
+```bash
+node scripts/verify/verify-inventory-admin-boundary.mjs
+./scripts/verify/verify-all.sh inventory-admin-boundary
+```
+
+Следующие шаги:
+
+- [ ] добавить targeted integration coverage для channel-aware inventory visibility edge-cases
+  через storefront catalog/cart/checkout path;
+- [ ] удерживать REST/GraphQL/native parity для checkout-facing inventory availability
+  после расширения stock locations/reservation semantics;
+- [ ] при изменении public-channel inventory semantics синхронизировать
+  `crates/rustok-inventory/docs/implementation-plan.md`, этот commerce roadmap и
+  `docs/modules/registry.md`.
+
 ### Phase 3. Cart context и checkout hardening
 
 Статус: `in progress`
