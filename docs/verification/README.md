@@ -111,7 +111,7 @@ powershell -ExecutionPolicy Bypass -File scripts/verify/verify-architecture.ps1
 
 ## Runtime/backend regression runbook
 
-Краткая диагностика для хвостов плана `docs/research/error fix.md`:
+Краткая диагностика для постоянных backend/runtime guardrails:
 
 | Симптом | Быстрая проверка | Что смотреть при падении |
 |---|---|---|

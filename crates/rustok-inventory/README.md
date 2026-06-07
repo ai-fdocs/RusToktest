@@ -20,8 +20,9 @@
   commerce checkout/storefront compatibility paths through the exported policy helper.
 - Own public-channel inventory visibility/projection helpers (`normalize_public_channel_slug`,
   channel-visibility metadata parsing, channel-visible available quantity loaders, and
-  `PublicChannelInventoryProjection`) consumed by the umbrella commerce storefront/checkout
-  compatibility layer so commerce adapters do not duplicate backorder policy branching.
+  `PublicChannelInventoryProjection` / `PublicChannelInventoryVariantProjectionInput`) consumed
+  by the umbrella commerce storefront/checkout compatibility layer so commerce adapters do not
+  duplicate backorder policy branching.
 
 ## Interactions
 

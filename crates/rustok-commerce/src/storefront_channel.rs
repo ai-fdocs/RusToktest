@@ -2,6 +2,7 @@ use rustok_api::RequestContext;
 use rustok_channel::{error::ChannelError, ChannelService};
 use rustok_inventory::{
     load_inventory_projection_by_variant_for_public_channel, normalize_public_channel_slug,
+    PublicChannelInventoryVariantProjectionInput,
 };
 use sea_orm::DatabaseConnection;
 use uuid::Uuid;
@@ -32,15 +33,18 @@ pub(crate) async fn apply_public_channel_inventory_to_product(
     product: &mut ProductResponse,
     public_channel_slug: Option<&str>,
 ) -> Result<(), sea_orm::DbErr> {
-    let variant_policies = product
+    let variants = product
         .variants
         .iter()
-        .map(|variant| (variant.id, variant.inventory_policy.clone()))
+        .map(|variant| PublicChannelInventoryVariantProjectionInput {
+            variant_id: variant.id,
+            inventory_policy: variant.inventory_policy.as_str(),
+        })
         .collect::<Vec<_>>();
     let projections = load_inventory_projection_by_variant_for_public_channel(
         db,
         tenant_id,
-        &variant_policies,
+        &variants,
         public_channel_slug,
     )
     .await?;

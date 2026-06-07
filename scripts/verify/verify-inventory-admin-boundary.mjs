@@ -212,6 +212,28 @@ function assertInventoryAdminTransportBoundary() {
   ]) {
     assertContains(native, endpoint, `${nativePath}: missing native server-function endpoint ${endpoint}`);
   }
+
+  for (const [relativePath, source] of [
+    ["crates/rustok-inventory/admin/src/ui/leptos.rs", readRepo("crates/rustok-inventory/admin/src/ui/leptos.rs")],
+    ["crates/rustok-inventory/admin/locales/en.json", readRepo("crates/rustok-inventory/admin/locales/en.json")],
+    ["crates/rustok-inventory/admin/locales/ru.json", readRepo("crates/rustok-inventory/admin/locales/ru.json")],
+  ]) {
+    assertNotContains(
+      source,
+      "remaining inventory mutations",
+      `${relativePath}: admin UI copy must not claim current stock operations are still split from umbrella transport`,
+    );
+    assertNotContains(
+      source,
+      "оставшиеся inventory mutations",
+      `${relativePath}: admin UI copy must not claim current stock operations are still split from umbrella transport`,
+    );
+    assertContains(
+      source,
+      "native inventory facade",
+      `${relativePath}: admin UI copy should describe the module-owned native inventory facade`,
+    );
+  }
 }
 
 function assertCommercePublicChannelAvailabilityBoundary() {
@@ -247,6 +269,11 @@ function assertCommercePublicChannelAvailabilityBoundary() {
     "load_inventory_projection_by_variant_for_public_channel",
     `${storefrontChannelPath}: storefront product projection must use the inventory-owned projection facade`,
   );
+  assertContains(
+    storefrontChannel,
+    "PublicChannelInventoryVariantProjectionInput",
+    `${storefrontChannelPath}: storefront product projection must pass typed borrowed inventory projection inputs`,
+  );
   assertNotContains(
     storefrontChannel,
     "load_available_inventory_by_variant_for_public_channel",
@@ -257,12 +284,39 @@ function assertCommercePublicChannelAvailabilityBoundary() {
     "inventory_policy_allows_backorder",
     `${storefrontChannelPath}: storefront product projection must not duplicate backorder policy branching`,
   );
+  assertNotContains(
+    storefrontChannel,
+    "inventory_policy.clone()",
+    `${storefrontChannelPath}: storefront projection input should borrow inventory policy instead of cloning DTO strings`,
+  );
+}
+
+function assertInventoryDocsBoundaryEvidence() {
+  const planPath = "crates/rustok-inventory/docs/implementation-plan.md";
+  const plan = readRepo(planPath);
+
+  assertContains(
+    plan,
+    "- [x] перевести текущие inventory admin UI stock operations на inventory-owned native/API mutations",
+    `${planPath}: implementation plan must mark current inventory admin stock operations as native/API covered`,
+  );
+  assertContains(
+    plan,
+    "verification/CI evidence slice",
+    `${planPath}: next step must move to verification/CI evidence after current admin stock operations are native`,
+  );
+  assertNotContains(
+    plan,
+    "- [ ] перевести оставшиеся inventory admin UI stock operations",
+    `${planPath}: implementation plan must not keep stale unchecked admin UI stock-operation split item`,
+  );
 }
 
 
 assertInventoryServiceWriteResults();
 assertInventoryAdminTransportBoundary();
 assertCommercePublicChannelAvailabilityBoundary();
+assertInventoryDocsBoundaryEvidence();
 
 if (failures.length > 0) {
   console.error("Inventory admin boundary check failed:");

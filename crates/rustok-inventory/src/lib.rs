@@ -19,7 +19,7 @@ pub use services::{
     AdminInventoryProductsFilter, AdminInventoryReadService, AdminInventoryVariant,
     InventoryAvailabilityCheckResult, InventoryQuantityWriteResult,
     InventoryReservationReleaseWriteResult, InventoryReservationWriteResult, InventoryService,
-    PublicChannelInventoryProjection,
+    PublicChannelInventoryProjection, PublicChannelInventoryVariantProjectionInput,
 };
 
 pub struct InventoryModule;

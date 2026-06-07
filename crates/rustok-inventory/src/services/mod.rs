@@ -12,6 +12,7 @@ pub use public_channel::{
     load_available_inventory_for_variant_in_public_channel,
     load_inventory_projection_by_variant_for_public_channel, normalize_public_channel_slug,
     public_channel_inventory_projection, PublicChannelInventoryProjection,
+    PublicChannelInventoryVariantProjectionInput,
 };
 
 pub use admin_read::{

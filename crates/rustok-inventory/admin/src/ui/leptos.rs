@@ -219,7 +219,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                         {t(ui_locale.as_deref(), "inventory.title", "Inventory Control")}
                     </h2>
                     <p class="max-w-3xl text-sm text-muted-foreground">
-                        {t(ui_locale.as_deref(), "inventory.subtitle", "Module-owned inventory surface for stock visibility, low-stock triage, variant health signals, targeted corrections, reservation release flows and availability checks while remaining inventory mutations are still being split from the umbrella transport.")}
+                        {t(ui_locale.as_deref(), "inventory.subtitle", "Module-owned inventory surface for stock visibility, low-stock triage, variant health signals, targeted corrections, reservation release flows and availability checks through the native inventory facade.")}
                     </p>
                 </div>
             </header>
@@ -430,7 +430,7 @@ pub fn InventoryAdmin() -> impl IntoView {
                                 </div>
 
                                 <div class="rounded-2xl border border-border bg-background p-5 text-sm text-muted-foreground">
-                                    {t(ui_locale_for_detail.as_deref(), "inventory.detail.transportGap", "Dedicated inventory set/adjust/reserve/release/check-availability transport is available for targeted stock corrections, validation and reservation flows; remaining inventory mutations are still being split from the umbrella ecommerce surface.")}
+                                    {t(ui_locale_for_detail.as_deref(), "inventory.detail.transportGap", "Dedicated inventory set/adjust/reserve/release/check-availability transport is available for targeted stock corrections, validation and reservation flows through the module-owned native facade.")}
                                 </div>
 
                                 <div class="rounded-2xl border border-border bg-background p-5">

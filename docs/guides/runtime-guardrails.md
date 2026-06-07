@@ -99,11 +99,12 @@ Remote executor degradation:
 - `rustok_runtime_guardrail_remote_executor_config`
 
 
-## Wave 6 diagnostics runbook
+## Runtime diagnostics runbook
 
-Этот раздел закрывает короткий runbook для быстрых P0/P1 diagnostics из плана
-`docs/research/error fix.md`. Он предназначен для ситуаций, когда оператору или
-ревьюеру нужно проверить runtime invariants без полной компиляции workspace.
+Этот раздел фиксирует короткий runbook для быстрых P0/P1 diagnostics
+runtime-инвариантов. Он предназначен для ситуаций, когда оператору или ревьюеру
+нужно проверить module graph, request context, locale cache и migration safety без
+полной компиляции workspace.
 
 ### Module graph drift
 
