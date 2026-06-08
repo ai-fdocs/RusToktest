@@ -187,6 +187,7 @@ const regionStorefrontLocalePaths = [
 ];
 
 
+const productStorefrontCorePath = "crates/rustok-product/storefront/src/core.rs";
 const productStorefrontTransportPath = "crates/rustok-product/storefront/src/transport/mod.rs";
 const productStorefrontLeptosUiPath = "crates/rustok-product/storefront/src/ui/leptos.rs";
 const productStorefrontReadmePath = "crates/rustok-product/storefront/README.md";
@@ -429,6 +430,7 @@ function collectRegionErrorStatusContractErrors() {
 
 function collectProductTransportEvidenceContractErrors() {
   const errors = [];
+  const core = readText(productStorefrontCorePath);
   const transport = readText(productStorefrontTransportPath);
   const leptosUi = readText(productStorefrontLeptosUiPath);
   const storefrontReadme = readText(productStorefrontReadmePath);
@@ -446,8 +448,8 @@ function collectProductTransportEvidenceContractErrors() {
   });
 
   [
-    "ProductTransportPath::NativeServer",
-    "ProductTransportPath::Graphql",
+    "NativeServer",
+    "Graphql",
     "native_server",
     "graphql",
   ].forEach((contractName) => {
@@ -462,7 +464,20 @@ function collectProductTransportEvidenceContractErrors() {
     }
   });
 
-  ["ProductTransportError", "data-product-transport-*"].forEach((requiredSnippet) => {
+  [
+    "ProductTransportErrorDomEvidence",
+    "build_product_transport_error_dom_evidence",
+  ].forEach((contractName) => {
+    if (!core.includes(contractName)) {
+      errors.push(`Product storefront core должен содержать DOM evidence builder contract: ${contractName}`);
+    }
+  });
+
+  if (!leptosUi.includes("build_product_transport_error_dom_evidence")) {
+    errors.push("Product storefront Leptos error adapter должен использовать core-owned transport DOM evidence builder");
+  }
+
+  ["ProductTransportError", "ProductTransportErrorDomEvidence", "data-product-transport-*"].forEach((requiredSnippet) => {
     if (!storefrontReadme.includes(requiredSnippet)) {
       errors.push(`Product storefront README должен документировать transport evidence snippet: ${requiredSnippet}`);
     }

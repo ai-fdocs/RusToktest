@@ -34,15 +34,6 @@ pub struct ProductTransportError {
 }
 
 impl ProductTransportError {
-    fn native(error: ApiError) -> Self {
-        Self {
-            failed_path: ProductTransportPath::NativeServer,
-            fallback_attempted: false,
-            native_error: Some(error.to_string()),
-            graphql_error: None,
-        }
-    }
-
     fn fallback_failed(native_error: ApiError, graphql_error: ApiError) -> Self {
         Self {
             failed_path: ProductTransportPath::Graphql,

@@ -1,7 +1,8 @@
 use crate::core::{
     build_product_catalog_rail_view_model, build_product_storefront_shell_view_model,
-    build_selected_product_empty_view_model, build_selected_product_view_model,
-    build_storefront_fetch_request, build_storefront_route_input, ProductCatalogRailLabels,
+    build_product_transport_error_dom_evidence, build_selected_product_empty_view_model,
+    build_selected_product_view_model, build_storefront_fetch_request,
+    build_storefront_route_input, ProductCatalogRailLabels,
 };
 use crate::i18n::t;
 use crate::model::{
@@ -64,21 +65,24 @@ fn ProductTransportErrorMessage(
     context: String,
     error: transport::ProductTransportError,
 ) -> impl IntoView {
-    let failed_path = error.failed_path.as_str().to_string();
-    let fallback_attempted = error.fallback_attempted.to_string();
-    let native_error = error.native_error.clone().unwrap_or_default();
-    let graphql_error = error.graphql_error.clone().unwrap_or_default();
-    let message = format!("{}: {error}", context);
+    let evidence = build_product_transport_error_dom_evidence(
+        &context,
+        error.failed_path.as_str(),
+        error.fallback_attempted,
+        error.native_error.as_deref(),
+        error.graphql_error.as_deref(),
+        error.to_string().as_str(),
+    );
 
     view! {
         <div
             class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
-            data-product-transport-failed-path=failed_path
-            data-product-transport-fallback-attempted=fallback_attempted
-            data-product-transport-native-error=native_error
-            data-product-transport-graphql-error=graphql_error
+            data-product-transport-failed-path=evidence.failed_path
+            data-product-transport-fallback-attempted=evidence.fallback_attempted
+            data-product-transport-native-error=evidence.native_error
+            data-product-transport-graphql-error=evidence.graphql_error
         >
-            {message}
+            {evidence.message}
         </div>
     }
 }
