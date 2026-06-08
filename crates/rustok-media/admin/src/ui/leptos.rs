@@ -6,9 +6,12 @@ use leptos_auth::hooks::{use_tenant, use_token};
 use leptos_ui_routing::{use_route_query_value, use_route_query_writer};
 use rustok_api::{AdminQueryKey, UiRouteContext};
 
-use crate::core::{media_dimensions_label, non_empty_option, page_count_label};
+use crate::core::{
+    media_dimensions_label, media_usage_stat_cards, page_count_label,
+    selected_translation_form_state, MediaTranslationFormState, MediaUsageLabels,
+};
 use crate::i18n::t;
-use crate::model::{MediaListItem, MediaUsageSnapshot, UpsertTranslationPayload};
+use crate::model::{MediaListItem, MediaUsageSnapshot};
 use crate::transport;
 use crate::transport::ApiError;
 
@@ -179,16 +182,10 @@ pub fn MediaAdmin() -> impl IntoView {
 
     Effect::new(move |_| {
         if let Some(Ok(items)) = translations.get() {
-            let locale = selected_locale.get();
-            if let Some(current) = items.iter().find(|item| item.locale == locale) {
-                set_title.set(current.title.clone().unwrap_or_default());
-                set_alt_text.set(current.alt_text.clone().unwrap_or_default());
-                set_caption.set(current.caption.clone().unwrap_or_default());
-            } else {
-                set_title.set(String::new());
-                set_alt_text.set(String::new());
-                set_caption.set(String::new());
-            }
+            let form_state = selected_translation_form_state(&items, &selected_locale.get());
+            set_title.set(form_state.title);
+            set_alt_text.set(form_state.alt_text);
+            set_caption.set(form_state.caption);
         }
     });
 
@@ -270,12 +267,12 @@ pub fn MediaAdmin() -> impl IntoView {
         };
         let token_value = token.get_untracked();
         let tenant_value = tenant.get_untracked();
-        let payload = UpsertTranslationPayload {
-            locale: selected_locale.get_untracked(),
-            title: non_empty_option(&title.get_untracked()),
-            alt_text: non_empty_option(&alt_text.get_untracked()),
-            caption: non_empty_option(&caption.get_untracked()),
-        };
+        let payload = MediaTranslationFormState {
+            title: title.get_untracked(),
+            alt_text: alt_text.get_untracked(),
+            caption: caption.get_untracked(),
+        }
+        .to_upsert_payload(selected_locale.get_untracked());
         set_busy_key.set(Some("translation".to_string()));
         spawn_local(async move {
             match transport::upsert_translation(media_id, payload, token_value, tenant_value).await
@@ -602,11 +599,19 @@ fn render_usage(result: Result<MediaUsageSnapshot, ApiError>) -> AnyView {
     match result {
         Ok(payload) => {
             let locale = use_context::<UiRouteContext>().unwrap_or_default().locale;
+            let cards = media_usage_stat_cards(
+                payload,
+                MediaUsageLabels {
+                    files: t(locale.as_deref(), "media.usage.files", "Files"),
+                    total_bytes: t(locale.as_deref(), "media.usage.totalBytes", "Total Bytes"),
+                    tenant: t(locale.as_deref(), "media.usage.tenant", "Tenant"),
+                },
+            );
             view! {
                 <section class="grid gap-4 md:grid-cols-3">
-                    <StatCard label=t(locale.as_deref(), "media.usage.files", "Files") value=payload.file_count.to_string() />
-                    <StatCard label=t(locale.as_deref(), "media.usage.totalBytes", "Total Bytes") value=payload.total_bytes.to_string() />
-                    <StatCard label=t(locale.as_deref(), "media.usage.tenant", "Tenant") value=payload.tenant_id />
+                    {cards.into_iter().map(|card| view! {
+                        <StatCard label=card.label value=card.value />
+                    }).collect_view()}
                 </section>
             }
             .into_any()
