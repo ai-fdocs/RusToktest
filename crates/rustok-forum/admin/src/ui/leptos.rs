@@ -8,8 +8,10 @@ use rustok_seo_admin_support::SeoEntityPanel;
 use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
 
 use crate::core::{
-    format_count, parse_tags, reply_count_label, topic_category_filter, topic_status_class,
-    CategoryFormSnapshot, ForumAdminFormError, TopicFormSnapshot,
+    category_card_view_model, format_count, parse_tags, reply_count_label, topic_card_view_model,
+    topic_category_filter, topic_status_class, CategoryFormSnapshot,
+    ForumAdminCategoryRenderLabels, ForumAdminFormError, ForumAdminTopicRenderLabels,
+    TopicFormSnapshot,
 };
 use crate::i18n::t;
 use crate::model::{CategoryListItem, ReplyListItem, TopicListItem};
@@ -695,10 +697,10 @@ fn SidebarStat(label: String, value: Signal<String>) -> impl IntoView {
 }
 
 #[component]
-fn CountChip(label: String, value: i32) -> impl IntoView {
+fn StaticChip(label: String) -> impl IntoView {
     view! {
         <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-            {label.replace("{count}", value.to_string().as_str())}
+            {label}
         </span>
     }
 }
@@ -1516,67 +1518,67 @@ fn render_category_grid(
         "forum.render.noCategories",
         "No categories yet.",
     );
-    let no_description_label = t(
-        locale.as_deref(),
-        "forum.render.noDescription",
-        "No description yet.",
-    );
-    let topics_count_label = t(
-        locale.as_deref(),
-        "forum.render.topicsCount",
-        "topics: {count}",
-    );
-    let replies_count_label = t(
-        locale.as_deref(),
-        "forum.render.repliesCount",
-        "replies: {count}",
-    );
-    let icon_label = t(locale.as_deref(), "forum.render.icon", "icon: {value}");
-    let editing_label = t(locale.as_deref(), "forum.render.editing", "Editing");
-    let edit_label = t(locale.as_deref(), "forum.render.edit", "Edit");
+    let category_labels = ForumAdminCategoryRenderLabels {
+        no_description: t(
+            locale.as_deref(),
+            "forum.render.noDescription",
+            "No description yet.",
+        ),
+        topics_count_template: t(
+            locale.as_deref(),
+            "forum.render.topicsCount",
+            "topics: {count}",
+        ),
+        replies_count_template: t(
+            locale.as_deref(),
+            "forum.render.repliesCount",
+            "replies: {count}",
+        ),
+        icon_template: t(locale.as_deref(), "forum.render.icon", "icon: {value}"),
+        editing: t(locale.as_deref(), "forum.render.editing", "Editing"),
+        edit: t(locale.as_deref(), "forum.render.edit", "Edit"),
+    };
     let delete_label = t(locale.as_deref(), "forum.render.delete", "Delete");
     match result {
         Ok(items) if items.is_empty() => view! { <div class="mt-6 rounded-[1.5rem] border border-dashed border-border p-8 text-sm text-muted-foreground">{no_categories_label}</div> }.into_any(),
         Ok(items) => view! {
             <div class="mt-6 grid gap-4 md:grid-cols-2">
                 {items.into_iter().map(|item| {
-                    let item_id = item.id.clone();
-                    let is_editing = editing_id.as_deref() == Some(item_id.as_str());
-                    let is_busy = busy_key.as_ref().map(|value| value.contains(item_id.as_str())).unwrap_or(false);
-                    let accent_style = item.color.as_deref()
-                        .filter(|value| !value.trim().is_empty())
-                        .map(|value| format!("background:{};", value))
-                        .unwrap_or_else(|| "background:linear-gradient(180deg,#0ea5e9 0%,#f59e0b 100%);".to_string());
+                    let vm = category_card_view_model(
+                        &item,
+                        editing_id.as_deref(),
+                        busy_key.as_deref(),
+                        &category_labels,
+                    );
+                    let item_id = vm.id.clone();
                     view! {
                         <article class="relative overflow-hidden rounded-[1.5rem] border border-border bg-background p-5 shadow-sm">
-                            <span class="absolute inset-y-0 left-0 w-1.5" style=accent_style></span>
+                            <span class="absolute inset-y-0 left-0 w-1.5" style=vm.accent_style.clone()></span>
                             <div class="pl-3">
                                 <div class="flex items-start justify-between gap-4">
                                     <div>
                                         <div class="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                                            {item.effective_locale.clone()}
+                                            {vm.effective_locale.clone()}
                                         </div>
-                                        <h3 class="mt-2 text-lg font-semibold text-foreground">{item.name.clone()}</h3>
+                                        <h3 class="mt-2 text-lg font-semibold text-foreground">{vm.name.clone()}</h3>
                                     </div>
                                     <span class="rounded-full border border-border px-3 py-1 text-xs font-medium text-muted-foreground">
-                                        {format!("#{}", item.slug)}
+                                        {vm.slug_badge.clone()}
                                     </span>
                                 </div>
                                 <p class="mt-3 text-sm leading-6 text-muted-foreground">
-                                    {item.description.clone().unwrap_or_else(|| no_description_label.clone())}
+                                    {vm.description.clone()}
                                 </p>
                                 <div class="mt-4 flex flex-wrap gap-2">
-                                    <CountChip label=topics_count_label.clone() value=item.topic_count />
-                                    <CountChip label=replies_count_label.clone() value=item.reply_count />
-                                    {item.icon.clone().filter(|value| !value.trim().is_empty()).map(|value| view! {
-                                        <span class="rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                                            {icon_label.replace("{value}", value.as_str())}
-                                        </span>
+                                    <StaticChip label=vm.topics_count_label.clone() />
+                                    <StaticChip label=vm.replies_count_label.clone() />
+                                    {vm.icon_label.clone().map(|label| view! {
+                                        <StaticChip label=label />
                                     })}
                                 </div>
                                 <div class="mt-5 flex flex-wrap gap-2">
-                                    <button type="button" class="rounded-full border border-border px-4 py-2 text-sm font-medium transition hover:bg-muted" on:click={ let item_id = item_id.clone(); move |_| on_edit.run(item_id.clone()) } disabled=is_busy>{if is_editing { editing_label.clone() } else { edit_label.clone() }}</button>
-                                    <button type="button" class="rounded-full border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/15" on:click={ let item_id = item_id.clone(); move |_| on_delete.run(item_id.clone()) } disabled=is_busy>{delete_label.clone()}</button>
+                                    <button type="button" class="rounded-full border border-border px-4 py-2 text-sm font-medium transition hover:bg-muted" on:click={ let item_id = item_id.clone(); move |_| on_edit.run(item_id.clone()) } disabled=vm.is_busy>{vm.action_label.clone()}</button>
+                                    <button type="button" class="rounded-full border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/15" on:click={ let item_id = item_id.clone(); move |_| on_delete.run(item_id.clone()) } disabled=vm.is_busy>{delete_label.clone()}</button>
                                 </div>
                             </div>
                         </article>
@@ -1642,47 +1644,52 @@ fn render_topic_feed(
     let no_topics_label = t(locale.as_deref(), "forum.render.noTopics", "No topics yet.");
     let pinned_label = t(locale.as_deref(), "forum.render.pinned", "Pinned");
     let locked_label = t(locale.as_deref(), "forum.render.locked", "Locked");
-    let thread_path_label = t(
-        locale.as_deref(),
-        "forum.render.threadPath",
-        "thread/{category}/{slug}",
-    );
+    let topic_labels = ForumAdminTopicRenderLabels {
+        thread_path_template: t(
+            locale.as_deref(),
+            "forum.render.threadPath",
+            "thread/{category}/{slug}",
+        ),
+        opened: t(locale.as_deref(), "forum.render.opened", "Opened"),
+        open_thread: t(locale.as_deref(), "forum.render.openThread", "Open thread"),
+    };
     let replies_label = t(locale.as_deref(), "forum.render.replies", "Replies");
-    let opened_label = t(locale.as_deref(), "forum.render.opened", "Opened");
-    let open_thread_label = t(locale.as_deref(), "forum.render.openThread", "Open thread");
     let delete_label = t(locale.as_deref(), "forum.render.delete", "Delete");
     match result {
         Ok(items) if items.is_empty() => view! { <div class="mt-6 rounded-[1.5rem] border border-dashed border-border p-8 text-sm text-muted-foreground">{no_topics_label}</div> }.into_any(),
         Ok(items) => view! {
             <div class="mt-6 space-y-3">
                 {items.into_iter().map(|item| {
-                    let item_id = item.id.clone();
-                    let is_editing = editing_id.as_deref() == Some(item_id.as_str());
-                    let is_busy = busy_key.as_ref().map(|value| value.contains(item_id.as_str())).unwrap_or(false);
-                    let status_class = topic_status_class(item.status.as_str());
+                    let vm = topic_card_view_model(
+                        &item,
+                        editing_id.as_deref(),
+                        busy_key.as_deref(),
+                        &topic_labels,
+                    );
+                    let item_id = vm.id.clone();
                     view! {
                         <article class="rounded-[1.5rem] border border-border bg-background p-5 shadow-sm transition hover:border-primary/30 hover:shadow-md">
                             <div class="flex flex-wrap items-start justify-between gap-4">
                                 <div class="space-y-3">
                                     <div class="flex flex-wrap items-center gap-2">
-                                        <span class=status_badge_class(status_class)>{item.status.clone()}</span>
-                                        <span class="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{item.effective_locale.clone()}</span>
-                                        {item.is_pinned.then(|| view! { <span class="rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">{pinned_label.clone()}</span> })}
-                                        {item.is_locked.then(|| view! { <span class="rounded-full bg-destructive/10 px-2.5 py-1 text-[11px] font-medium text-destructive">{locked_label.clone()}</span> })}
+                                        <span class=status_badge_class(vm.status_class)>{vm.status.clone()}</span>
+                                        <span class="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-muted-foreground">{vm.effective_locale.clone()}</span>
+                                        {vm.pinned.then(|| view! { <span class="rounded-full bg-amber-500/15 px-2.5 py-1 text-[11px] font-medium text-amber-700 dark:text-amber-300">{pinned_label.clone()}</span> })}
+                                        {vm.locked.then(|| view! { <span class="rounded-full bg-destructive/10 px-2.5 py-1 text-[11px] font-medium text-destructive">{locked_label.clone()}</span> })}
                                     </div>
                                     <div>
-                                        <h3 class="text-lg font-semibold text-foreground">{item.title.clone()}</h3>
-                                        <p class="mt-1 text-sm text-muted-foreground">{thread_path_label.replace("{category}", item.category_id.as_str()).replace("{slug}", item.slug.as_str())}</p>
+                                        <h3 class="text-lg font-semibold text-foreground">{vm.title.clone()}</h3>
+                                        <p class="mt-1 text-sm text-muted-foreground">{vm.thread_path.clone()}</p>
                                     </div>
                                 </div>
                                 <div class="text-right">
                                     <p class="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">{replies_label.clone()}</p>
-                                    <p class="mt-1 text-2xl font-semibold text-foreground">{item.reply_count}</p>
+                                    <p class="mt-1 text-2xl font-semibold text-foreground">{vm.reply_count}</p>
                                 </div>
                             </div>
                             <div class="mt-5 flex flex-wrap gap-2">
-                                <button type="button" class="rounded-full border border-border px-4 py-2 text-sm font-medium transition hover:bg-muted" on:click={ let item_id = item_id.clone(); move |_| on_edit.run(item_id.clone()) } disabled=is_busy>{if is_editing { opened_label.clone() } else { open_thread_label.clone() }}</button>
-                                <button type="button" class="rounded-full border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/15" on:click={ let item_id = item_id.clone(); move |_| on_delete.run(item_id.clone()) } disabled=is_busy>{delete_label.clone()}</button>
+                                <button type="button" class="rounded-full border border-border px-4 py-2 text-sm font-medium transition hover:bg-muted" on:click={ let item_id = item_id.clone(); move |_| on_edit.run(item_id.clone()) } disabled=vm.is_busy>{vm.action_label.clone()}</button>
+                                <button type="button" class="rounded-full border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm font-medium text-destructive transition hover:bg-destructive/15" on:click={ let item_id = item_id.clone(); move |_| on_delete.run(item_id.clone()) } disabled=vm.is_busy>{delete_label.clone()}</button>
                             </div>
                         </article>
                     }

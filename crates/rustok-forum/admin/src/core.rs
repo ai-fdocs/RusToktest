@@ -1,4 +1,135 @@
-use crate::model::{CategoryDetail, CategoryDraft, ReplyListItem, TopicDetail, TopicDraft};
+use crate::model::{
+    CategoryDetail, CategoryDraft, CategoryListItem, ReplyListItem, TopicDetail, TopicDraft,
+    TopicListItem,
+};
+
+const DEFAULT_CATEGORY_ACCENT_STYLE: &str =
+    "background:linear-gradient(180deg,#0ea5e9 0%,#f59e0b 100%);";
+
+#[derive(Clone, Debug)]
+pub struct ForumAdminCategoryRenderLabels {
+    pub no_description: String,
+    pub topics_count_template: String,
+    pub replies_count_template: String,
+    pub icon_template: String,
+    pub editing: String,
+    pub edit: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ForumAdminCategoryCardViewModel {
+    pub id: String,
+    pub effective_locale: String,
+    pub name: String,
+    pub slug_badge: String,
+    pub description: String,
+    pub accent_style: String,
+    pub topics_count_label: String,
+    pub replies_count_label: String,
+    pub icon_label: Option<String>,
+    pub action_label: String,
+    pub is_busy: bool,
+}
+
+#[derive(Clone, Debug)]
+pub struct ForumAdminTopicRenderLabels {
+    pub thread_path_template: String,
+    pub opened: String,
+    pub open_thread: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ForumAdminTopicCardViewModel {
+    pub id: String,
+    pub status: String,
+    pub status_class: &'static str,
+    pub effective_locale: String,
+    pub pinned: bool,
+    pub locked: bool,
+    pub title: String,
+    pub thread_path: String,
+    pub reply_count: i32,
+    pub action_label: String,
+    pub is_busy: bool,
+}
+
+pub fn category_card_view_model(
+    item: &CategoryListItem,
+    editing_id: Option<&str>,
+    busy_key: Option<&str>,
+    labels: &ForumAdminCategoryRenderLabels,
+) -> ForumAdminCategoryCardViewModel {
+    let is_editing = editing_id == Some(item.id.as_str());
+    ForumAdminCategoryCardViewModel {
+        id: item.id.clone(),
+        effective_locale: item.effective_locale.clone(),
+        name: item.name.clone(),
+        slug_badge: format!("#{}", item.slug),
+        description: item
+            .description
+            .clone()
+            .unwrap_or_else(|| labels.no_description.clone()),
+        accent_style: item
+            .color
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .map(|value| format!("background:{};", value))
+            .unwrap_or_else(|| DEFAULT_CATEGORY_ACCENT_STYLE.to_string()),
+        topics_count_label: render_count_label(&labels.topics_count_template, item.topic_count),
+        replies_count_label: render_count_label(&labels.replies_count_template, item.reply_count),
+        icon_label: item
+            .icon
+            .as_deref()
+            .filter(|value| !value.trim().is_empty())
+            .map(|value| labels.icon_template.replace("{value}", value)),
+        action_label: if is_editing {
+            labels.editing.clone()
+        } else {
+            labels.edit.clone()
+        },
+        is_busy: item_busy(busy_key, item.id.as_str()),
+    }
+}
+
+pub fn topic_card_view_model(
+    item: &TopicListItem,
+    editing_id: Option<&str>,
+    busy_key: Option<&str>,
+    labels: &ForumAdminTopicRenderLabels,
+) -> ForumAdminTopicCardViewModel {
+    let is_editing = editing_id == Some(item.id.as_str());
+    ForumAdminTopicCardViewModel {
+        id: item.id.clone(),
+        status: item.status.clone(),
+        status_class: topic_status_class(item.status.as_str()),
+        effective_locale: item.effective_locale.clone(),
+        pinned: item.is_pinned,
+        locked: item.is_locked,
+        title: item.title.clone(),
+        thread_path: labels
+            .thread_path_template
+            .replace("{category}", item.category_id.as_str())
+            .replace("{slug}", item.slug.as_str()),
+        reply_count: item.reply_count,
+        action_label: if is_editing {
+            labels.opened.clone()
+        } else {
+            labels.open_thread.clone()
+        },
+        is_busy: item_busy(busy_key, item.id.as_str()),
+    }
+}
+
+fn render_count_label(template: &str, value: i32) -> String {
+    template.replace("{count}", value.to_string().as_str())
+}
+
+fn item_busy(busy_key: Option<&str>, item_id: &str) -> bool {
+    busy_key
+        .and_then(|value| value.rsplit(':').next())
+        .map(|busy_item_id| busy_item_id == item_id)
+        .unwrap_or(false)
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum ForumAdminFormError {
@@ -253,5 +384,85 @@ mod tests {
             snapshot.to_draft().unwrap_err(),
             ForumAdminFormError::TopicRequired
         );
+    }
+
+    #[test]
+    fn builds_category_card_view_model_with_labels_and_fallbacks() {
+        let item = CategoryListItem {
+            id: "category-1".to_string(),
+            locale: "ru".to_string(),
+            effective_locale: "ru".to_string(),
+            name: "Community".to_string(),
+            slug: "community".to_string(),
+            description: None,
+            icon: Some(" chat ".to_string()),
+            color: Some(" ".to_string()),
+            topic_count: 7,
+            reply_count: 12,
+        };
+        let labels = ForumAdminCategoryRenderLabels {
+            no_description: "No description".to_string(),
+            topics_count_template: "topics: {count}".to_string(),
+            replies_count_template: "replies: {count}".to_string(),
+            icon_template: "icon: {value}".to_string(),
+            editing: "Editing".to_string(),
+            edit: "Edit".to_string(),
+        };
+        let vm = category_card_view_model(
+            &item,
+            Some("category-1"),
+            Some("category:edit:category-1"),
+            &labels,
+        );
+        assert_eq!(vm.slug_badge, "#community");
+        assert_eq!(vm.description, "No description");
+        assert_eq!(vm.topics_count_label, "topics: 7");
+        assert_eq!(vm.replies_count_label, "replies: 12");
+        assert_eq!(vm.icon_label.as_deref(), Some("icon:  chat "));
+        assert_eq!(vm.action_label, "Editing");
+        assert!(vm.is_busy);
+        assert_eq!(vm.accent_style, DEFAULT_CATEGORY_ACCENT_STYLE);
+
+        let other_item = CategoryListItem {
+            id: "category-10".to_string(),
+            ..item
+        };
+        let other_vm = category_card_view_model(
+            &other_item,
+            Some("category-10"),
+            Some("category:edit:category-1"),
+            &labels,
+        );
+        assert!(!other_vm.is_busy);
+    }
+
+    #[test]
+    fn builds_topic_card_view_model_with_status_and_thread_path() {
+        let item = TopicListItem {
+            id: "topic-1".to_string(),
+            locale: "en".to_string(),
+            effective_locale: "en".to_string(),
+            category_id: "category-1".to_string(),
+            author_id: None,
+            title: "Welcome".to_string(),
+            slug: "welcome".to_string(),
+            status: "PUBLISHED".to_string(),
+            is_pinned: true,
+            is_locked: false,
+            reply_count: 4,
+            created_at: "2026-06-08T00:00:00Z".to_string(),
+        };
+        let labels = ForumAdminTopicRenderLabels {
+            thread_path_template: "thread/{category}/{slug}".to_string(),
+            opened: "Opened".to_string(),
+            open_thread: "Open thread".to_string(),
+        };
+        let vm = topic_card_view_model(&item, None, Some("topic:delete:topic-2"), &labels);
+        assert_eq!(vm.status_class, "success");
+        assert_eq!(vm.thread_path, "thread/category-1/welcome");
+        assert_eq!(vm.action_label, "Open thread");
+        assert!(!vm.is_busy);
+        assert!(vm.pinned);
+        assert!(!vm.locked);
     }
 }
