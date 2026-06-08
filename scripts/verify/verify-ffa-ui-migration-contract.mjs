@@ -190,6 +190,7 @@ const regionStorefrontLocalePaths = [
 const productAdminCorePath = "crates/rustok-product/admin/src/core.rs";
 const productAdminLeptosUiPath = "crates/rustok-product/admin/src/ui/leptos.rs";
 const customerAdminRootPath = "crates/rustok-customer/admin/src/lib.rs";
+const customerAdminCorePath = "crates/rustok-customer/admin/src/core.rs";
 const customerAdminLegacyApiPath = "crates/rustok-customer/admin/src/api.rs";
 const customerAdminTransportPath = "crates/rustok-customer/admin/src/transport/mod.rs";
 const customerAdminNativeAdapterPath = "crates/rustok-customer/admin/src/transport/native_server_adapter.rs";
@@ -499,6 +500,7 @@ function collectProductTransportEvidenceContractErrors() {
 function collectCustomerAdminNativeAdapterSplitErrors() {
   const errors = [];
   const root = readText(customerAdminRootPath);
+  const core = readText(customerAdminCorePath);
   const transport = readText(customerAdminTransportPath);
   const nativeAdapter = readText(customerAdminNativeAdapterPath);
   const leptosUi = readText(customerAdminLeptosUiPath);
@@ -511,6 +513,19 @@ function collectCustomerAdminNativeAdapterSplitErrors() {
   if (root.includes("mod api;")) {
     errors.push("Customer admin crate root не должен wire legacy api module после transport/native split");
   }
+
+  [
+    "CustomerAdminDraftInput",
+    "CustomerAdminSubmitCommand",
+    "CustomerAdminSubmitCommandError",
+    "build_customer_admin_submit_command",
+    "EmailRequired",
+    "LocaleUnavailable",
+  ].forEach((requiredSnippet) => {
+    if (!core.includes(requiredSnippet)) {
+      errors.push(`Customer admin core должен содержать submit-command policy snippet: ${requiredSnippet}`);
+    }
+  });
 
   [
     "mod native_server_adapter;",
@@ -544,6 +559,19 @@ function collectCustomerAdminNativeAdapterSplitErrors() {
   }
 
   [
+    "build_customer_admin_submit_command",
+    "CustomerAdminDraftInput",
+    "CustomerAdminSubmitCommandError::EmailRequired",
+    "CustomerAdminSubmitCommandError::LocaleUnavailable",
+  ].forEach((requiredSnippet) => {
+    if (!leptosUi.includes(requiredSnippet)) {
+      errors.push(`Customer admin Leptos adapter должен использовать core submit-command policy snippet: ${requiredSnippet}`);
+    }
+  });
+
+  [
+    "admin/src/core.rs",
+    "submit-command",
     "admin/src/transport/mod.rs",
     "admin/src/transport/native_server_adapter.rs",
     "admin/src/ui/leptos.rs",

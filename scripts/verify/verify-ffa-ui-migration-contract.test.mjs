@@ -192,6 +192,18 @@ function withFixture({
   );
 
   writeFileSync(
+    path.join(root, "crates", "rustok-customer", "admin", "src", "core.rs"),
+    [
+      "CustomerAdminDraftInput",
+      "CustomerAdminSubmitCommand",
+      "CustomerAdminSubmitCommandError",
+      "build_customer_admin_submit_command",
+      "EmailRequired",
+      "LocaleUnavailable",
+    ].join("\n"),
+  );
+
+  writeFileSync(
     path.join(root, "crates", "rustok-customer", "admin", "src", "lib.rs"),
     [
       "mod core;",
@@ -230,12 +242,12 @@ function withFixture({
 
   writeFileSync(
     path.join(root, "crates", "rustok-customer", "admin", "src", "ui", "leptos.rs"),
-    "transport::fetch_bootstrap transport::fetch_customers",
+    "transport::fetch_bootstrap transport::fetch_customers build_customer_admin_submit_command CustomerAdminDraftInput CustomerAdminSubmitCommandError::EmailRequired CustomerAdminSubmitCommandError::LocaleUnavailable",
   );
 
   writeFileSync(
     path.join(root, "crates", "rustok-customer", "admin", "README.md"),
-    "admin/src/transport/mod.rs admin/src/transport/native_server_adapter.rs admin/src/ui/leptos.rs",
+    "admin/src/core.rs submit-command admin/src/transport/mod.rs admin/src/transport/native_server_adapter.rs admin/src/ui/leptos.rs",
   );
 
 
