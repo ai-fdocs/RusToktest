@@ -9,12 +9,10 @@ use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
 
 use crate::core::{
     format_count, parse_tags, reply_count_label, topic_category_filter, topic_status_class,
+    CategoryFormSnapshot, ForumAdminFormError, TopicFormSnapshot,
 };
 use crate::i18n::t;
-use crate::model::{
-    CategoryDetail, CategoryDraft, CategoryListItem, ReplyListItem, TopicDetail, TopicDraft,
-    TopicListItem,
-};
+use crate::model::{CategoryListItem, ReplyListItem, TopicListItem};
 use crate::transport;
 
 fn local_resource<S, Fut, T>(
@@ -213,7 +211,7 @@ pub fn ForumAdmin() -> impl IntoView {
                     set_category_color,
                     set_category_position,
                     set_category_moderated,
-                    &category,
+                    CategoryFormSnapshot::from_detail(&category),
                 ),
                 Err(err) => {
                     clear_category_form(
@@ -252,7 +250,7 @@ pub fn ForumAdmin() -> impl IntoView {
                     set_topic_body,
                     set_topic_body_format,
                     set_topic_tags,
-                    &topic,
+                    TopicFormSnapshot::from_detail(&topic),
                 ),
                 Err(err) => {
                     clear_topic_form(
@@ -306,23 +304,30 @@ pub fn ForumAdmin() -> impl IntoView {
         ev.prevent_default();
         set_error.set(None);
         let category_query_writer = category_query_writer.clone();
-        let draft = CategoryDraft {
+        let form = CategoryFormSnapshot {
+            editing_id: editing_category_id.get_untracked(),
             locale: category_locale.get_untracked(),
-            name: category_name.get_untracked().trim().to_string(),
-            slug: category_slug.get_untracked().trim().to_string(),
-            description: category_description.get_untracked().trim().to_string(),
-            icon: category_icon.get_untracked().trim().to_string(),
-            color: category_color.get_untracked().trim().to_string(),
+            name: category_name.get_untracked(),
+            slug: category_slug.get_untracked(),
+            description: category_description.get_untracked(),
+            icon: category_icon.get_untracked(),
+            color: category_color.get_untracked(),
             position: category_position.get_untracked(),
             moderated: category_moderated.get_untracked(),
         };
-        if draft.name.is_empty() || draft.slug.is_empty() {
-            set_error.set(Some(category_required_error.clone()));
-            return;
-        }
+        let draft = match form.to_draft() {
+            Ok(draft) => draft,
+            Err(ForumAdminFormError::CategoryRequired) => {
+                set_error.set(Some(category_required_error.clone()));
+                return;
+            }
+            Err(ForumAdminFormError::TopicRequired) => {
+                unreachable!("category form cannot produce topic validation errors")
+            }
+        };
         let token_value = token.get_untracked();
         let tenant_value = tenant.get_untracked();
-        let editing_id = editing_category_id.get_untracked();
+        let editing_id = form.editing_id.clone();
         let save_category_error = save_category_error.clone();
         set_busy_key.set(Some("category:save".to_string()));
         spawn_local(async move {
@@ -343,7 +348,7 @@ pub fn ForumAdmin() -> impl IntoView {
                         set_category_color,
                         set_category_position,
                         set_category_moderated,
-                        &category,
+                        CategoryFormSnapshot::from_detail(&category),
                     );
                     set_refresh_nonce.update(|value| *value += 1);
                     category_query_writer
@@ -359,22 +364,29 @@ pub fn ForumAdmin() -> impl IntoView {
         ev.prevent_default();
         set_error.set(None);
         let topic_query_writer = topic_query_writer.clone();
-        let draft = TopicDraft {
+        let form = TopicFormSnapshot {
+            editing_id: editing_topic_id.get_untracked(),
             locale: topic_locale.get_untracked(),
-            category_id: topic_category_id.get_untracked().trim().to_string(),
-            title: topic_title.get_untracked().trim().to_string(),
-            slug: topic_slug.get_untracked().trim().to_string(),
-            body: topic_body.get_untracked().trim().to_string(),
-            body_format: topic_body_format.get_untracked().trim().to_string(),
-            tags: parse_tags(topic_tags.get_untracked().as_str()),
+            category_id: topic_category_id.get_untracked(),
+            title: topic_title.get_untracked(),
+            slug: topic_slug.get_untracked(),
+            body: topic_body.get_untracked(),
+            body_format: topic_body_format.get_untracked(),
+            tags_raw: topic_tags.get_untracked(),
         };
-        if draft.category_id.is_empty() || draft.title.is_empty() || draft.body.is_empty() {
-            set_error.set(Some(topic_required_error.clone()));
-            return;
-        }
+        let draft = match form.to_draft() {
+            Ok(draft) => draft,
+            Err(ForumAdminFormError::TopicRequired) => {
+                set_error.set(Some(topic_required_error.clone()));
+                return;
+            }
+            Err(ForumAdminFormError::CategoryRequired) => {
+                unreachable!("topic form cannot produce category validation errors")
+            }
+        };
         let token_value = token.get_untracked();
         let tenant_value = tenant.get_untracked();
-        let editing_id = editing_topic_id.get_untracked();
+        let editing_id = form.editing_id.clone();
         let save_topic_error = save_topic_error.clone();
         set_busy_key.set(Some("topic:save".to_string()));
         spawn_local(async move {
@@ -394,7 +406,7 @@ pub fn ForumAdmin() -> impl IntoView {
                         set_topic_body,
                         set_topic_body_format,
                         set_topic_tags,
-                        &topic,
+                        TopicFormSnapshot::from_detail(&topic),
                     );
                     set_refresh_nonce.update(|value| *value += 1);
                     topic_query_writer.replace_value(AdminQueryKey::TopicId.as_str(), topic_id);
@@ -1722,17 +1734,17 @@ fn apply_category_to_form(
     set_category_color: WriteSignal<String>,
     set_category_position: WriteSignal<i32>,
     set_category_moderated: WriteSignal<bool>,
-    category: &CategoryDetail,
+    form: CategoryFormSnapshot,
 ) {
-    set_editing_category_id.set(Some(category.id.clone()));
-    set_category_locale.set(category.locale.clone());
-    set_category_name.set(category.name.clone());
-    set_category_slug.set(category.slug.clone());
-    set_category_description.set(category.description.clone().unwrap_or_default());
-    set_category_icon.set(category.icon.clone().unwrap_or_default());
-    set_category_color.set(category.color.clone().unwrap_or_default());
-    set_category_position.set(category.position);
-    set_category_moderated.set(category.moderated);
+    set_editing_category_id.set(form.editing_id);
+    set_category_locale.set(form.locale);
+    set_category_name.set(form.name);
+    set_category_slug.set(form.slug);
+    set_category_description.set(form.description);
+    set_category_icon.set(form.icon);
+    set_category_color.set(form.color);
+    set_category_position.set(form.position);
+    set_category_moderated.set(form.moderated);
 }
 
 fn apply_topic_to_form(
@@ -1744,16 +1756,16 @@ fn apply_topic_to_form(
     set_topic_body: WriteSignal<String>,
     set_topic_body_format: WriteSignal<String>,
     set_topic_tags: WriteSignal<String>,
-    topic: &TopicDetail,
+    form: TopicFormSnapshot,
 ) {
-    set_editing_topic_id.set(Some(topic.id.clone()));
-    set_topic_locale.set(topic.locale.clone());
-    set_topic_category_id.set(topic.category_id.clone());
-    set_topic_title.set(topic.title.clone());
-    set_topic_slug.set(topic.slug.clone());
-    set_topic_body.set(topic.body.clone());
-    set_topic_body_format.set(topic.body_format.clone());
-    set_topic_tags.set(topic.tags.join(", "));
+    set_editing_topic_id.set(form.editing_id);
+    set_topic_locale.set(form.locale);
+    set_topic_category_id.set(form.category_id);
+    set_topic_title.set(form.title);
+    set_topic_slug.set(form.slug);
+    set_topic_body.set(form.body);
+    set_topic_body_format.set(form.body_format);
+    set_topic_tags.set(form.tags_raw);
 }
 
 fn clear_category_form(
