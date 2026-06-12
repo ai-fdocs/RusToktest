@@ -161,6 +161,40 @@ pub fn build_region_admin_policy_section_view_model(
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegionAdminRawSectionLabels {
+    pub country_tax_policies_title: String,
+    pub metadata_title: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegionAdminRawSectionViewModel {
+    pub title: String,
+    pub body: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegionAdminRawSectionsViewModel {
+    pub country_tax_policies: RegionAdminRawSectionViewModel,
+    pub metadata: RegionAdminRawSectionViewModel,
+}
+
+pub fn build_region_admin_raw_sections_view_model(
+    detail: &RegionDetail,
+    labels: &RegionAdminRawSectionLabels,
+) -> RegionAdminRawSectionsViewModel {
+    RegionAdminRawSectionsViewModel {
+        country_tax_policies: RegionAdminRawSectionViewModel {
+            title: labels.country_tax_policies_title.clone(),
+            body: detail.region.country_tax_policies_pretty.clone(),
+        },
+        metadata: RegionAdminRawSectionViewModel {
+            title: labels.metadata_title.clone(),
+            body: detail.region.metadata_pretty.clone(),
+        },
+    }
+}
+
 pub fn error_with_context(context: &str, error: &str) -> String {
     format!("{context}: {error}")
 }
@@ -371,6 +405,43 @@ mod tests {
         );
         assert_eq!(view_model.rows[2].text, "tax rate: 20.0");
         assert_eq!(view_model.rows[3].text, "tax excluded");
+    }
+
+    #[test]
+    fn admin_raw_sections_view_model_keeps_pretty_json_payloads() {
+        let detail = crate::model::RegionDetail {
+            region: crate::model::RegionRecord {
+                id: "region-eu".to_string(),
+                tenant_id: "tenant".to_string(),
+                name: "Europe".to_string(),
+                currency_code: "EUR".to_string(),
+                tax_provider_id: None,
+                tax_rate: "20.0".to_string(),
+                tax_included: false,
+                country_tax_policies_pretty: "[{\"country\":\"DE\"}]".to_string(),
+                countries: vec!["DE".to_string(), "FR".to_string()],
+                metadata_pretty: "{\"tier\":\"eu\"}".to_string(),
+                created_at: "2026-06-12".to_string(),
+                updated_at: "2026-06-12".to_string(),
+            },
+        };
+        let labels = RegionAdminRawSectionLabels {
+            country_tax_policies_title: "Country Tax Policies".to_string(),
+            metadata_title: "Metadata".to_string(),
+        };
+
+        let view_model = build_region_admin_raw_sections_view_model(&detail, &labels);
+
+        assert_eq!(
+            view_model.country_tax_policies.title,
+            "Country Tax Policies"
+        );
+        assert_eq!(
+            view_model.country_tax_policies.body,
+            "[{\"country\":\"DE\"}]"
+        );
+        assert_eq!(view_model.metadata.title, "Metadata");
+        assert_eq!(view_model.metadata.body, "{\"tier\":\"eu\"}");
     }
 
     #[test]

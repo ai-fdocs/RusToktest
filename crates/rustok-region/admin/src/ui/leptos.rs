@@ -6,7 +6,7 @@ use rustok_api::{AdminQueryKey, UiRouteContext};
 
 use crate::core::{
     RegionAdminDetailLabels, RegionAdminEditorFormState, RegionAdminListLabels,
-    RegionAdminPolicyLabels,
+    RegionAdminPolicyLabels, RegionAdminRawSectionLabels,
 };
 use crate::i18n::t;
 use crate::model::{RegionAdminBootstrap, RegionDetail};
@@ -122,6 +122,15 @@ pub fn RegionAdmin() -> impl IntoView {
         tax_rate: list_labels.tax_rate.clone(),
         tax_included: list_labels.tax_included.clone(),
         tax_excluded: list_labels.tax_excluded.clone(),
+    };
+
+    let raw_section_labels = RegionAdminRawSectionLabels {
+        country_tax_policies_title: t(
+            ui_locale.as_deref(),
+            "region.section.countryTaxPolicies",
+            "Country Tax Policies",
+        ),
+        metadata_title: t(ui_locale.as_deref(), "region.section.metadata", "Metadata"),
     };
 
     let reset_form = move || {
@@ -424,6 +433,7 @@ pub fn RegionAdmin() -> impl IntoView {
                     {move || selected.get().map(|detail| {
                         let countries_summary = crate::core::region_admin_countries_summary(&detail);
                         let policy_view_model = crate::core::build_region_admin_policy_section_view_model(&detail, &policy_labels);
+                        let raw_sections = crate::core::build_region_admin_raw_sections_view_model(&detail, &raw_section_labels);
                         view! {
                             <section class="space-y-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
                                 <div class="space-y-2">
@@ -461,13 +471,13 @@ pub fn RegionAdmin() -> impl IntoView {
                                 </div>
 
                                 <div class="rounded-2xl border border-border bg-background p-5">
-                                    <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t(ui_locale_for_detail.as_deref(), "region.section.countryTaxPolicies", "Country Tax Policies")}</h4>
-                                    <pre class="mt-4 overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">{detail.region.country_tax_policies_pretty.clone()}</pre>
+                                    <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">{raw_sections.country_tax_policies.title.clone()}</h4>
+                                    <pre class="mt-4 overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">{raw_sections.country_tax_policies.body.clone()}</pre>
                                 </div>
 
                                 <div class="rounded-2xl border border-border bg-background p-5">
-                                    <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t(ui_locale_for_detail.as_deref(), "region.section.metadata", "Metadata")}</h4>
-                                    <pre class="mt-4 overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">{detail.region.metadata_pretty.clone()}</pre>
+                                    <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">{raw_sections.metadata.title.clone()}</h4>
+                                    <pre class="mt-4 overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">{raw_sections.metadata.body.clone()}</pre>
                                 </div>
                             </section>
                         }.into_any()
