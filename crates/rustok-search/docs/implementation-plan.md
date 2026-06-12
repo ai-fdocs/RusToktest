@@ -5,17 +5,17 @@
 
 ## Execution checkpoint
 
-- Current phase: phase_b_in_progress
-- Last checkpoint: Phase B slice #40 принят как storefront suggestions request-policy срез: `storefront/src/core.rs` теперь владеет autocomplete min-length gate и построением `StorefrontSuggestionFetchRequest`, а Leptos resource только исполняет prepared request или возвращает empty suggestions.
-- Next step: Продолжить Phase B только по минимальному FFA decision gate из `docs/research/dioxus-ffa-ui-migration-plan.md`: выбирать request/command/state/view-model/route policy с reusable семантикой, но не переносить механические pass-through DTO, простые i18n feedback labels или adapter-local reset/refresh effects в `core`.
+- Current phase: phase_b_ready
+- Last checkpoint: Search FFA Phase B считается закрытой на slice #40: текущие admin/storefront surfaces уже имеют `core/transport/ui` split, Leptos adapters не вызывают raw `api::*`, а дополнительные переносы без нового search UX/transport функционала будут считаться over-extraction.
+- Next step: Не продолжать механический перевод `rustok-search`; следующий work item — parity/evidence hardening для существующих native/GraphQL storefront/admin paths либо новый FFA-срез только при появлении реального search UX/transport функционала.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок и central readiness board.
-- Last updated at (UTC): 2026-06-12T13:16:02Z
+- Last updated at (UTC): 2026-06-12T13:20:43Z
 
 
 ## FFA/FBA status
 
-- FFA status: `in_progress`
+- FFA status: `phase_b_ready`
 - FBA status: `not_started`
 - Structural shape: `core_transport_ui`
 - Evidence:
@@ -45,7 +45,8 @@
   - Phase B slice #38 добавил `StorefrontSearchFetchRequest`, `search_preview_filters_from_route` и `build_storefront_search_fetch_request` в `storefront/src/core.rs`; storefront Leptos resource больше не решает inline blank-query skip, query trim, preset normalization или route-filter-to-transport mapping, при этом native/GraphQL transport facade signatures не менялись.
   - Phase B slice #39 добавил `StorefrontSearchRouteIntent` и `build_storefront_search_route_intent` в `storefront/src/core.rs`; storefront Leptos navigation больше не решает inline set/delete policy для `q` и `preset`, а только применяет prepared route intent к browser URL.
   - Phase B slice #40 добавил `DEFAULT_SUGGESTION_MIN_LEN`, `StorefrontSuggestionFetchRequest` и `build_storefront_suggestion_fetch_request` в `storefront/src/core.rs`; storefront Leptos suggestions resource больше не владеет inline autocomplete min-length gate или query trim policy.
-- Last verified at (UTC): 2026-06-12T13:16:02Z
+  - Phase B closure decision: search FFA больше не расширяется без нового функционального surface; текущий кодовый split достаточен для `phase_b_ready`, а дальнейшая работа переводится в parity/evidence hardening.
+- Last verified at (UTC): 2026-06-12T13:20:43Z
 - Owner: `rustok-search` module team
 
 ## Область работ
