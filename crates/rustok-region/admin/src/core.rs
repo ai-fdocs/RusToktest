@@ -1,6 +1,6 @@
 use rustok_api::normalize_ui_text;
 
-use crate::model::{RegionAdminBootstrap, RegionDetail, RegionDraft};
+use crate::model::{RegionAdminBootstrap, RegionDetail, RegionDraft, RegionList};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RegionFormInput<'a> {
@@ -403,6 +403,57 @@ pub fn build_region_admin_list_item_view_model(
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegionAdminListStateLabels {
+    pub loading: String,
+    pub empty: String,
+    pub load_error_context: String,
+    pub open_action: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RegionAdminListStateViewModel {
+    Loading {
+        message: String,
+    },
+    Error {
+        message: String,
+    },
+    Empty {
+        message: String,
+    },
+    Ready {
+        items: Vec<RegionAdminListItemViewModel>,
+        open_action: String,
+    },
+}
+
+pub fn build_region_admin_list_state_view_model(
+    regions: Option<Result<&RegionList, String>>,
+    state_labels: &RegionAdminListStateLabels,
+    item_labels: &RegionAdminListLabels,
+) -> RegionAdminListStateViewModel {
+    match regions {
+        None => RegionAdminListStateViewModel::Loading {
+            message: state_labels.loading.clone(),
+        },
+        Some(Err(err)) => RegionAdminListStateViewModel::Error {
+            message: error_with_context(state_labels.load_error_context.as_str(), err.as_str()),
+        },
+        Some(Ok(list)) if list.items.is_empty() => RegionAdminListStateViewModel::Empty {
+            message: state_labels.empty.clone(),
+        },
+        Some(Ok(list)) => RegionAdminListStateViewModel::Ready {
+            items: list
+                .items
+                .iter()
+                .map(|region| build_region_admin_list_item_view_model(region, item_labels))
+                .collect(),
+            open_action: state_labels.open_action.clone(),
+        },
+    }
+}
+
 pub fn region_admin_list_item_class(is_selected: bool) -> &'static str {
     if is_selected {
         "rounded-2xl border border-primary/40 bg-background p-5 shadow-sm"
@@ -697,6 +748,85 @@ mod tests {
         assert_eq!(
             region_admin_list_item_class(true),
             "rounded-2xl border border-primary/40 bg-background p-5 shadow-sm"
+        );
+    }
+
+    #[test]
+    fn admin_list_state_view_model_maps_loading_error_empty_and_ready_states() {
+        let state_labels = RegionAdminListStateLabels {
+            loading: "Loading regions...".to_string(),
+            empty: "No regions have been created for this tenant yet.".to_string(),
+            load_error_context: "Failed to load regions".to_string(),
+            open_action: "Open".to_string(),
+        };
+        let item_labels = RegionAdminListLabels {
+            tax_included: "tax included".to_string(),
+            tax_excluded: "tax excluded".to_string(),
+            countries: "countries".to_string(),
+            tax_rate: "tax rate".to_string(),
+            updated: "updated".to_string(),
+        };
+
+        assert_eq!(
+            build_region_admin_list_state_view_model(None, &state_labels, &item_labels),
+            RegionAdminListStateViewModel::Loading {
+                message: "Loading regions...".to_string()
+            }
+        );
+
+        assert_eq!(
+            build_region_admin_list_state_view_model(
+                Some(Err("network unavailable".to_string())),
+                &state_labels,
+                &item_labels,
+            ),
+            RegionAdminListStateViewModel::Error {
+                message: "Failed to load regions: network unavailable".to_string()
+            }
+        );
+
+        let empty_list = crate::model::RegionList { items: vec![] };
+        assert_eq!(
+            build_region_admin_list_state_view_model(
+                Some(Ok(&empty_list)),
+                &state_labels,
+                &item_labels,
+            ),
+            RegionAdminListStateViewModel::Empty {
+                message: "No regions have been created for this tenant yet.".to_string()
+            }
+        );
+
+        let ready_list = crate::model::RegionList {
+            items: vec![crate::model::RegionListItem {
+                id: "region-eu".to_string(),
+                name: "Europe".to_string(),
+                currency_code: "EUR".to_string(),
+                tax_provider_id: Some("vat".to_string()),
+                country_count: 2,
+                tax_rate: "20.0".to_string(),
+                tax_included: true,
+                countries_preview: "DE, FR".to_string(),
+                updated_at: "2026-06-12".to_string(),
+            }],
+        };
+
+        assert_eq!(
+            build_region_admin_list_state_view_model(
+                Some(Ok(&ready_list)),
+                &state_labels,
+                &item_labels,
+            ),
+            RegionAdminListStateViewModel::Ready {
+                items: vec![RegionAdminListItemViewModel {
+                    id: "region-eu".to_string(),
+                    name: "Europe".to_string(),
+                    badge_label: "tax included".to_string(),
+                    summary: "EUR | DE, FR".to_string(),
+                    meta: "2 countries | tax rate 20.0 | updated 2026-06-12".to_string(),
+                }],
+                open_action: "Open".to_string(),
+            }
         );
     }
 

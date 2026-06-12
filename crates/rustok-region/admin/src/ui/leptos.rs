@@ -7,8 +7,8 @@ use rustok_api::{AdminQueryKey, UiRouteContext};
 use crate::core::{
     RegionAdminDetailHeaderLabels, RegionAdminDetailLabels, RegionAdminEditorFieldLabels,
     RegionAdminEditorFormState, RegionAdminEditorLabels, RegionAdminListHeaderLabels,
-    RegionAdminListLabels, RegionAdminPolicyLabels, RegionAdminRawSectionLabels,
-    RegionAdminShellLabels,
+    RegionAdminListLabels, RegionAdminListStateLabels, RegionAdminListStateViewModel,
+    RegionAdminPolicyLabels, RegionAdminRawSectionLabels, RegionAdminShellLabels,
 };
 use crate::i18n::t;
 use crate::model::RegionDetail;
@@ -132,6 +132,17 @@ pub fn RegionAdmin() -> impl IntoView {
         tax_rate: t(ui_locale.as_deref(), "region.common.taxRate", "tax rate"),
         updated: t(ui_locale.as_deref(), "region.common.updated", "updated"),
     };
+    let list_state_labels = RegionAdminListStateLabels {
+        loading: t(ui_locale.as_deref(), "region.loading", "Loading regions..."),
+        empty: t(
+            ui_locale.as_deref(),
+            "region.list.empty",
+            "No regions have been created for this tenant yet.",
+        ),
+        load_error_context: load_regions_error_label.clone(),
+        open_action: t(ui_locale.as_deref(), "region.action.open", "Open"),
+    };
+
     let detail_labels = RegionAdminDetailLabels {
         tax_included: list_labels.tax_included.clone(),
         tax_excluded: list_labels.tax_excluded.clone(),
@@ -386,7 +397,6 @@ pub fn RegionAdmin() -> impl IntoView {
         });
     };
 
-    let ui_locale_for_list = ui_locale.clone();
     let ui_locale_for_detail = ui_locale.clone();
     let ui_locale_for_empty = ui_locale.clone();
     let ui_locale_for_editor = ui_locale.clone();
@@ -443,43 +453,59 @@ pub fn RegionAdmin() -> impl IntoView {
                     </div>
 
                     <div class="mt-5 space-y-3">
-                        {move || match regions.get() {
-                            None => view! { <div class="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{t(ui_locale_for_list.as_deref(), "region.loading", "Loading regions...")}</div> }.into_any(),
-                            Some(Err(err)) => view! { <div class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{format!("{load_regions_error_label}: {err}")}</div> }.into_any(),
-                            Some(Ok(list)) if list.items.is_empty() => view! { <div class="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{t(ui_locale_for_list.as_deref(), "region.list.empty", "No regions have been created for this tenant yet.")}</div> }.into_any(),
-                            Some(Ok(list)) => view! {
-                                <>
-                                    {list.items.into_iter().map(|region| {
-                                        let item = crate::core::build_region_admin_list_item_view_model(&region, &list_labels);
-                                        let region_id = item.id.clone();
-                                        let region_marker = item.id.clone();
-                                        let item_locale = ui_locale_for_list.clone();
-                                        let item_query_writer = list_query_writer.clone();
-                                        view! {
-                                            <article class=move || crate::core::region_admin_list_item_class(editing_id.get().as_deref() == Some(region_marker.as_str()))>
-                                                <div class="flex items-start justify-between gap-3">
-                                                    <div class="space-y-2">
-                                                        <div class="flex flex-wrap items-center gap-2">
-                                                            <h4 class="text-base font-semibold text-card-foreground">{item.name.clone()}</h4>
-                                                            <span class="inline-flex rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{item.badge_label.clone()}</span>
+                        {move || {
+                            let regions_state = regions.get();
+                            let list_state = crate::core::build_region_admin_list_state_view_model(
+                                regions_state.as_ref().map(|result| {
+                                    result.as_ref().map_err(|err| err.to_string())
+                                }),
+                                &list_state_labels,
+                                &list_labels,
+                            );
+
+                            match list_state {
+                                RegionAdminListStateViewModel::Loading { message } => view! {
+                                    <div class="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{message}</div>
+                                }.into_any(),
+                                RegionAdminListStateViewModel::Error { message } => view! {
+                                    <div class="rounded-2xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">{message}</div>
+                                }.into_any(),
+                                RegionAdminListStateViewModel::Empty { message } => view! {
+                                    <div class="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">{message}</div>
+                                }.into_any(),
+                                RegionAdminListStateViewModel::Ready { items, open_action } => view! {
+                                    <>
+                                        {items.into_iter().map(|item| {
+                                            let region_id = item.id.clone();
+                                            let region_marker = item.id.clone();
+                                            let item_query_writer = list_query_writer.clone();
+                                            let open_action = open_action.clone();
+                                            view! {
+                                                <article class=move || crate::core::region_admin_list_item_class(editing_id.get().as_deref() == Some(region_marker.as_str()))>
+                                                    <div class="flex items-start justify-between gap-3">
+                                                        <div class="space-y-2">
+                                                            <div class="flex flex-wrap items-center gap-2">
+                                                                <h4 class="text-base font-semibold text-card-foreground">{item.name.clone()}</h4>
+                                                                <span class="inline-flex rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{item.badge_label.clone()}</span>
+                                                            </div>
+                                                            <p class="text-sm text-muted-foreground">{item.summary.clone()}</p>
+                                                            <p class="text-xs text-muted-foreground">{item.meta.clone()}</p>
                                                         </div>
-                                                        <p class="text-sm text-muted-foreground">{item.summary.clone()}</p>
-                                                        <p class="text-xs text-muted-foreground">{item.meta.clone()}</p>
+                                                        <button
+                                                            type="button"
+                                                            class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50"
+                                                            disabled=move || busy.get()
+                                                            on:click=move |_| item_query_writer.push_value(AdminQueryKey::RegionId.as_str(), region_id.clone())
+                                                        >
+                                                            {open_action.clone()}
+                                                        </button>
                                                     </div>
-                                                    <button
-                                                        type="button"
-                                                        class="inline-flex rounded-lg border border-border px-3 py-2 text-sm font-medium text-foreground transition hover:bg-accent disabled:opacity-50"
-                                                        disabled=move || busy.get()
-                                                        on:click=move |_| item_query_writer.push_value(AdminQueryKey::RegionId.as_str(), region_id.clone())
-                                                    >
-                                                        {t(item_locale.as_deref(), "region.action.open", "Open")}
-                                                    </button>
-                                                </div>
-                                            </article>
-                                        }
-                                    }).collect_view()}
-                                </>
-                            }.into_any(),
+                                                </article>
+                                            }
+                                        }).collect_view()}
+                                    </>
+                                }.into_any(),
+                            }
                         }}
                     </div>
                 </section>
