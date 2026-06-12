@@ -4,8 +4,12 @@ use leptos::task::spawn_local;
 use leptos_ui_routing::{use_route_query_value, use_route_query_writer};
 use rustok_api::{AdminQueryKey, UiRouteContext};
 
+use crate::core::{
+    RegionAdminDetailLabels, RegionAdminEditorFormState, RegionAdminListLabels,
+    RegionAdminPolicyLabels, RegionAdminRawSectionLabels,
+};
 use crate::i18n::t;
-use crate::model::{RegionAdminBootstrap, RegionDetail, RegionListItem};
+use crate::model::{RegionAdminBootstrap, RegionDetail};
 
 fn local_resource<S, Fut, T>(
     source: impl Fn() -> S + 'static,
@@ -85,6 +89,49 @@ pub fn RegionAdmin() -> impl IntoView {
         "region.error.loadRegions",
         "Failed to load regions",
     );
+
+    let list_labels = RegionAdminListLabels {
+        tax_included: t(
+            ui_locale.as_deref(),
+            "region.common.taxIncluded",
+            "tax included",
+        ),
+        tax_excluded: t(
+            ui_locale.as_deref(),
+            "region.common.taxExcluded",
+            "tax excluded",
+        ),
+        countries: t(ui_locale.as_deref(), "region.common.countries", "countries"),
+        tax_rate: t(ui_locale.as_deref(), "region.common.taxRate", "tax rate"),
+        updated: t(ui_locale.as_deref(), "region.common.updated", "updated"),
+    };
+    let detail_labels = RegionAdminDetailLabels {
+        tax_included: list_labels.tax_included.clone(),
+        tax_excluded: list_labels.tax_excluded.clone(),
+        countries: list_labels.countries.clone(),
+        tax_rate: list_labels.tax_rate.clone(),
+    };
+
+    let policy_labels = RegionAdminPolicyLabels {
+        currency: t(ui_locale.as_deref(), "region.common.currency", "currency"),
+        tax_provider: t(
+            ui_locale.as_deref(),
+            "region.common.taxProvider",
+            "tax provider",
+        ),
+        tax_rate: list_labels.tax_rate.clone(),
+        tax_included: list_labels.tax_included.clone(),
+        tax_excluded: list_labels.tax_excluded.clone(),
+    };
+
+    let raw_section_labels = RegionAdminRawSectionLabels {
+        country_tax_policies_title: t(
+            ui_locale.as_deref(),
+            "region.section.countryTaxPolicies",
+            "Country Tax Policies",
+        ),
+        metadata_title: t(ui_locale.as_deref(), "region.section.metadata", "Metadata"),
+    };
 
     let reset_form = move || {
         set_editing_id.set(None);
@@ -303,20 +350,21 @@ pub fn RegionAdmin() -> impl IntoView {
                             Some(Ok(list)) => view! {
                                 <>
                                     {list.items.into_iter().map(|region| {
-                                        let region_id = region.id.clone();
-                                        let region_marker = region.id.clone();
+                                        let item = crate::core::build_region_admin_list_item_view_model(&region, &list_labels);
+                                        let region_id = item.id.clone();
+                                        let region_marker = item.id.clone();
                                         let item_locale = ui_locale_for_list.clone();
                                         let item_query_writer = list_query_writer.clone();
                                         view! {
-                                            <article class=move || if editing_id.get().as_deref() == Some(region_marker.as_str()) { "rounded-2xl border border-primary/40 bg-background p-5 shadow-sm" } else { "rounded-2xl border border-border bg-background p-5 transition hover:border-primary/40" }>
+                                            <article class=move || crate::core::region_admin_list_item_class(editing_id.get().as_deref() == Some(region_marker.as_str()))>
                                                 <div class="flex items-start justify-between gap-3">
                                                     <div class="space-y-2">
                                                         <div class="flex flex-wrap items-center gap-2">
-                                                            <h4 class="text-base font-semibold text-card-foreground">{region.name.clone()}</h4>
-                                                            <span class="inline-flex rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{tax_badge(item_locale.as_deref(), &region)}</span>
+                                                            <h4 class="text-base font-semibold text-card-foreground">{item.name.clone()}</h4>
+                                                            <span class="inline-flex rounded-full border border-border px-3 py-1 text-xs text-muted-foreground">{item.badge_label.clone()}</span>
                                                         </div>
-                                                        <p class="text-sm text-muted-foreground">{format!("{} | {}", region.currency_code, region.countries_preview)}</p>
-                                                        <p class="text-xs text-muted-foreground">{list_meta(item_locale.as_deref(), &region)}</p>
+                                                        <p class="text-sm text-muted-foreground">{item.summary.clone()}</p>
+                                                        <p class="text-xs text-muted-foreground">{item.meta.clone()}</p>
                                                     </div>
                                                     <button
                                                         type="button"
@@ -383,6 +431,9 @@ pub fn RegionAdmin() -> impl IntoView {
                     </section>
 
                     {move || selected.get().map(|detail| {
+                        let countries_summary = crate::core::region_admin_countries_summary(&detail);
+                        let policy_view_model = crate::core::build_region_admin_policy_section_view_model(&detail, &policy_labels);
+                        let raw_sections = crate::core::build_region_admin_raw_sections_view_model(&detail, &raw_section_labels);
                         view! {
                             <section class="space-y-6 rounded-3xl border border-border bg-card p-6 shadow-sm">
                                 <div class="space-y-2">
@@ -394,8 +445,8 @@ pub fn RegionAdmin() -> impl IntoView {
                                     <div class="flex flex-wrap items-start justify-between gap-3">
                                         <div class="space-y-2">
                                             <h4 class="text-base font-semibold text-card-foreground">{detail.region.name.clone()}</h4>
-                                            <p class="text-sm text-muted-foreground">{format!("{} | {}", detail.region.currency_code, detail.region.countries.join(", "))}</p>
-                                            <p class="text-xs text-muted-foreground">{detail_meta(ui_locale_for_detail.as_deref(), &detail)}</p>
+                                            <p class="text-sm text-muted-foreground">{format!("{} | {}", detail.region.currency_code, countries_summary.clone())}</p>
+                                            <p class="text-xs text-muted-foreground">{crate::core::build_region_admin_detail_meta(&detail, &detail_labels)}</p>
                                         </div>
                                         <div class="text-right text-xs text-muted-foreground">
                                             <p>{format!("created {}", detail.region.created_at)}</p>
@@ -408,26 +459,25 @@ pub fn RegionAdmin() -> impl IntoView {
                                     <div class="rounded-2xl border border-border bg-background p-5">
                                         <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t(ui_locale_for_detail.as_deref(), "region.section.policy", "Policy Baseline")}</h4>
                                         <div class="mt-4 space-y-2 text-sm text-muted-foreground">
-                                            <p>{format!("currency: {}", detail.region.currency_code)}</p>
-                                            <p>{format!("tax provider: {}", detail.region.tax_provider_id.clone().unwrap_or_else(|| "region_default".to_string()))}</p>
-                                            <p>{format!("tax rate: {}", detail.region.tax_rate)}</p>
-                                            <p>{if detail.region.tax_included { t(ui_locale_for_detail.as_deref(), "region.common.taxIncluded", "tax included") } else { t(ui_locale_for_detail.as_deref(), "region.common.taxExcluded", "tax excluded") }}</p>
+                                            {policy_view_model.rows.into_iter().map(|row| {
+                                                view! { <p>{row.text}</p> }
+                                            }).collect_view()}
                                         </div>
                                     </div>
                                     <div class="rounded-2xl border border-border bg-background p-5">
                                         <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t(ui_locale_for_detail.as_deref(), "region.section.countries", "Country Coverage")}</h4>
-                                        <p class="mt-4 text-sm text-muted-foreground">{detail.region.countries.join(", ")}</p>
+                                        <p class="mt-4 text-sm text-muted-foreground">{countries_summary.clone()}</p>
                                     </div>
                                 </div>
 
                                 <div class="rounded-2xl border border-border bg-background p-5">
-                                    <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t(ui_locale_for_detail.as_deref(), "region.section.countryTaxPolicies", "Country Tax Policies")}</h4>
-                                    <pre class="mt-4 overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">{detail.region.country_tax_policies_pretty.clone()}</pre>
+                                    <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">{raw_sections.country_tax_policies.title.clone()}</h4>
+                                    <pre class="mt-4 overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">{raw_sections.country_tax_policies.body.clone()}</pre>
                                 </div>
 
                                 <div class="rounded-2xl border border-border bg-background p-5">
-                                    <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">{t(ui_locale_for_detail.as_deref(), "region.section.metadata", "Metadata")}</h4>
-                                    <pre class="mt-4 overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">{detail.region.metadata_pretty.clone()}</pre>
+                                    <h4 class="text-sm font-semibold uppercase tracking-[0.18em] text-muted-foreground">{raw_sections.metadata.title.clone()}</h4>
+                                    <pre class="mt-4 overflow-x-auto whitespace-pre-wrap text-xs text-muted-foreground">{raw_sections.metadata.body.clone()}</pre>
                                 </div>
                             </section>
                         }.into_any()
@@ -452,16 +502,19 @@ fn apply_region_detail(
     set_countries: WriteSignal<String>,
     set_metadata: WriteSignal<String>,
 ) {
-    set_editing_id.set(Some(detail.region.id.clone()));
     set_selected.set(Some(detail.clone()));
-    set_name.set(detail.region.name.clone());
-    set_currency_code.set(detail.region.currency_code.clone());
-    set_tax_provider_id.set(detail.region.tax_provider_id.clone().unwrap_or_default());
-    set_tax_rate.set(detail.region.tax_rate.clone());
-    set_tax_included.set(detail.region.tax_included);
-    set_country_tax_policies.set(detail.region.country_tax_policies_pretty.clone());
-    set_countries.set(detail.region.countries.join(", "));
-    set_metadata.set(detail.region.metadata_pretty.clone());
+    apply_region_editor_form_state(
+        RegionAdminEditorFormState::from_detail(detail),
+        set_editing_id,
+        set_name,
+        set_currency_code,
+        set_tax_provider_id,
+        set_tax_rate,
+        set_tax_included,
+        set_country_tax_policies,
+        set_countries,
+        set_metadata,
+    );
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -477,48 +530,41 @@ fn clear_region_form(
     set_countries: WriteSignal<String>,
     set_metadata: WriteSignal<String>,
 ) {
-    set_editing_id.set(None);
     set_selected.set(None);
-    set_name.set(String::new());
-    set_currency_code.set(String::new());
-    set_tax_provider_id.set(String::new());
-    set_tax_rate.set("0".to_string());
-    set_tax_included.set(false);
-    set_country_tax_policies.set("[]".to_string());
-    set_countries.set(String::new());
-    set_metadata.set("{}".to_string());
+    apply_region_editor_form_state(
+        RegionAdminEditorFormState::empty(),
+        set_editing_id,
+        set_name,
+        set_currency_code,
+        set_tax_provider_id,
+        set_tax_rate,
+        set_tax_included,
+        set_country_tax_policies,
+        set_countries,
+        set_metadata,
+    );
 }
 
-fn tax_badge(locale: Option<&str>, region: &RegionListItem) -> String {
-    if region.tax_included {
-        t(locale, "region.common.taxIncluded", "tax included")
-    } else {
-        t(locale, "region.common.taxExcluded", "tax excluded")
-    }
-}
-
-fn list_meta(locale: Option<&str>, region: &RegionListItem) -> String {
-    format!(
-        "{} {} | {} {} | updated {}",
-        region.country_count,
-        t(locale, "region.common.countries", "countries"),
-        t(locale, "region.common.taxRate", "tax rate"),
-        region.tax_rate,
-        region.updated_at
-    )
-}
-
-fn detail_meta(locale: Option<&str>, detail: &RegionDetail) -> String {
-    let tax_state = if detail.region.tax_included {
-        t(locale, "region.common.taxIncluded", "tax included")
-    } else {
-        t(locale, "region.common.taxExcluded", "tax excluded")
-    };
-    format!(
-        "{} {} | {} {} ({tax_state})",
-        detail.region.countries.len(),
-        t(locale, "region.common.countries", "countries"),
-        t(locale, "region.common.taxRate", "tax rate"),
-        detail.region.tax_rate
-    )
+#[allow(clippy::too_many_arguments)]
+fn apply_region_editor_form_state(
+    state: RegionAdminEditorFormState,
+    set_editing_id: WriteSignal<Option<String>>,
+    set_name: WriteSignal<String>,
+    set_currency_code: WriteSignal<String>,
+    set_tax_provider_id: WriteSignal<String>,
+    set_tax_rate: WriteSignal<String>,
+    set_tax_included: WriteSignal<bool>,
+    set_country_tax_policies: WriteSignal<String>,
+    set_countries: WriteSignal<String>,
+    set_metadata: WriteSignal<String>,
+) {
+    set_editing_id.set(state.editing_id);
+    set_name.set(state.name);
+    set_currency_code.set(state.currency_code);
+    set_tax_provider_id.set(state.tax_provider_id);
+    set_tax_rate.set(state.tax_rate);
+    set_tax_included.set(state.tax_included);
+    set_country_tax_policies.set(state.country_tax_policies);
+    set_countries.set(state.countries);
+    set_metadata.set(state.metadata);
 }
