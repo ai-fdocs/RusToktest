@@ -5,14 +5,10 @@ use rustok_api::UiRouteContext;
 
 use crate::i18n::t;
 use crate::model::{
-    StorefrontCheckoutAdjustment, StorefrontCheckoutCart, StorefrontCheckoutCompletion,
-    StorefrontCheckoutPaymentCollection, StorefrontCheckoutWorkspace, StorefrontCommerceData,
+    StorefrontCheckoutCompletion, StorefrontCheckoutPaymentCollection, StorefrontCheckoutWorkspace,
+    StorefrontCommerceData,
 };
 use crate::{core, transport};
-
-mod delivery;
-
-use delivery::{DeliveryGroupsCard, ShippingSelectCallback};
 
 #[component]
 pub fn CommerceView() -> impl IntoView {
@@ -75,44 +71,6 @@ pub fn CommerceView() -> impl IntoView {
         })
     };
 
-    let on_select_shipping_option = {
-        let action_error_label = action_error_label.clone();
-        Callback::new(
-            move |(cart, shipping_profile_slug, seller_id, seller_scope, shipping_option_id): (
-                StorefrontCheckoutCart,
-                String,
-                Option<String>,
-                Option<String>,
-                Option<String>,
-            )| {
-                let action_error_label = action_error_label.clone();
-                set_action_busy.set(true);
-                set_action_error.set(None);
-                set_completion.set(None);
-                spawn_local(async move {
-                    match transport::select_storefront_shipping_option(
-                        core::build_select_shipping_option_request(
-                            cart,
-                            shipping_profile_slug,
-                            seller_id,
-                            seller_scope,
-                            shipping_option_id,
-                        ),
-                    )
-                    .await
-                    {
-                        Ok(()) => set_refresh_nonce.update(|value| *value += 1),
-                        Err(err) => set_action_error.set(Some(core::error_with_context(
-                            action_error_label.as_str(),
-                            &err.to_string(),
-                        ))),
-                    }
-                    set_action_busy.set(false);
-                });
-            },
-        )
-    };
-
     let on_complete_checkout = {
         let action_error_label = action_error_label.clone();
         Callback::new(move |cart_id: String| {
@@ -161,7 +119,6 @@ pub fn CommerceView() -> impl IntoView {
                         let resource = resource;
                         let load_error = load_error.clone();
                         let on_create_payment_collection = on_create_payment_collection;
-                        let on_select_shipping_option = on_select_shipping_option;
                         let on_complete_checkout = on_complete_checkout;
                         Suspend::new(async move {
                             match resource.await {
@@ -171,7 +128,6 @@ pub fn CommerceView() -> impl IntoView {
                                         busy=action_busy
                                         completion
                                         on_create_payment_collection
-                                        on_select_shipping_option
                                         on_complete_checkout
                                     />
                                 }.into_any(),
@@ -191,7 +147,6 @@ fn CommerceShowcase(
     busy: ReadSignal<bool>,
     completion: ReadSignal<Option<StorefrontCheckoutCompletion>>,
     on_create_payment_collection: Callback<String>,
-    on_select_shipping_option: ShippingSelectCallback,
     on_complete_checkout: Callback<String>,
 ) -> impl IntoView {
     view! {
@@ -204,7 +159,6 @@ fn CommerceShowcase(
                     busy
                     completion
                     on_create_payment_collection
-                    on_select_shipping_option
                     on_complete_checkout
                 />
                 <SurfaceRail />
@@ -251,7 +205,6 @@ fn CheckoutWorkspace(
     busy: ReadSignal<bool>,
     completion: ReadSignal<Option<StorefrontCheckoutCompletion>>,
     on_create_payment_collection: Callback<String>,
-    on_select_shipping_option: ShippingSelectCallback,
     on_complete_checkout: Callback<String>,
 ) -> impl IntoView {
     let route_context = use_context::<UiRouteContext>().unwrap_or_default();
@@ -278,12 +231,10 @@ fn CheckoutWorkspace(
             let cart_href = format!("{cart_base_href}?cart_id={cart_id}");
             match checkout.and_then(|workspace| workspace.cart.map(|cart| (cart, workspace.payment_collection))) {
                 Some((cart, payment_collection)) => {
-                    let delivery_groups = cart.delivery_groups.clone();
                     let cart_id = cart.id.clone();
                     let cart_status = cart.status.clone();
                     let create_pending_locale = locale.clone();
                     let create_action_locale = locale.clone();
-                    let shipping_pending_locale = locale.clone();
                     let complete_pending_locale = locale.clone();
                     let complete_action_locale = locale.clone();
                     view! {
@@ -316,14 +267,8 @@ fn CheckoutWorkspace(
                                 {t(locale.as_deref(), "commerce.checkout.cart.moduleOwnership", "Cart totals, line items and adjustments stay in the cart module workspace.")}
                             </span>
                         </div>
-                        <div class="mt-6">
-                            <DeliveryGroupsCard
-                                cart=cart.clone()
-                                groups=delivery_groups
-                                busy
-                                pending_label=t(shipping_pending_locale.as_deref(), "commerce.checkout.pending", "Processing...")
-                                on_select_shipping_option
-                            />
+                        <div class="mt-6 rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
+                            {t(locale.as_deref(), "commerce.delivery.moduleOwnership", "Shipping options and fulfillment details stay in fulfillment-owned UI; commerce only triggers cross-module checkout orchestration.")}
                         </div>
                         <div class="mt-6 grid gap-3 md:grid-cols-2">
                             <a class="inline-flex items-center justify-center rounded-full border border-border px-4 py-2 text-sm font-medium text-card-foreground transition hover:bg-muted" href=cart_href>
@@ -392,39 +337,33 @@ fn PaymentCollectionCard(
 ) -> impl IntoView {
     let locale = use_context::<UiRouteContext>().unwrap_or_default().locale;
 
-    match payment_collection {
-        Some(payment_collection) => view! {
-            <article class="rounded-2xl border border-border bg-card p-5">
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <div class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                            {t(locale.as_deref(), "commerce.payment.badge", "payment collection")}
-                        </div>
-                        <h4 class="mt-2 text-base font-semibold text-card-foreground">{payment_collection.id}</h4>
-                    </div>
-                    <div class="text-sm text-muted-foreground">{payment_collection.status.clone()}</div>
-                </div>
-                <div class="mt-4 grid gap-3 md:grid-cols-2">
-                    <MetricCard title=t(locale.as_deref(), "commerce.payment.amount", "Amount") value=format!("{} {}", payment_collection.currency_code, payment_collection.amount) />
-                    <MetricCard title=t(locale.as_deref(), "commerce.payment.authorized", "Authorized") value=payment_collection.authorized_amount />
-                    <MetricCard title=t(locale.as_deref(), "commerce.payment.captured", "Captured") value=payment_collection.captured_amount />
-                    <MetricCard title=t(locale.as_deref(), "commerce.payment.payments", "Payments") value=payment_collection.payment_count.to_string() />
-                </div>
-            </article>
-        }.into_any(),
-        None => view! {
-            <article class="rounded-2xl border border-dashed border-border p-5">
-                <div class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                    {t(locale.as_deref(), "commerce.payment.badge", "payment collection")}
-                </div>
-                <p class="mt-2 text-sm text-muted-foreground">
-                    {t(locale.as_deref(), "commerce.payment.empty", "No reusable payment collection is attached to this cart yet.")}
-                </p>
-            </article>
-        }.into_any(),
+    let (collection_id, collection_status) = payment_collection
+        .map(|collection| (collection.id, collection.status))
+        .unwrap_or_else(|| {
+            (
+                t(
+                    locale.as_deref(),
+                    "commerce.payment.emptyId",
+                    "not attached",
+                ),
+                t(locale.as_deref(), "commerce.payment.emptyStatus", "pending"),
+            )
+        });
+
+    view! {
+        <article class="rounded-2xl border border-dashed border-border p-5">
+            <div class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                {t(locale.as_deref(), "commerce.payment.badge", "payment collection")}
+            </div>
+            <p class="mt-2 text-sm text-muted-foreground">
+                {t(locale.as_deref(), "commerce.payment.moduleOwnership", "Payment collection details stay in payment-owned UI; commerce only shows checkout orchestration handoff state.")}
+            </p>
+            <div class="mt-4 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                {format!("{} · {}", collection_id, collection_status)}
+            </div>
+        </article>
     }
 }
-
 #[component]
 fn CheckoutCompletionCard(result: StorefrontCheckoutCompletion) -> impl IntoView {
     let locale = use_context::<UiRouteContext>().unwrap_or_default().locale;
@@ -435,75 +374,18 @@ fn CheckoutCompletionCard(result: StorefrontCheckoutCompletion) -> impl IntoView
                 {t(locale.as_deref(), "commerce.checkout.result.badge", "checkout result")}
             </div>
             <h4 class="mt-2 text-base font-semibold text-card-foreground">{result.order_id}</h4>
+            <p class="mt-2 text-sm text-muted-foreground">
+                {t(locale.as_deref(), "commerce.checkout.result.moduleOwnership", "Order, payment, fulfillment and adjustment details remain in their module-owned workspaces; commerce shows only the aggregate checkout outcome.")}
+            </p>
             <div class="mt-4 grid gap-3 md:grid-cols-2">
                 <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.orderStatus", "Order status") value=result.order_status />
-                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.shipping", "Order shipping") value=format!("{} {}", result.currency_code, result.shipping_total) />
-                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.adjustments", "Order adjustments") value=format!("{} {}", result.currency_code, result.adjustment_total) />
-                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.total", "Order total") value=format!("{} {}", result.currency_code, result.total_amount) />
-                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.collection", "Payment collection") value=result.payment_collection_id />
                 <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.collectionStatus", "Collection status") value=result.payment_collection_status />
                 <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.fulfillments", "Fulfillments") value=result.fulfillment_count.to_string() />
                 <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.locale", "Resolved locale") value=result.context_locale />
             </div>
-            <div class="mt-4">
-                <AdjustmentsCard adjustments=result.adjustments />
-            </div>
         </article>
     }
 }
-
-#[component]
-fn AdjustmentsCard(adjustments: Vec<StorefrontCheckoutAdjustment>) -> impl IntoView {
-    let locale = use_context::<UiRouteContext>().unwrap_or_default().locale;
-
-    view! {
-        <article class="rounded-2xl border border-border bg-card p-5">
-            <div class="flex items-center justify-between gap-3">
-                <h4 class="text-base font-semibold text-card-foreground">
-                    {t(locale.as_deref(), "commerce.checkout.adjustments.title", "Typed adjustments")}
-                </h4>
-                <span class="text-sm text-muted-foreground">{adjustments.len().to_string()}</span>
-            </div>
-            {if adjustments.is_empty() {
-                view! {
-                    <p class="mt-3 text-sm text-muted-foreground">
-                        {t(locale.as_deref(), "commerce.checkout.adjustments.empty", "No typed adjustments are attached to this checkout snapshot.")}
-                    </p>
-                }.into_any()
-            } else {
-                view! {
-                    <div class="mt-4 space-y-3">
-                        {adjustments.into_iter().map(|adjustment| {
-                            let locale = locale.clone();
-                            let source = adjustment.source_id.unwrap_or_else(|| t(locale.as_deref(), "commerce.context.empty", "not resolved"));
-                            let scope = adjustment.scope.unwrap_or_else(|| t(locale.as_deref(), "commerce.context.empty", "not resolved"));
-                            let line_item = adjustment.line_item_id.unwrap_or_else(|| t(locale.as_deref(), "commerce.context.empty", "not resolved"));
-                            let metadata = adjustment.metadata;
-                            view! {
-                                <article class="rounded-2xl border border-border/70 bg-background/60 p-4">
-                                    <div class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{adjustment.source_type}</div>
-                                    <div class="mt-2 grid gap-2 md:grid-cols-4">
-                                        <MetricCard title=t(locale.as_deref(), "commerce.checkout.adjustments.source", "Source") value=source />
-                                        <MetricCard title=t(locale.as_deref(), "commerce.checkout.adjustments.scope", "Scope") value=scope />
-                                        <MetricCard title=t(locale.as_deref(), "commerce.checkout.adjustments.lineItem", "Line item") value=line_item />
-                                        <MetricCard title=t(locale.as_deref(), "commerce.checkout.adjustments.amount", "Amount") value=format!("{} {}", adjustment.currency_code, adjustment.amount) />
-                                    </div>
-                                    <div class="mt-3 rounded-2xl border border-border/60 bg-card p-3">
-                                        <div class="text-[11px] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                                            {t(locale.as_deref(), "commerce.checkout.adjustments.metadata", "Metadata")}
-                                        </div>
-                                        <pre class="mt-2 whitespace-pre-wrap break-all text-xs text-muted-foreground">{metadata}</pre>
-                                    </div>
-                                </article>
-                            }
-                        }).collect_view()}
-                    </div>
-                }.into_any()
-            }}
-        </article>
-    }
-}
-
 #[component]
 fn SurfaceRail() -> impl IntoView {
     let route_context = use_context::<UiRouteContext>().unwrap_or_default();
