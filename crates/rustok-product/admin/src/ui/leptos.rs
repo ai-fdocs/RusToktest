@@ -8,17 +8,21 @@ use rustok_seo_admin_support::SeoEntityPanel;
 use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
 
 use crate::core::{
+    build_product_admin_delete_command, build_product_admin_delete_result_view_model,
     build_product_admin_editor_form_state, build_product_admin_editor_view_model,
-    build_product_admin_list_controls_view_model, build_product_admin_list_empty_view_model,
-    build_product_admin_list_error_view_model, build_product_admin_list_item_view_model,
-    build_product_admin_list_loading_view_model,
+    build_product_admin_list_action_labels, build_product_admin_list_controls_view_model,
+    build_product_admin_list_empty_view_model, build_product_admin_list_error_view_model,
+    build_product_admin_list_item_view_model, build_product_admin_list_loading_view_model,
     build_product_admin_profile_panel_error_view_model,
     build_product_admin_profile_panel_loading_view_model,
     build_product_admin_profile_panel_ready_view_model, build_product_admin_save_command,
     build_product_admin_shell_view_model, build_product_admin_status_mutation_command,
     build_selected_product_summary_view_model, empty_product_admin_editor_form_state,
-    primary_catalog_currency, shipping_profile_choice_label, text_or_none, ProductAdminDraftForm,
-    ProductAdminEditorFormState, ProductAdminListStateKind, ProductAdminPricingPreviewState,
+    primary_catalog_currency, product_admin_clear_product_query_intent,
+    product_admin_list_actions_disabled, product_admin_open_product_query_intent,
+    product_admin_saved_product_query_intent, shipping_profile_choice_label, text_or_none,
+    ProductAdminDeleteOutcome, ProductAdminDraftForm, ProductAdminEditorFormState,
+    ProductAdminListStateKind, ProductAdminPricingPreviewState, ProductAdminRouteQueryIntent,
     ProductAdminSaveMode, ProductAdminStatusTarget, SelectedProductSummaryViewModel,
 };
 use crate::i18n::t;

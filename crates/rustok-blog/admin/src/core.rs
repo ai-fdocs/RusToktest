@@ -476,7 +476,7 @@ mod tests {
         assert!(has_issue(Some(WritePathIssueKind::Runtime)));
         assert!(!has_issue(None));
         assert_eq!(
-            issue_kind(Some(&WritePathIssue::with_runtime("runtime issue"))),
+            issue_kind(Some(&WritePathIssue::new("runtime issue"))),
             Some(WritePathIssueKind::Runtime)
         );
         assert_eq!(issue_kind(None), None);
@@ -524,7 +524,7 @@ mod tests {
         assert_eq!(issue_banner_class_or_hidden(None), "hidden");
         assert_eq!(issue_kind_label(WritePathIssueKind::Runtime), "Runtime");
         assert_eq!(
-            issue_label_for(&WritePathIssue::with_runtime("runtime issue")),
+            issue_label_for(&WritePathIssue::new("runtime issue")),
             "Runtime"
         );
         assert_eq!(

@@ -3,16 +3,15 @@ use leptos::prelude::*;
 #[cfg(feature = "ssr")]
 use crate::model::{
     AvailableModuleItem, AvailableOauthAppItem, ChannelDetail, ChannelResolutionActionRecord,
-    ChannelResolutionPolicySetDetail, ChannelResolutionPolicySetRecord,
-    ChannelResolutionPredicateRecord, ChannelResolutionRuleDefinitionRecord,
-    ChannelResolutionRuleRecord, ResolvedChannelContext,
+    ChannelResolutionPolicySetDetail, ChannelResolutionPredicateRecord,
+    ChannelResolutionRuleDefinitionRecord, ResolvedChannelContext,
 };
 use crate::model::{
     BindChannelModulePayload, BindChannelOauthAppPayload, ChannelAdminBootstrap,
     ChannelModuleBindingRecord, ChannelOauthAppRecord, ChannelRecord,
-    ChannelResolutionPolicySetDetail, ChannelTargetRecord, CreateChannelPayload,
-    CreateChannelTargetPayload, CreateResolutionPolicySetPayload, CreateResolutionRulePayload,
-    ReorderResolutionRulesPayload, UpdateResolutionRulePayload,
+    ChannelResolutionPolicySetRecord, ChannelResolutionRuleRecord, ChannelTargetRecord,
+    CreateChannelPayload, CreateChannelTargetPayload, CreateResolutionPolicySetPayload,
+    CreateResolutionRulePayload, ReorderResolutionRulesPayload, UpdateResolutionRulePayload,
 };
 
 #[cfg(feature = "ssr")]

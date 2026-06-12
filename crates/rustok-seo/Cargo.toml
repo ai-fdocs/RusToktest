@@ -27,6 +27,7 @@ server = [
   "dep:sea-orm",
   "dep:sea-orm-migration",
   "dep:thiserror",
+  "dep:tokio",
   "dep:tracing",
   "dep:url",
 ]
@@ -45,6 +46,7 @@ sea-orm-migration = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
 thiserror = { workspace = true, optional = true }
+tokio = { workspace = true, optional = true }
 tracing = { workspace = true, optional = true }
 url = { version = "2.5", optional = true }
 uuid.workspace = true

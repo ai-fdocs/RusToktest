@@ -5,6 +5,7 @@ use chrono::{Duration as ChronoDuration, Utc};
 use sea_orm::ActiveValue::Set;
 use sea_orm::{
     ActiveModelTrait, ColumnTrait, Condition, DbErr, EntityTrait, QueryFilter, QueryOrder,
+    QuerySelect,
 };
 use uuid::Uuid;
 

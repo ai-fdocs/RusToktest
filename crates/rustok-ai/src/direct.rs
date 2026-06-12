@@ -22,9 +22,8 @@ use uuid::Uuid;
 
 use crate::model::{
     AiAlloyOperation, AiAlloyTaskInput, AiBlogDraftTaskInput, AiContentModerationTaskInput,
-    AiImageAssetTaskInput, AiOrderAnalyticsTaskInput, AiOrderOpsAssistantTaskInput,
-    AiProductAttributesTaskInput, AiProductCopyTaskInput, AiProviderConfig, ChatMessage,
-    ChatMessageRole, DirectExecutionTarget, ProviderChatRequest, ProviderImageRequest,
+    AiImageAssetTaskInput, AiProductAttributesTaskInput, AiProductCopyTaskInput, AiProviderConfig,
+    ChatMessage, ChatMessageRole, DirectExecutionTarget, ProviderChatRequest, ProviderImageRequest,
     ProviderStreamEmitter, ToolTrace,
 };
 use crate::provider::ModelProvider;

@@ -490,9 +490,13 @@ async fn list_refunds_supports_order_id_filter() {
     let tenant_id = Uuid::new_v4();
     let actor_id = Uuid::new_v4();
 
+    let db = rustok_test_utils::db::setup_test_db().await;
+    support::ensure_payment_schema(&db).await;
+    support::ensure_order_schema(&db).await;
+    let service = PaymentService::new(db.clone());
     let order_service = rustok_order::services::OrderService::new(
-        service.db.clone(),
-        rustok_events::MockTransactionalEventBus::new(),
+        db,
+        rustok_test_utils::mock_transactional_event_bus(),
     );
 
     let first_order = order_service
@@ -650,9 +654,13 @@ async fn list_refunds_combined_order_and_collection_filters_require_intersection
     let tenant_id = Uuid::new_v4();
     let actor_id = Uuid::new_v4();
 
+    let db = rustok_test_utils::db::setup_test_db().await;
+    support::ensure_payment_schema(&db).await;
+    support::ensure_order_schema(&db).await;
+    let service = PaymentService::new(db.clone());
     let order_service = rustok_order::services::OrderService::new(
-        service.db.clone(),
-        rustok_events::MockTransactionalEventBus::new(),
+        db,
+        rustok_test_utils::mock_transactional_event_bus(),
     );
     let first_order = order_service
         .create_order(
