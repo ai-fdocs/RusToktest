@@ -1,7 +1,7 @@
 use rust_decimal::Decimal;
 use rustok_order::dto::{
-    CompleteOrderReturnInput, CreateOrderChangeInput, CreateOrderReturnInput, OrderChangeResponse,
-    OrderReturnResponse,
+    ApplyOrderChangeInput, CompleteOrderReturnInput, CreateOrderChangeInput,
+    CreateOrderReturnInput, OrderChangeResponse, OrderReturnResponse,
 };
 use rustok_outbox::TransactionalEventBus;
 use rustok_payment::dto::{CreateRefundInput, ListPaymentCollectionsInput, RefundResponse};
@@ -277,6 +277,108 @@ impl PostOrderOrchestrationService {
             .await
             .map_err(Into::into)
     }
+
+    /// Apply an exchange order change: transition the order change to `applied`
+    /// and optionally create a difference refund if the exchange results in a
+    /// price difference favouring the customer.
+    pub async fn apply_exchange_order_change(
+        &self,
+        tenant_id: Uuid,
+        order_id: Uuid,
+        change_id: Uuid,
+        difference_refund: Option<ExchangeDifferenceRefundInput>,
+        metadata: Value,
+    ) -> PostOrderOrchestrationResult<ApplyOrderChangeResult> {
+        let order_service = OrderService::new(self.db.clone(), self.event_bus.clone());
+
+        let mut apply_metadata = normalize_object_or_empty(metadata, "metadata")?;
+        if let Value::Object(ref mut obj) = apply_metadata {
+            obj.insert(
+                "apply_action".to_string(),
+                Value::String("exchange".to_string()),
+            );
+        }
+
+        let order_change = order_service
+            .apply_order_change(
+                tenant_id,
+                change_id,
+                ApplyOrderChangeInput {
+                    metadata: apply_metadata,
+                },
+            )
+            .await?;
+
+        let refund = if let Some(refund_input) = difference_refund {
+            if refund_input.amount > Decimal::ZERO {
+                let payment_service = PaymentService::new(self.db.clone());
+                let collection_id =
+                    resolve_order_payment_collection(&payment_service, tenant_id, order_id)
+                        .await?;
+                let refund = payment_service
+                    .create_refund(
+                        tenant_id,
+                        collection_id,
+                        CreateRefundInput {
+                            amount: refund_input.amount,
+                            reason: refund_input
+                                .reason
+                                .or_else(|| Some("exchange_difference".to_string())),
+                            metadata: attach_order_change_context(
+                                refund_input.metadata,
+                                change_id,
+                                "exchange",
+                            )?,
+                        },
+                    )
+                    .await?;
+                Some(refund)
+            } else {
+                None
+            }
+        } else {
+            None
+        };
+
+        Ok(ApplyOrderChangeResult {
+            order_change,
+            refund,
+        })
+    }
+
+    /// Apply a claim order change: transition the order change to `applied`
+    /// without creating a refund (free replacement for the customer).
+    pub async fn apply_claim_order_change(
+        &self,
+        tenant_id: Uuid,
+        change_id: Uuid,
+        metadata: Value,
+    ) -> PostOrderOrchestrationResult<ApplyOrderChangeResult> {
+        let order_service = OrderService::new(self.db.clone(), self.event_bus.clone());
+
+        let mut apply_metadata = normalize_object_or_empty(metadata, "metadata")?;
+        if let Value::Object(ref mut obj) = apply_metadata {
+            obj.insert(
+                "apply_action".to_string(),
+                Value::String("claim".to_string()),
+            );
+        }
+
+        let order_change = order_service
+            .apply_order_change(
+                tenant_id,
+                change_id,
+                ApplyOrderChangeInput {
+                    metadata: apply_metadata,
+                },
+            )
+            .await?;
+
+        Ok(ApplyOrderChangeResult {
+            order_change,
+            refund: None,
+        })
+    }
 }
 
 fn normalize_decision_action(action: &str) -> PostOrderOrchestrationResult<String> {
@@ -407,4 +509,69 @@ fn return_items_amount(order_return: &OrderReturnResponse) -> Decimal {
                 .and_then(|value| value.parse::<Decimal>().ok())
         })
         .fold(Decimal::ZERO, |acc, amount| acc + amount)
+}
+
+/// Input for an optional difference refund when applying an exchange order change.
+#[derive(Debug, Clone, Serialize, Deserialize, Validate, ToSchema)]
+pub struct ExchangeDifferenceRefundInput {
+    pub amount: Decimal,
+    #[validate(length(max = 255))]
+    pub reason: Option<String>,
+    pub metadata: Value,
+}
+
+/// Result of applying an exchange or claim order change.
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct ApplyOrderChangeResult {
+    pub order_change: OrderChangeResponse,
+    pub refund: Option<RefundResponse>,
+}
+
+async fn resolve_order_payment_collection(
+    payment_service: &PaymentService,
+    tenant_id: Uuid,
+    order_id: Uuid,
+) -> PostOrderOrchestrationResult<Uuid> {
+    let (collections, _) = payment_service
+        .list_collections(
+            tenant_id,
+            ListPaymentCollectionsInput {
+                page: 1,
+                per_page: 1,
+                status: Some("captured".to_string()),
+                order_id: Some(order_id),
+                cart_id: None,
+                customer_id: None,
+            },
+        )
+        .await?;
+    collections
+        .into_iter()
+        .next()
+        .map(|collection| collection.id)
+        .ok_or_else(|| {
+            PostOrderOrchestrationError::Validation(format!(
+                "order {order_id} has no captured payment collection"
+            ))
+        })
+}
+
+fn attach_order_change_context(
+    value: Value,
+    change_id: Uuid,
+    apply_action: &str,
+) -> PostOrderOrchestrationResult<Value> {
+    let mut object = match normalize_object_or_empty(value, "metadata")? {
+        Value::Object(object) => object,
+        _ => unreachable!("normalize returns object"),
+    };
+    object.insert(
+        "order_change_id".to_string(),
+        Value::String(change_id.to_string()),
+    );
+    object.insert(
+        "apply_action".to_string(),
+        Value::String(apply_action.to_string()),
+    );
+    Ok(Value::Object(object))
 }

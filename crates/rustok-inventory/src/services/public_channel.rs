@@ -253,8 +253,8 @@ mod tests {
     use super::{
         check_public_channel_inventory_request, extract_allowed_channel_slugs,
         is_allowlist_visible_for_public_channel, is_metadata_visible_for_public_channel,
-        normalize_public_channel_slug, public_channel_inventory_projection,
-        public_channel_inventory_projection_map, PublicChannelInventoryVariantProjectionInput,
+        normalize_public_channel_slug, public_channel_inventory_projection_map,
+        PublicChannelInventoryVariantProjectionInput,
     };
 
     use std::collections::HashMap;

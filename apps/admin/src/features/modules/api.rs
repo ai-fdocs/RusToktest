@@ -677,6 +677,7 @@ struct RuntimeCargoPackage {
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum RuntimeFrontendBuildTool {
@@ -685,6 +686,7 @@ enum RuntimeFrontendBuildTool {
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum RuntimeFrontendArtifactKind {
@@ -693,6 +695,7 @@ enum RuntimeFrontendArtifactKind {
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize)]
 struct RuntimeFrontendBuildPlan {
     surface: String,
@@ -707,6 +710,7 @@ struct RuntimeFrontendBuildPlan {
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize)]
 struct RuntimeBuildExecutionPlan {
     cargo_package: String,
@@ -809,6 +813,7 @@ fn build_modules_delta_summary(value: Option<&serde_json::Value>) -> String {
 #[cfg(feature = "ssr")]
 #[derive(Debug, Clone)]
 struct RuntimePlatformSnapshot {
+    #[allow(dead_code)]
     revision: i64,
     manifest: RuntimeModulesManifest,
 }
@@ -1014,6 +1019,7 @@ fn load_toml_file<T: serde::de::DeserializeOwned>(
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 fn runtime_binary_output_dir_name(profile: &str) -> &str {
     if profile == "release" {
         "release"
@@ -1023,6 +1029,7 @@ fn runtime_binary_output_dir_name(profile: &str) -> &str {
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 fn runtime_executable_suffix(target: Option<&str>) -> &'static str {
     match target {
         Some(value) if value.contains("windows") => "exe",
@@ -1032,6 +1039,7 @@ fn runtime_executable_suffix(target: Option<&str>) -> &'static str {
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 fn runtime_binary_file_name(package: &str, target: Option<&str>) -> String {
     let suffix = runtime_executable_suffix(target);
     if suffix.is_empty() {
@@ -1042,6 +1050,7 @@ fn runtime_binary_file_name(package: &str, target: Option<&str>) -> String {
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 fn runtime_admin_frontend_build_plan(
     manifest: &RuntimeModulesManifest,
     cargo_profile: &str,
@@ -1070,6 +1079,7 @@ fn runtime_admin_frontend_build_plan(
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 fn runtime_storefront_frontend_build_plan(
     manifest: &RuntimeModulesManifest,
     cargo_profile: &str,
@@ -1124,6 +1134,7 @@ fn runtime_storefront_frontend_build_plan(
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 fn runtime_build_execution_plan(manifest: &RuntimeModulesManifest) -> RuntimeBuildExecutionPlan {
     let cargo_package = if manifest.app.trim().is_empty() {
         "rustok-server".to_string()
@@ -1185,6 +1196,7 @@ fn runtime_build_execution_plan(manifest: &RuntimeModulesManifest) -> RuntimeBui
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 fn runtime_deployment_profile(manifest: &RuntimeModulesManifest) -> String {
     match (
         manifest.build.server.embed_admin,
@@ -1386,6 +1398,7 @@ mod runtime_manifest_hash_tests {
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 fn runtime_modules_delta_json(
     manifest: &RuntimeModulesManifest,
     summary: String,
@@ -1416,6 +1429,7 @@ fn runtime_modules_delta_json(
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 fn runtime_build_job_insert_sql(backend: sea_orm::DbBackend) -> &'static str {
     match backend {
         sea_orm::DbBackend::Sqlite => {
@@ -1442,6 +1456,7 @@ fn runtime_build_job_insert_sql(backend: sea_orm::DbBackend) -> &'static str {
 }
 
 #[cfg(feature = "ssr")]
+#[allow(dead_code)]
 fn runtime_build_job_select_sql(backend: sea_orm::DbBackend) -> &'static str {
     match backend {
         sea_orm::DbBackend::Sqlite => {

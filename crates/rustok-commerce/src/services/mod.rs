@@ -20,9 +20,10 @@ pub(crate) use fulfillment_orchestration::{
     FulfillmentOrchestrationError, FulfillmentOrchestrationService,
 };
 pub use post_order::{
-    CreateReturnDecisionInput, PostOrderOrchestrationError, PostOrderOrchestrationResult,
-    PostOrderOrchestrationService, ReturnClaimDecisionInput, ReturnDecisionInput,
-    ReturnDecisionResponse, ReturnExchangeDecisionInput, ReturnRefundDecisionInput,
+    ApplyOrderChangeResult, CreateReturnDecisionInput, ExchangeDifferenceRefundInput,
+    PostOrderOrchestrationError, PostOrderOrchestrationResult, PostOrderOrchestrationService,
+    ReturnClaimDecisionInput, ReturnDecisionInput, ReturnDecisionResponse,
+    ReturnExchangeDecisionInput, ReturnRefundDecisionInput,
 };
 pub use rustok_cart::CartService;
 pub use rustok_customer::CustomerService;

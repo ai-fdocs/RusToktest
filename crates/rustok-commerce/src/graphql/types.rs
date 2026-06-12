@@ -918,6 +918,14 @@ pub struct StorefrontRefundsFilter {
 }
 
 #[derive(InputObject)]
+pub struct StorefrontOrderChangesFilter {
+    pub status: Option<String>,
+    pub change_type: Option<String>,
+    pub page: Option<u64>,
+    pub per_page: Option<u64>,
+}
+
+#[derive(InputObject)]
 pub struct RefundsFilter {
     pub payment_collection_id: Option<Uuid>,
     pub order_id: Option<Uuid>,

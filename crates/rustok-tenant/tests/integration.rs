@@ -144,6 +144,7 @@ async fn reject_invalid_tenant_settings_schema() {
 }
 
 #[tokio::test]
+#[allow(deprecated)]
 async fn module_toggle_flow_legacy() {
     let db = setup_db().await;
     let service = TenantService::new(db);

@@ -674,26 +674,26 @@ fn module_composition_helpers_reference_single_canonical_mutation_and_request_ca
     let api_path = crate_root.join("src/features/modules/api.rs");
     let content = fs::read_to_string(&api_path).expect("read api.rs");
 
-    let cases = [
+    let cases: &[(&str, &str, &[&str])] = &[
         (
             "pub async fn install_module(",
             "INSTALL_MODULE_MUTATION",
-            ["UNINSTALL_MODULE_MUTATION", "UPGRADE_MODULE_MUTATION"],
+            &["UNINSTALL_MODULE_MUTATION", "UPGRADE_MODULE_MUTATION"],
         ),
         (
             "pub async fn uninstall_module(",
             "UNINSTALL_MODULE_MUTATION",
-            ["INSTALL_MODULE_MUTATION", "UPGRADE_MODULE_MUTATION"],
+            &["INSTALL_MODULE_MUTATION", "UPGRADE_MODULE_MUTATION"],
         ),
         (
             "pub async fn upgrade_module(",
             "UPGRADE_MODULE_MUTATION",
-            ["INSTALL_MODULE_MUTATION", "UNINSTALL_MODULE_MUTATION"],
+            &["INSTALL_MODULE_MUTATION", "UNINSTALL_MODULE_MUTATION"],
         ),
         (
             "pub async fn toggle_module(",
             "TOGGLE_MODULE_MUTATION",
-            [
+            &[
                 "INSTALL_MODULE_MUTATION",
                 "UNINSTALL_MODULE_MUTATION",
                 "UPGRADE_MODULE_MUTATION",
@@ -966,10 +966,10 @@ fn module_graphql_mutation_constants_have_stable_operation_shapes() {
     let api_path = crate_root.join("src/features/modules/api.rs");
     let content = fs::read_to_string(&api_path).expect("read api.rs");
 
-    let cases = [
+    let cases: &[(&str, &[&str], &[&str])] = &[
         (
             "pub const INSTALL_MODULE_MUTATION: &str = \"",
-            [
+            &[
                 "mutation InstallModule(",
                 "installModule(",
                 "slug: $slug",
@@ -978,11 +978,11 @@ fn module_graphql_mutation_constants_have_stable_operation_shapes() {
                 "manifestHash",
                 "manifestRevision",
             ],
-            ["__typename", "toggleModule(", "moduleSlug: $moduleSlug"],
+            &["__typename", "toggleModule(", "moduleSlug: $moduleSlug"],
         ),
         (
             "pub const UNINSTALL_MODULE_MUTATION: &str = \"",
-            [
+            &[
                 "mutation UninstallModule(",
                 "uninstallModule(",
                 "slug: $slug",
@@ -990,11 +990,11 @@ fn module_graphql_mutation_constants_have_stable_operation_shapes() {
                 "manifestHash",
                 "manifestRevision",
             ],
-            ["__typename", "toggleModule(", "version: $version"],
+            &["__typename", "toggleModule(", "version: $version"],
         ),
         (
             "pub const UPGRADE_MODULE_MUTATION: &str = \"",
-            [
+            &[
                 "mutation UpgradeModule(",
                 "upgradeModule(",
                 "slug: $slug",
@@ -1003,18 +1003,18 @@ fn module_graphql_mutation_constants_have_stable_operation_shapes() {
                 "manifestHash",
                 "manifestRevision",
             ],
-            ["__typename", "toggleModule(", "moduleSlug: $moduleSlug"],
+            &["__typename", "toggleModule(", "moduleSlug: $moduleSlug"],
         ),
         (
             "pub const TOGGLE_MODULE_MUTATION: &str = \"",
-            [
+            &[
                 "mutation ToggleModule($moduleSlug: String!, $enabled: Boolean!)",
                 "toggleModule(moduleSlug: $moduleSlug, enabled: $enabled)",
                 "moduleSlug",
                 "enabled",
                 "settings",
             ],
-            [
+            &[
                 "__typename",
                 "$module_slug",
                 "module_slug:",

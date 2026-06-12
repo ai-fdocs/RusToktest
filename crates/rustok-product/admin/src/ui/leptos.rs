@@ -182,7 +182,7 @@ pub fn ProductAdmin() -> impl IntoView {
         },
     );
 
-    let bootstrap_loading_label = t(
+    let _bootstrap_loading_label = t(
         ui_locale.as_deref(),
         "product.error.bootstrapLoading",
         "Bootstrap is still loading.",
@@ -509,7 +509,7 @@ pub fn ProductAdmin() -> impl IntoView {
                                     {list.items.into_iter().map(|product| {
                                         let item_locale = ui_locale_for_list.clone();
                                         let item_locale_for_buttons = item_locale.clone();
-                                        let item_locale_for_edit = item_locale.clone();
+                                        let _item_locale_for_edit = item_locale.clone();
                                         let item_query_writer = list_query_writer.clone();
                                         let edit_id = product.id.clone();
                                         let publish_id = product.id.clone();

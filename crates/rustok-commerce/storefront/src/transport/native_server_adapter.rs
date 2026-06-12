@@ -16,6 +16,7 @@ pub async fn create_storefront_payment_collection(
     api::create_storefront_payment_collection_server(request.cart_id).await
 }
 
+#[allow(dead_code)]
 pub async fn select_storefront_shipping_option(
     request: SelectShippingOptionRequest,
 ) -> Result<(), ApiError> {

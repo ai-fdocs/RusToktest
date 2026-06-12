@@ -19,6 +19,7 @@ pub struct CartCommandRequest {
     pub cart_id: String,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug)]
 pub struct SelectShippingOptionRequest {
     pub cart: StorefrontCheckoutCart,
@@ -53,6 +54,7 @@ pub fn build_cart_command_request(cart_id: String) -> CartCommandRequest {
     }
 }
 
+#[allow(dead_code)]
 pub fn build_select_shipping_option_request(
     cart: StorefrontCheckoutCart,
     shipping_profile_slug: String,

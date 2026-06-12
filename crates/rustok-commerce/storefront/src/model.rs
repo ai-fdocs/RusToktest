@@ -103,6 +103,7 @@ pub struct StorefrontCheckoutCompletion {
     pub context_currency_code: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct StorefrontOrderRefundSummary {
     pub total: u64,

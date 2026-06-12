@@ -23,10 +23,11 @@ use uuid::Uuid;
 use crate::{
     dto::{
         AddCartLineItemInput, CartResponse, CompleteCheckoutInput, CompleteCheckoutResponse,
-        CreateCartInput, CreateOrderReturnInput, CustomerResponse, ListOrderReturnsInput,
-        ListRefundsInput, OrderResponse, OrderReturnResponse, PaymentCollectionResponse,
-        RefundResponse, RegionResponse, ResolveStoreContextInput, ShippingOptionResponse,
-        StoreContextResponse, UpdateCartContextInput,
+        CreateCartInput, CreateOrderReturnInput, CustomerResponse, ListOrderChangesInput,
+        ListOrderReturnsInput, ListRefundsInput, OrderChangeResponse, OrderResponse,
+        OrderReturnResponse, PaymentCollectionResponse, RefundResponse, RegionResponse,
+        ResolveStoreContextInput, ShippingOptionResponse, StoreContextResponse,
+        UpdateCartContextInput,
     },
     entities::{product, product_translation, product_variant, variant_translation},
     search::product_translation_title_search_condition,
@@ -87,6 +88,10 @@ pub fn routes() -> Routes {
         .add(
             "/orders/{id}/refunds",
             axum::routing::get(list_order_refunds),
+        )
+        .add(
+            "/orders/{id}/changes",
+            axum::routing::get(list_order_changes),
         )
         .add("/customers/me", axum::routing::get(get_me))
 }
@@ -1135,6 +1140,56 @@ pub async fn list_order_refunds(
     }))
 }
 
+/// List order changes for the current customer's order
+#[utoipa::path(
+    get,
+    path = "/store/orders/{id}/changes",
+    tag = "store",
+    params(
+        ("id" = Uuid, Path, description = "Order ID"),
+        PaginationParams,
+        ("status" = Option<String>, Query, description = "Optional order change status filter"),
+        ("change_type" = Option<String>, Query, description = "Optional change type filter")
+    ),
+    responses(
+        (status = 200, description = "Order changes", body = PaginatedResponse<OrderChangeResponse>),
+        (status = 401, description = "Authentication required"),
+        (status = 404, description = "Order not found")
+    )
+)]
+pub async fn list_order_changes(
+    State(ctx): State<AppContext>,
+    tenant: TenantContext,
+    request_context: RequestContext,
+    auth: rustok_api::AuthContext,
+    Path(id): Path<Uuid>,
+    Query(params): Query<StoreOrderChangesParams>,
+) -> Result<Json<PaginatedResponse<OrderChangeResponse>>> {
+    ensure_storefront_channel_enabled(&ctx, &request_context).await?;
+
+    ensure_customer_owns_order(&ctx, tenant.id, Some(&auth), id).await?;
+
+    let (items, total) =
+        OrderService::new(ctx.db.clone(), transactional_event_bus_from_context(&ctx))
+            .list_order_changes(
+                tenant.id,
+                ListOrderChangesInput {
+                    page: params.pagination.page,
+                    per_page: params.pagination.per_page,
+                    order_id: Some(id),
+                    status: params.status,
+                    change_type: params.change_type,
+                },
+            )
+            .await
+            .map_err(|err| Error::BadRequest(err.to_string()))?;
+
+    Ok(Json(PaginatedResponse {
+        data: items,
+        meta: PaginationMeta::new(params.pagination.page, params.pagination.limit(), total),
+    }))
+}
+
 async fn resolve_context(
     ctx: &AppContext,
     tenant_id: Uuid,
@@ -1913,6 +1968,14 @@ pub struct StoreOrderRefundsParams {
     #[serde(flatten)]
     pub pagination: PaginationParams,
     pub status: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize, IntoParams, ToSchema, Default)]
+pub struct StoreOrderChangesParams {
+    #[serde(flatten)]
+    pub pagination: PaginationParams,
+    pub status: Option<String>,
+    pub change_type: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize, IntoParams, ToSchema, Default)]

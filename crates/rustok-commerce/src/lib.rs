@@ -31,6 +31,7 @@ pub use services::{
     RegionService, ReturnClaimDecisionInput, ReturnDecisionInput, ReturnDecisionResponse,
     ReturnExchangeDecisionInput, ReturnRefundDecisionInput, ShippingProfileService,
     StoreContextError, StoreContextResult, StoreContextService,
+    ApplyOrderChangeResult, ExchangeDifferenceRefundInput,
 };
 pub(crate) use services::{FulfillmentOrchestrationError, FulfillmentOrchestrationService};
 pub use state_machine::{

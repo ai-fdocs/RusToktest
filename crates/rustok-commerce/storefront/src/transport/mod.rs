@@ -28,6 +28,7 @@ pub async fn create_storefront_payment_collection(
     }
 }
 
+#[allow(dead_code)]
 pub async fn select_storefront_shipping_option(
     request: SelectShippingOptionRequest,
 ) -> Result<(), ApiError> {

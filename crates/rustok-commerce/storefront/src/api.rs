@@ -47,7 +47,9 @@ impl From<ServerFnError> for ApiError {
 const STOREFRONT_CHECKOUT_QUERY: &str = "query StorefrontCheckoutWorkspace($id: UUID!) { storefrontCart(id: $id) { id status currencyCode subtotalAmount adjustmentTotal shippingTotal totalAmount channelSlug email customerId regionId countryCode localeCode selectedShippingOptionId lineItems { id } adjustments { id lineItemId sourceType sourceId amount currencyCode metadata } deliveryGroups { shippingProfileSlug sellerId sellerScope lineItemIds selectedShippingOptionId availableShippingOptions { id name currencyCode amount providerId active } } } }";
 const CREATE_STOREFRONT_PAYMENT_COLLECTION_MUTATION: &str = "mutation CreateStorefrontPaymentCollection($input: CreateStorefrontPaymentCollectionInput!) { createStorefrontPaymentCollection(input: $input) { id status currencyCode amount authorizedAmount capturedAmount orderId providerId createdAt updatedAt payments { id } } }";
 const COMPLETE_STOREFRONT_CHECKOUT_MUTATION: &str = "mutation CompleteStorefrontCheckout($input: CompleteStorefrontCheckoutInput!) { completeStorefrontCheckout(input: $input) { order { id status currencyCode shippingTotal adjustmentTotal totalAmount adjustments { id lineItemId sourceType sourceId amount currencyCode metadata } } paymentCollection { id status currencyCode } fulfillments { id } context { locale currencyCode } } }";
+#[allow(dead_code)]
 const SELECT_STOREFRONT_SHIPPING_OPTION_MUTATION: &str = "mutation SelectStorefrontShippingOption($cartId: UUID!, $input: UpdateStorefrontCartContextInput!) { updateStorefrontCartContext(cartId: $cartId, input: $input) { cart { id } } }";
+#[allow(dead_code)]
 const STOREFRONT_REFUNDS_QUERY: &str = "query StorefrontRefundsSummary($orderId: UUID!, $filter: StorefrontRefundsFilter) { storefrontRefunds(orderId: $orderId, filter: $filter) { total items { amount status } } }";
 
 #[derive(Debug, Deserialize)]
@@ -204,22 +206,26 @@ struct CompleteStorefrontCheckoutInput {
     metadata: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct SelectStorefrontShippingOptionResponse {
     #[serde(rename = "updateStorefrontCartContext")]
     updated_cart: GraphqlStorefrontCartContextUpdate,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct GraphqlStorefrontCartContextUpdate {
     cart: GraphqlCartMutationPayload,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct GraphqlCartMutationPayload {
     id: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct SelectStorefrontShippingOptionVariables {
     #[serde(rename = "cartId")]
@@ -227,12 +233,14 @@ struct SelectStorefrontShippingOptionVariables {
     input: UpdateStorefrontCartContextInput,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct UpdateStorefrontCartContextInput {
     #[serde(rename = "shippingSelections")]
     shipping_selections: Vec<StorefrontShippingSelectionInput>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct StorefrontShippingSelectionInput {
     #[serde(rename = "shippingProfileSlug")]
@@ -280,24 +288,28 @@ struct GraphqlCheckoutCompletionPaymentCollection {
 #[derive(Debug, Deserialize)]
 struct GraphqlFulfillmentSummary {}
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct StorefrontRefundsSummaryResponse {
     #[serde(rename = "storefrontRefunds")]
     storefront_refunds: GraphqlRefundList,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct GraphqlRefundList {
     total: u64,
     items: Vec<GraphqlRefundItem>,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct GraphqlRefundItem {
     amount: String,
     status: String,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct StorefrontRefundsSummaryVariables {
     #[serde(rename = "orderId")]
@@ -305,6 +317,7 @@ struct StorefrontRefundsSummaryVariables {
     filter: StorefrontRefundsSummaryFilter,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 struct StorefrontRefundsSummaryFilter {
     page: u64,
@@ -819,6 +832,7 @@ fn map_native_checkout_completion(
     }
 }
 
+#[allow(dead_code)]
 fn build_graphql_shipping_selections(
     cart: &StorefrontCheckoutCart,
     shipping_profile_slug: &str,
@@ -835,6 +849,7 @@ fn build_graphql_shipping_selections(
     )
 }
 
+#[allow(dead_code)]
 fn build_graphql_shipping_selection_plan(
     cart: &StorefrontCheckoutCart,
     shipping_profile_slug: &str,
@@ -998,6 +1013,7 @@ pub async fn fetch_storefront_commerce_graphql(
     Ok(data)
 }
 
+#[allow(dead_code)]
 pub async fn select_storefront_shipping_option_server(
     cart_id: String,
     shipping_profile_slug: String,
@@ -1016,6 +1032,7 @@ pub async fn select_storefront_shipping_option_server(
     .map_err(ApiError::from)
 }
 
+#[allow(dead_code)]
 pub async fn select_storefront_shipping_option_graphql(
     cart: StorefrontCheckoutCart,
     shipping_profile_slug: String,
@@ -1596,6 +1613,7 @@ async fn storefront_complete_checkout(
     }
 }
 
+#[allow(dead_code)]
 fn summarize_storefront_refunds(
     items: &[GraphqlRefundItem],
     total: u64,
@@ -1616,6 +1634,7 @@ fn summarize_storefront_refunds(
     }
 }
 
+#[allow(dead_code)]
 pub async fn fetch_storefront_order_refunds_summary(
     order_id: String,
 ) -> Result<StorefrontOrderRefundSummary, ApiError> {

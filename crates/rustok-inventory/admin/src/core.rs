@@ -3,7 +3,9 @@ use crate::model::{
     InventoryReservationWriteResult, InventoryVariant,
 };
 
+#[allow(dead_code)]
 pub(crate) const DEFAULT_PRODUCT_PAGE: u64 = 1;
+#[allow(dead_code)]
 pub(crate) const DEFAULT_PRODUCT_PAGE_SIZE: u64 = 24;
 
 #[derive(Clone, Debug)]
@@ -14,6 +16,7 @@ pub(crate) struct InventoryProductsRequest {
     pub status: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct InventoryProductsFilter {
     pub locale: Option<String>,
@@ -30,6 +33,7 @@ pub(crate) struct InventoryProductRequest {
     pub locale: Option<String>,
 }
 
+#[allow(dead_code)]
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct InventoryProductSelector {
     pub id: String,
@@ -131,6 +135,7 @@ pub(crate) struct InventorySummary {
     pub healthy: usize,
 }
 
+#[allow(dead_code)]
 pub(crate) fn normalized_products_filter(
     locale: Option<String>,
     search: Option<String>,
@@ -145,6 +150,7 @@ pub(crate) fn normalized_products_filter(
     }
 }
 
+#[allow(dead_code)]
 pub(crate) fn normalized_product_selector(
     id: String,
     locale: Option<String>,
