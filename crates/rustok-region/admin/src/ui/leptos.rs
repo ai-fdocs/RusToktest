@@ -4,7 +4,7 @@ use leptos::task::spawn_local;
 use leptos_ui_routing::{use_route_query_value, use_route_query_writer};
 use rustok_api::{AdminQueryKey, UiRouteContext};
 
-use crate::core::{RegionAdminDetailLabels, RegionAdminListLabels};
+use crate::core::{RegionAdminDetailLabels, RegionAdminEditorFormState, RegionAdminListLabels};
 use crate::i18n::t;
 use crate::model::{RegionAdminBootstrap, RegionDetail};
 
@@ -476,16 +476,19 @@ fn apply_region_detail(
     set_countries: WriteSignal<String>,
     set_metadata: WriteSignal<String>,
 ) {
-    set_editing_id.set(Some(detail.region.id.clone()));
     set_selected.set(Some(detail.clone()));
-    set_name.set(detail.region.name.clone());
-    set_currency_code.set(detail.region.currency_code.clone());
-    set_tax_provider_id.set(detail.region.tax_provider_id.clone().unwrap_or_default());
-    set_tax_rate.set(detail.region.tax_rate.clone());
-    set_tax_included.set(detail.region.tax_included);
-    set_country_tax_policies.set(detail.region.country_tax_policies_pretty.clone());
-    set_countries.set(detail.region.countries.join(", "));
-    set_metadata.set(detail.region.metadata_pretty.clone());
+    apply_region_editor_form_state(
+        RegionAdminEditorFormState::from_detail(detail),
+        set_editing_id,
+        set_name,
+        set_currency_code,
+        set_tax_provider_id,
+        set_tax_rate,
+        set_tax_included,
+        set_country_tax_policies,
+        set_countries,
+        set_metadata,
+    );
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -501,14 +504,41 @@ fn clear_region_form(
     set_countries: WriteSignal<String>,
     set_metadata: WriteSignal<String>,
 ) {
-    set_editing_id.set(None);
     set_selected.set(None);
-    set_name.set(String::new());
-    set_currency_code.set(String::new());
-    set_tax_provider_id.set(String::new());
-    set_tax_rate.set("0".to_string());
-    set_tax_included.set(false);
-    set_country_tax_policies.set("[]".to_string());
-    set_countries.set(String::new());
-    set_metadata.set("{}".to_string());
+    apply_region_editor_form_state(
+        RegionAdminEditorFormState::empty(),
+        set_editing_id,
+        set_name,
+        set_currency_code,
+        set_tax_provider_id,
+        set_tax_rate,
+        set_tax_included,
+        set_country_tax_policies,
+        set_countries,
+        set_metadata,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn apply_region_editor_form_state(
+    state: RegionAdminEditorFormState,
+    set_editing_id: WriteSignal<Option<String>>,
+    set_name: WriteSignal<String>,
+    set_currency_code: WriteSignal<String>,
+    set_tax_provider_id: WriteSignal<String>,
+    set_tax_rate: WriteSignal<String>,
+    set_tax_included: WriteSignal<bool>,
+    set_country_tax_policies: WriteSignal<String>,
+    set_countries: WriteSignal<String>,
+    set_metadata: WriteSignal<String>,
+) {
+    set_editing_id.set(state.editing_id);
+    set_name.set(state.name);
+    set_currency_code.set(state.currency_code);
+    set_tax_provider_id.set(state.tax_provider_id);
+    set_tax_rate.set(state.tax_rate);
+    set_tax_included.set(state.tax_included);
+    set_country_tax_policies.set(state.country_tax_policies);
+    set_countries.set(state.countries);
+    set_metadata.set(state.metadata);
 }

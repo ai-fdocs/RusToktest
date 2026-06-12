@@ -1,6 +1,6 @@
 use rustok_api::normalize_ui_text;
 
-use crate::model::RegionDraft;
+use crate::model::{RegionDetail, RegionDraft};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RegionFormInput<'a> {
@@ -53,6 +53,53 @@ pub fn missing_required_region_field(input: &RegionDraft) -> Option<RegionRequir
         Some(RegionRequiredField::Countries)
     } else {
         None
+    }
+}
+
+pub const DEFAULT_TAX_RATE_INPUT: &str = "0";
+pub const DEFAULT_COUNTRY_TAX_POLICIES_INPUT: &str = "[]";
+pub const DEFAULT_METADATA_INPUT: &str = "{}";
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegionAdminEditorFormState {
+    pub editing_id: Option<String>,
+    pub name: String,
+    pub currency_code: String,
+    pub tax_provider_id: String,
+    pub tax_rate: String,
+    pub tax_included: bool,
+    pub country_tax_policies: String,
+    pub countries: String,
+    pub metadata: String,
+}
+
+impl RegionAdminEditorFormState {
+    pub fn empty() -> Self {
+        Self {
+            editing_id: None,
+            name: String::new(),
+            currency_code: String::new(),
+            tax_provider_id: String::new(),
+            tax_rate: DEFAULT_TAX_RATE_INPUT.to_string(),
+            tax_included: false,
+            country_tax_policies: DEFAULT_COUNTRY_TAX_POLICIES_INPUT.to_string(),
+            countries: String::new(),
+            metadata: DEFAULT_METADATA_INPUT.to_string(),
+        }
+    }
+
+    pub fn from_detail(detail: &RegionDetail) -> Self {
+        Self {
+            editing_id: Some(detail.region.id.clone()),
+            name: detail.region.name.clone(),
+            currency_code: detail.region.currency_code.clone(),
+            tax_provider_id: detail.region.tax_provider_id.clone().unwrap_or_default(),
+            tax_rate: detail.region.tax_rate.clone(),
+            tax_included: detail.region.tax_included,
+            country_tax_policies: detail.region.country_tax_policies_pretty.clone(),
+            countries: detail.region.countries.join(", "),
+            metadata: detail.region.metadata_pretty.clone(),
+        }
     }
 }
 
@@ -185,6 +232,49 @@ mod tests {
             missing_required_region_field(&draft),
             Some(RegionRequiredField::Name)
         );
+    }
+
+    #[test]
+    fn admin_editor_form_state_uses_core_owned_empty_defaults() {
+        let state = RegionAdminEditorFormState::empty();
+
+        assert_eq!(state.editing_id, None);
+        assert_eq!(state.tax_rate, DEFAULT_TAX_RATE_INPUT);
+        assert!(!state.tax_included);
+        assert_eq!(
+            state.country_tax_policies,
+            DEFAULT_COUNTRY_TAX_POLICIES_INPUT
+        );
+        assert_eq!(state.metadata, DEFAULT_METADATA_INPUT);
+    }
+
+    #[test]
+    fn admin_editor_form_state_maps_loaded_detail_without_ui_runtime() {
+        let detail = crate::model::RegionDetail {
+            region: crate::model::RegionRecord {
+                id: "region-eu".to_string(),
+                tenant_id: "tenant".to_string(),
+                name: "Europe".to_string(),
+                currency_code: "EUR".to_string(),
+                tax_provider_id: Some("vat".to_string()),
+                tax_rate: "20.0".to_string(),
+                tax_included: true,
+                country_tax_policies_pretty: "[{\"country\":\"DE\"}]".to_string(),
+                countries: vec!["DE".to_string(), "FR".to_string()],
+                metadata_pretty: "{\"tier\":\"eu\"}".to_string(),
+                created_at: "2026-06-12".to_string(),
+                updated_at: "2026-06-12".to_string(),
+            },
+        };
+
+        let state = RegionAdminEditorFormState::from_detail(&detail);
+
+        assert_eq!(state.editing_id.as_deref(), Some("region-eu"));
+        assert_eq!(state.name, "Europe");
+        assert_eq!(state.tax_provider_id, "vat");
+        assert_eq!(state.countries, "DE, FR");
+        assert_eq!(state.country_tax_policies, "[{\"country\":\"DE\"}]");
+        assert_eq!(state.metadata, "{\"tier\":\"eu\"}");
     }
 
     #[test]

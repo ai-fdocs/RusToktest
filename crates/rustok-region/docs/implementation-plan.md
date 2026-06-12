@@ -7,8 +7,8 @@
 ## Execution checkpoint
 
 - Current phase: ffa_ui_leptos_adapter_split_slice
-- Last checkpoint: FFA slice #18 перенесла admin list/detail render-fragment policy (`RegionAdminListItemViewModel`, selected-row CSS policy и detail meta formatting) в Leptos-free `admin/src/core.rs`; Leptos adapter теперь только собирает locale labels и рендерит готовые значения.
-- Next step: Продолжить FFA-first sequencing к thin host-adapter smoke для route/query writer и добрать оставшиеся admin editor/detail form-state snapshots в core без изменения native/GraphQL contracts.
+- Last checkpoint: FFA slice #19 перенесла admin editor form-state defaults и loaded-detail snapshot mapping в Leptos-free `admin/src/core.rs`; Leptos adapter только применяет готовый `RegionAdminEditorFormState` к signals.
+- Next step: Продолжить FFA-first sequencing к thin host-adapter smoke для route/query writer и добрать оставшиеся detail policy-section view-model helpers в core без изменения native/GraphQL contracts.
 - Open blockers: None.
 - Hand-off notes for next agent: После каждого инкремента обновлять этот блок; при изменении status code/locale key/DOM evidence сначала обновлять verify script и его test fixture.
 - Last updated at (UTC): 2026-06-12T00:00:00Z
@@ -39,7 +39,8 @@
   - FFA slice #15 добавила `RegionRailViewModel` / `RegionRailLabels`, чтобы rail list title, total, empty state, open label и item rows собирались вне Leptos render слоя;
   - FFA slice #16 добавила admin `transport/` facade для bootstrap/list/detail/create/update operations; Leptos component больше не вызывает `api::*` напрямую, а native server-function adapter остался в `admin/src/api.rs`;
   - FFA slice #17 выделила `admin/src/ui/leptos.rs` и `storefront/src/ui/leptos.rs` как явные Leptos render adapters, а `admin/src/lib.rs` и `storefront/src/lib.rs` стали тонким module wiring/re-export слоем; verifier читает storefront DOM evidence из нового adapter path;
-  - FFA slice #18 добавила admin `RegionAdminListItemViewModel`, `RegionAdminListLabels`, `RegionAdminDetailLabels`, core-owned selected-row CSS policy и detail meta formatting с unit-тестами без Leptos runtime; Leptos adapter больше не форматирует region row/meta/tax badge inline.
+  - FFA slice #18 добавила admin `RegionAdminListItemViewModel`, `RegionAdminListLabels`, `RegionAdminDetailLabels`, core-owned selected-row CSS policy и detail meta formatting с unit-тестами без Leptos runtime; Leptos adapter больше не форматирует region row/meta/tax badge inline;
+  - FFA slice #19 добавила `RegionAdminEditorFormState` и core-owned defaults для create/reset формы (`0`, `[]`, `{}`), а loaded-detail mapping (`tax_provider_id` fallback, countries CSV, pretty JSON fields) больше не живёт в Leptos signal helper.
 - Last verified at (UTC): 2026-06-12T00:00:00Z
 - Owner: `rustok-region` module team
 
@@ -124,3 +125,4 @@
 - [x] Slice 16: admin `transport/` facade покрывает bootstrap/list/detail/create/update operations, а Leptos adapter больше не вызывает `api::*` напрямую; native server-function adapter временно остаётся в `admin/src/api.rs`.
 - [x] Slice 17: `admin/src/ui/leptos.rs` и `storefront/src/ui/leptos.rs` стали явными Leptos render adapters, crate roots — wiring/re-export слой поверх `core` + `transport`.
 - [x] Slice 18: admin list/detail render-fragment policy перенесена в core (`RegionAdminListItemViewModel`, `RegionAdminListLabels`, `RegionAdminDetailLabels`, selected-row CSS policy, detail meta formatting), Leptos adapter передаёт locale labels и рендерит готовые строки; проверка: `cargo test -p rustok-region-admin --lib --no-default-features` была остановлена по timeout, чтобы не уходить в долгую компиляцию.
+- [x] Slice 19: admin editor form-state defaults и loaded-detail snapshot mapping перенесены в core (`RegionAdminEditorFormState`, default input constants, `from_detail`); Leptos adapter только применяет готовый snapshot к signals; проверка: `timeout 120s cargo check -p rustok-region-admin --lib --no-default-features` завершилась успешно в заданном лимите.
