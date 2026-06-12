@@ -259,6 +259,31 @@ mod tests {
     }
 
     #[test]
+    fn storefront_search_route_intent_normalizes_query_params() {
+        assert_eq!(
+            build_storefront_search_route_intent("  boots  ", Some(" featured ")),
+            StorefrontSearchRouteIntent {
+                query: Some("boots".to_string()),
+                preset_key: Some("featured".to_string()),
+            }
+        );
+        assert_eq!(
+            build_storefront_search_route_intent("   ", Some("   ")),
+            StorefrontSearchRouteIntent {
+                query: None,
+                preset_key: None,
+            }
+        );
+        assert_eq!(
+            build_storefront_search_route_intent(" coats ", None),
+            StorefrontSearchRouteIntent {
+                query: Some("coats".to_string()),
+                preset_key: None,
+            }
+        );
+    }
+
+    #[test]
     fn search_results_view_model_prepares_render_ready_fields() {
         let payload = SearchPreviewPayload {
             query_log_id: Some("log-1".to_string()),
@@ -552,6 +577,22 @@ pub fn normalized_search_query(query: &str) -> Option<String> {
         None
     } else {
         Some(trimmed.to_string())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct StorefrontSearchRouteIntent {
+    pub query: Option<String>,
+    pub preset_key: Option<String>,
+}
+
+pub fn build_storefront_search_route_intent(
+    query: &str,
+    preset_key: Option<&str>,
+) -> StorefrontSearchRouteIntent {
+    StorefrontSearchRouteIntent {
+        query: normalized_search_query(query),
+        preset_key: preset_key.and_then(optional_text),
     }
 }
 

@@ -629,21 +629,16 @@ fn navigate_to_search_query(query: &str, preset_key: Option<String>) {
         return;
     };
 
-    if let Some(normalized_query) = core::normalized_search_query(query) {
-        url.search_params().set("q", normalized_query.as_str());
-    } else {
-        url.search_params().delete("q");
+    let route_intent = core::build_storefront_search_route_intent(query, preset_key.as_deref());
+
+    match route_intent.query.as_deref() {
+        Some(query) => url.search_params().set("q", query),
+        None => url.search_params().delete("q"),
     }
 
-    match preset_key
-        .as_deref()
-        .map(str::trim)
-        .filter(|value| !value.is_empty())
-    {
-        Some(value) => url.search_params().set("preset", value),
-        None => {
-            url.search_params().delete("preset");
-        }
+    match route_intent.preset_key.as_deref() {
+        Some(preset_key) => url.search_params().set("preset", preset_key),
+        None => url.search_params().delete("preset"),
     }
 
     let _ = window.location().set_href(&url.href());
