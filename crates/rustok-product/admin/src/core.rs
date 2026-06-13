@@ -542,6 +542,39 @@ pub(crate) fn empty_product_admin_editor_form_state() -> ProductAdminEditorFormS
     }
 }
 
+#[derive(Clone, Debug)]
+pub(crate) enum ProductAdminOpenProductViewModel {
+    Ready {
+        product: ProductDetail,
+        form_state: ProductAdminEditorFormState,
+    },
+    Empty {
+        form_state: ProductAdminEditorFormState,
+        error_message: String,
+    },
+}
+
+pub(crate) fn build_product_admin_open_product_view_model<E: std::fmt::Display>(
+    requested_locale: Option<&str>,
+    error_copy: &ProductAdminErrorCopy,
+    result: Result<Option<ProductDetail>, E>,
+) -> ProductAdminOpenProductViewModel {
+    match result {
+        Ok(Some(product)) => ProductAdminOpenProductViewModel::Ready {
+            form_state: build_product_admin_editor_form_state(&product, requested_locale),
+            product,
+        },
+        Ok(None) => ProductAdminOpenProductViewModel::Empty {
+            form_state: empty_product_admin_editor_form_state(),
+            error_message: error_copy.product_not_found.clone(),
+        },
+        Err(err) => ProductAdminOpenProductViewModel::Empty {
+            form_state: empty_product_admin_editor_form_state(),
+            error_message: error_copy.load_product_failure(err),
+        },
+    }
+}
+
 pub(crate) fn build_product_admin_editor_form_state(
     product: &ProductDetail,
     requested_locale: Option<&str>,
@@ -1719,6 +1752,38 @@ mod tests {
             parse_product_admin_inventory_quantity_input("not-a-number"),
             0
         );
+    }
+
+    #[test]
+    fn product_admin_open_product_view_model_handles_missing_and_failed_loads() {
+        let error_copy = build_product_admin_error_copy(Some("en"));
+
+        match build_product_admin_open_product_view_model::<&str>(Some("en"), &error_copy, Ok(None))
+        {
+            ProductAdminOpenProductViewModel::Empty {
+                form_state,
+                error_message,
+            } => {
+                assert_eq!(form_state, empty_product_admin_editor_form_state());
+                assert_eq!(error_message, "Product not found.");
+            }
+            ProductAdminOpenProductViewModel::Ready { .. } => panic!("expected empty view-model"),
+        }
+
+        match build_product_admin_open_product_view_model(
+            Some("en"),
+            &error_copy,
+            Err("network unavailable"),
+        ) {
+            ProductAdminOpenProductViewModel::Empty {
+                form_state,
+                error_message,
+            } => {
+                assert_eq!(form_state, empty_product_admin_editor_form_state());
+                assert_eq!(error_message, "Failed to load product: network unavailable");
+            }
+            ProductAdminOpenProductViewModel::Ready { .. } => panic!("expected empty view-model"),
+        }
     }
 
     #[test]

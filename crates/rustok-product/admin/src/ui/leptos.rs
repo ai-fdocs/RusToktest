@@ -14,6 +14,7 @@ use crate::core::{
     build_product_admin_list_action_labels, build_product_admin_list_controls_view_model,
     build_product_admin_list_empty_view_model, build_product_admin_list_error_view_model,
     build_product_admin_list_item_view_model, build_product_admin_list_loading_view_model,
+    build_product_admin_open_product_view_model,
     build_product_admin_profile_panel_error_view_model,
     build_product_admin_profile_panel_loading_view_model,
     build_product_admin_profile_panel_ready_view_model, build_product_admin_save_command,
@@ -26,8 +27,9 @@ use crate::core::{
     product_admin_open_product_query_intent, product_admin_saved_product_query_intent,
     shipping_profile_choice_label, text_or_none, ProductAdminDeleteOutcome, ProductAdminDraftForm,
     ProductAdminEditorFormState, ProductAdminErrorCopy, ProductAdminListStateKind,
-    ProductAdminPricingPreviewState, ProductAdminRouteQueryIntent, ProductAdminSaveMode,
-    ProductAdminStatusMutationOutcome, ProductAdminStatusTarget, SelectedProductSummaryViewModel,
+    ProductAdminOpenProductViewModel, ProductAdminPricingPreviewState,
+    ProductAdminRouteQueryIntent, ProductAdminSaveMode, ProductAdminStatusMutationOutcome,
+    ProductAdminStatusTarget, SelectedProductSummaryViewModel,
 };
 use crate::i18n::t;
 use crate::model::{ProductAdminBootstrap, ProductDetail, ProductPricingDetail};
@@ -801,39 +803,28 @@ fn open_product_for_edit(
     set_busy.set(true);
     set_error.set(None);
     spawn_local(async move {
-        match transport::fetch_product(
+        let result = transport::fetch_product(
             token,
             tenant,
             bootstrap.current_tenant.id,
             product_id,
             requested_locale.clone(),
         )
-        .await
-        {
-            Ok(Some(product)) => apply_product(
-                &product,
-                requested_locale.as_deref(),
-                set_editing_id,
-                set_selected,
-                set_title,
-                set_handle,
-                set_description,
-                set_seller_id,
-                set_vendor,
-                set_product_type,
-                set_shipping_profile_slug,
-                set_sku,
-                set_barcode,
-                set_currency_code,
-                set_amount,
-                set_compare_at_amount,
-                set_inventory_quantity,
-                set_publish_now,
-            ),
-            Ok(None) => {
-                clear_product_form(
+        .await;
+
+        match build_product_admin_open_product_view_model(
+            requested_locale.as_deref(),
+            &error_copy,
+            result,
+        ) {
+            ProductAdminOpenProductViewModel::Ready {
+                product,
+                form_state,
+            } => {
+                set_selected.set(Some(product));
+                apply_product_editor_form_state(
+                    form_state,
                     set_editing_id,
-                    set_selected,
                     set_title,
                     set_handle,
                     set_description,
@@ -849,12 +840,15 @@ fn open_product_for_edit(
                     set_inventory_quantity,
                     set_publish_now,
                 );
-                set_error.set(Some(error_copy.product_not_found.clone()));
             }
-            Err(err) => {
-                clear_product_form(
+            ProductAdminOpenProductViewModel::Empty {
+                form_state,
+                error_message,
+            } => {
+                set_selected.set(None);
+                apply_product_editor_form_state(
+                    form_state,
                     set_editing_id,
-                    set_selected,
                     set_title,
                     set_handle,
                     set_description,
@@ -870,7 +864,7 @@ fn open_product_for_edit(
                     set_inventory_quantity,
                     set_publish_now,
                 );
-                set_error.set(Some(error_copy.load_product_failure(err)));
+                set_error.set(Some(error_message));
             }
         }
         set_busy.set(false);
