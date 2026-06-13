@@ -9,8 +9,8 @@ use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
 
 use crate::core::{
     category_card_view_model, category_select_options, category_sidebar_total_count,
-    category_sidebar_view_model, deleted_selection_matches, format_count, forum_admin_busy_key,
-    forum_admin_collection_state, forum_admin_editing_thread_label, forum_admin_form_error_message,
+    category_sidebar_view_model, format_count, forum_admin_busy_key, forum_admin_collection_state,
+    forum_admin_delete_outcome, forum_admin_editing_thread_label, forum_admin_form_error_message,
     forum_admin_header_view_model, forum_admin_open_query_intent, forum_admin_reset_query_intent,
     forum_admin_saved_query_intent, forum_admin_topic_tag_count_label,
     forum_admin_transport_error_message, parse_tags, reply_card_view_model, reply_count_label,
@@ -516,14 +516,15 @@ pub fn ForumAdmin() -> impl IntoView {
         spawn_local(async move {
             match transport::delete_category(token_value, tenant_value, category_id.clone()).await {
                 Ok(()) => {
-                    if deleted_selection_matches(
+                    let outcome = forum_admin_delete_outcome(
+                        ForumAdminQuerySurface::Category,
                         editing_category_id.get_untracked().as_deref(),
                         category_id.as_str(),
-                    ) {
-                        apply_forum_admin_route_query_intent(
-                            &delete_category_query_writer,
-                            forum_admin_reset_query_intent(ForumAdminQuerySurface::Category),
-                        );
+                    );
+                    if let Some(intent) = outcome.route_query_intent {
+                        apply_forum_admin_route_query_intent(&delete_category_query_writer, intent);
+                    }
+                    if outcome.should_clear_form {
                         clear_category_form(
                             set_editing_category_id,
                             set_category_name,
@@ -535,7 +536,9 @@ pub fn ForumAdmin() -> impl IntoView {
                             set_category_moderated,
                         );
                     }
-                    set_refresh_nonce.update(|value| *value += 1);
+                    if outcome.should_refresh {
+                        set_refresh_nonce.update(|value| *value += 1);
+                    }
                 }
                 Err(err) => set_error.set(Some(forum_admin_transport_error_message(
                     delete_category_error.as_str(),
@@ -561,14 +564,15 @@ pub fn ForumAdmin() -> impl IntoView {
         spawn_local(async move {
             match transport::delete_topic(token_value, tenant_value, topic_id.clone()).await {
                 Ok(()) => {
-                    if deleted_selection_matches(
+                    let outcome = forum_admin_delete_outcome(
+                        ForumAdminQuerySurface::Topic,
                         editing_topic_id.get_untracked().as_deref(),
                         topic_id.as_str(),
-                    ) {
-                        apply_forum_admin_route_query_intent(
-                            &delete_topic_query_writer,
-                            forum_admin_reset_query_intent(ForumAdminQuerySurface::Topic),
-                        );
+                    );
+                    if let Some(intent) = outcome.route_query_intent {
+                        apply_forum_admin_route_query_intent(&delete_topic_query_writer, intent);
+                    }
+                    if outcome.should_clear_form {
                         clear_topic_form(
                             set_editing_topic_id,
                             set_topic_category_id,
@@ -579,7 +583,9 @@ pub fn ForumAdmin() -> impl IntoView {
                             set_topic_tags,
                         );
                     }
-                    set_refresh_nonce.update(|value| *value += 1);
+                    if outcome.should_refresh {
+                        set_refresh_nonce.update(|value| *value += 1);
+                    }
                 }
                 Err(err) => set_error.set(Some(forum_admin_transport_error_message(
                     delete_topic_error.as_str(),
