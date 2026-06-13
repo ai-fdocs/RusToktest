@@ -6,7 +6,8 @@ use leptos_ui_routing::{use_route_query_value, use_route_query_writer};
 use rustok_api::{AdminQueryKey, UiRouteContext};
 
 use crate::core::{
-    order_list_request, prepare_mark_paid_command, prepare_ship_order_command, text_or_none,
+    order_list_request, prepare_cancel_order_command, prepare_deliver_order_command,
+    prepare_mark_paid_command, prepare_ship_order_command,
 };
 use crate::helpers::{
     action_hint, apply_order_detail, clear_order_detail, format_order_caption,
@@ -424,7 +425,7 @@ pub fn OrderAdmin() -> impl IntoView {
         let tenant_value = tenant.get_untracked();
         let tenant_id = current_tenant.id.clone();
         let user_id = me.id.clone();
-        let delivered_signature_value = text_or_none(delivered_signature.get_untracked());
+        let deliver_command = prepare_deliver_order_command(delivered_signature.get_untracked());
         let submit_error_label = deliver_submit_error_label.clone();
         let load_error_label = deliver_load_order_error_label.clone();
         let not_found_label = deliver_order_not_found_label.clone();
@@ -437,7 +438,7 @@ pub fn OrderAdmin() -> impl IntoView {
                 tenant_id.clone(),
                 user_id,
                 order_id.clone(),
-                delivered_signature_value,
+                deliver_command.delivered_signature,
             )
             .await;
             handle_action_result(
@@ -486,7 +487,7 @@ pub fn OrderAdmin() -> impl IntoView {
         let tenant_value = tenant.get_untracked();
         let tenant_id = current_tenant.id.clone();
         let user_id = me.id.clone();
-        let reason_value = text_or_none(cancel_reason.get_untracked());
+        let cancel_command = prepare_cancel_order_command(cancel_reason.get_untracked());
         let submit_error_label = cancel_submit_error_label.clone();
         let load_error_label = cancel_load_order_error_label.clone();
         let not_found_label = cancel_order_not_found_label.clone();
@@ -499,7 +500,7 @@ pub fn OrderAdmin() -> impl IntoView {
                 tenant_id.clone(),
                 user_id,
                 order_id.clone(),
-                reason_value,
+                cancel_command.reason,
             )
             .await;
             handle_action_result(

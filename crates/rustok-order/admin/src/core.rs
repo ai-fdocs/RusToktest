@@ -37,6 +37,16 @@ pub struct OrderShipCommand {
     pub carrier: String,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OrderDeliverCommand {
+    pub delivered_signature: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OrderCancelCommand {
+    pub reason: Option<String>,
+}
+
 pub fn prepare_mark_paid_command(
     payment_id: impl AsRef<str>,
     payment_method: impl AsRef<str>,
@@ -71,6 +81,18 @@ pub fn prepare_ship_order_command(
         tracking_number,
         carrier,
     })
+}
+
+pub fn prepare_deliver_order_command(delivered_signature: impl AsRef<str>) -> OrderDeliverCommand {
+    OrderDeliverCommand {
+        delivered_signature: text_or_none(delivered_signature),
+    }
+}
+
+pub fn prepare_cancel_order_command(reason: impl AsRef<str>) -> OrderCancelCommand {
+    OrderCancelCommand {
+        reason: text_or_none(reason),
+    }
 }
 
 #[cfg(test)]
@@ -124,5 +146,26 @@ mod tests {
                 .expect_err("blank carrier must fail before transport");
 
         assert_eq!(error, "Shipping fields required");
+    }
+
+    #[test]
+    fn deliver_order_command_normalizes_optional_signature() {
+        let command = prepare_deliver_order_command(" signed by Alex ");
+        assert_eq!(
+            command.delivered_signature.as_deref(),
+            Some("signed by Alex")
+        );
+
+        let blank = prepare_deliver_order_command(" ");
+        assert_eq!(blank.delivered_signature, None);
+    }
+
+    #[test]
+    fn cancel_order_command_normalizes_optional_reason() {
+        let command = prepare_cancel_order_command(" customer request ");
+        assert_eq!(command.reason.as_deref(), Some("customer request"));
+
+        let blank = prepare_cancel_order_command(" ");
+        assert_eq!(blank.reason, None);
     }
 }
