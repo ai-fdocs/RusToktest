@@ -245,6 +245,10 @@ pub fn has_required_draft_fields(title: &str, body: &str) -> bool {
     !title.is_empty() && !body.is_empty()
 }
 
+pub fn required_fields_issue(message: String) -> WritePathIssue {
+    WritePathIssue::new(message)
+}
+
 pub fn is_markdown_format(value: &str) -> bool {
     value.trim().eq_ignore_ascii_case("markdown")
 }
@@ -367,6 +371,13 @@ mod tests {
                 "release".to_string()
             ]
         );
+    }
+
+    #[test]
+    fn required_fields_issue_preserves_message() {
+        let issue = required_fields_issue("Title and body are required".to_string());
+
+        assert_eq!(issue.message, "Title and body are required");
     }
 
     #[test]

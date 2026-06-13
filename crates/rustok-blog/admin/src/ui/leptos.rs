@@ -218,11 +218,12 @@ pub fn BlogAdmin() -> impl IntoView {
         });
 
         if !core::has_required_draft_fields(draft.title.as_str(), draft.body.as_str()) {
-            set_submit_error.set(Some(WritePathIssue::new(t(
+            let message = t(
                 submit_ui_locale.as_deref(),
                 "blog.error.requiredFields",
                 "Title and body are required to save a blog post.",
-            ))));
+            );
+            set_submit_error.set(Some(core::required_fields_issue(message)));
             return;
         }
 
