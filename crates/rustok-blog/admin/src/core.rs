@@ -1,6 +1,6 @@
 use rustok_api::{normalize_ui_text, parse_ui_csv};
 
-use crate::model::BlogPostDraft;
+use crate::model::{BlogPostDetail, BlogPostDraft, BlogPostListItem};
 
 pub fn optional_text(value: &str) -> Option<String> {
     normalize_ui_text(value)
@@ -241,6 +241,49 @@ pub fn build_blog_post_draft(input: BlogPostFormInput<'_>) -> BlogPostDraft {
     }
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlogPostEditorFormState {
+    pub editing_post_id: Option<String>,
+    pub title: String,
+    pub slug: String,
+    pub excerpt: String,
+    pub body: String,
+    pub locale: String,
+    pub body_format: String,
+    pub tags_input: String,
+    pub publish_now: bool,
+}
+
+impl BlogPostEditorFormState {
+    pub fn empty(default_locale: &str) -> Self {
+        Self {
+            editing_post_id: None,
+            title: String::new(),
+            slug: String::new(),
+            excerpt: String::new(),
+            body: String::new(),
+            locale: default_locale.to_string(),
+            body_format: "markdown".to_string(),
+            tags_input: String::new(),
+            publish_now: false,
+        }
+    }
+
+    pub fn from_post(post: &BlogPostDetail) -> Self {
+        Self {
+            editing_post_id: Some(post.id.clone()),
+            title: post.title.clone(),
+            slug: optional_text_or_default(post.slug.clone()),
+            excerpt: optional_text_or_default(post.excerpt.clone()),
+            body: optional_text_or_default(post.body.clone()),
+            locale: post.requested_locale.clone(),
+            body_format: post.body_format.clone(),
+            tags_input: tags_input_value(post.tags.as_slice()),
+            publish_now: is_published_status(post.status.as_str()),
+        }
+    }
+}
+
 pub fn has_required_draft_fields(title: &str, body: &str) -> bool {
     !title.is_empty() && !body.is_empty()
 }
@@ -278,6 +321,76 @@ pub fn prepare_blog_post_save_command(
         draft,
         busy_key,
     })
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlogPostAdminTableRowViewModel {
+    pub post_id: String,
+    pub title: String,
+    pub slug: String,
+    pub excerpt: String,
+    pub status: String,
+    pub locale: String,
+    pub is_editing: bool,
+    pub is_busy: bool,
+    pub is_published: bool,
+    pub is_archived: bool,
+    pub show_archive_action: bool,
+    pub edit_label: String,
+    pub publish_label: String,
+    pub archive_label: String,
+    pub delete_label: String,
+}
+
+pub struct BlogPostAdminTableRowLabels<'a> {
+    pub draft_slug: &'a str,
+    pub no_excerpt: &'a str,
+    pub editing: &'a str,
+    pub edit: &'a str,
+    pub unpublish: &'a str,
+    pub publish: &'a str,
+    pub archive: &'a str,
+    pub delete: &'a str,
+}
+
+pub fn blog_post_admin_table_row_view(
+    post: BlogPostListItem,
+    editing_post_id: Option<&str>,
+    busy_key: Option<&str>,
+    labels: BlogPostAdminTableRowLabels<'_>,
+) -> BlogPostAdminTableRowViewModel {
+    let post_id = post.id;
+    let is_editing = is_editing_post(editing_post_id, post_id.as_str());
+    let is_busy = row_is_busy_for_post(busy_key, post_id.as_str());
+    let is_published = is_published_status(post.status.as_str());
+    let is_archived = is_archived_status(post.status.as_str());
+    let show_archive_action = should_show_archive_action(is_archived);
+
+    BlogPostAdminTableRowViewModel {
+        post_id,
+        title: post.title,
+        slug: fallback_post_slug(post.slug, labels.draft_slug),
+        excerpt: fallback_post_excerpt(post.excerpt, labels.no_excerpt),
+        status: post.status,
+        locale: post.effective_locale,
+        is_editing,
+        is_busy,
+        is_published,
+        is_archived,
+        show_archive_action,
+        edit_label: edit_action_label(
+            is_editing,
+            labels.editing.to_string(),
+            labels.edit.to_string(),
+        ),
+        publish_label: publish_action_label(
+            is_published,
+            labels.unpublish.to_string(),
+            labels.publish.to_string(),
+        ),
+        archive_label: labels.archive.to_string(),
+        delete_label: labels.delete.to_string(),
+    }
 }
 
 pub fn is_markdown_format(value: &str) -> bool {
@@ -405,6 +518,46 @@ mod tests {
     }
 
     #[test]
+    fn editor_form_state_maps_empty_and_loaded_post_without_ui_runtime() {
+        let empty = BlogPostEditorFormState::empty("ru");
+
+        assert_eq!(empty.editing_post_id, None);
+        assert_eq!(empty.locale, "ru");
+        assert_eq!(empty.body_format, "markdown");
+        assert!(!empty.publish_now);
+
+        let post = BlogPostDetail {
+            id: "post-1".to_string(),
+            requested_locale: "en".to_string(),
+            effective_locale: "en".to_string(),
+            available_locales: vec!["en".to_string()],
+            title: "Launch".to_string(),
+            slug: Some("launch".to_string()),
+            excerpt: None,
+            body: Some("Body".to_string()),
+            body_format: "markdown".to_string(),
+            content_json: None,
+            status: "published".to_string(),
+            created_at: "2026-06-13T00:00:00Z".to_string(),
+            updated_at: "2026-06-13T00:00:00Z".to_string(),
+            published_at: Some("2026-06-13T00:00:00Z".to_string()),
+            tags: vec!["news".to_string(), "release".to_string()],
+            featured_image_url: None,
+            seo_title: None,
+            seo_description: None,
+        };
+
+        let state = BlogPostEditorFormState::from_post(&post);
+
+        assert_eq!(state.editing_post_id, Some("post-1".to_string()));
+        assert_eq!(state.slug, "launch");
+        assert_eq!(state.excerpt, "");
+        assert_eq!(state.body, "Body");
+        assert_eq!(state.tags_input, "news, release");
+        assert!(state.publish_now);
+    }
+
+    #[test]
     fn prepare_save_command_rejects_missing_required_fields() {
         let draft = build_blog_post_draft(BlogPostFormInput {
             locale: "en",
@@ -472,6 +625,47 @@ mod tests {
             }
         );
         assert_eq!(command.busy_key, "save:post-1");
+    }
+
+    #[test]
+    fn table_row_view_model_composes_row_policy_without_ui_runtime() {
+        let row = blog_post_admin_table_row_view(
+            BlogPostListItem {
+                id: "post-1".to_string(),
+                title: "Launch".to_string(),
+                effective_locale: "en".to_string(),
+                slug: None,
+                excerpt: None,
+                status: "published".to_string(),
+                created_at: "2026-06-13T00:00:00Z".to_string(),
+                published_at: Some("2026-06-13T00:00:00Z".to_string()),
+            },
+            Some("post-1"),
+            Some("publish:post-1"),
+            BlogPostAdminTableRowLabels {
+                draft_slug: "draft",
+                no_excerpt: "No excerpt",
+                editing: "Editing",
+                edit: "Edit",
+                unpublish: "Unpublish",
+                publish: "Publish",
+                archive: "Archive",
+                delete: "Delete",
+            },
+        );
+
+        assert_eq!(row.post_id, "post-1");
+        assert_eq!(row.slug, "draft");
+        assert_eq!(row.excerpt, "No excerpt");
+        assert!(row.is_editing);
+        assert!(row.is_busy);
+        assert!(row.is_published);
+        assert!(!row.is_archived);
+        assert!(row.show_archive_action);
+        assert_eq!(row.edit_label, "Editing");
+        assert_eq!(row.publish_label, "Unpublish");
+        assert_eq!(row.archive_label, "Archive");
+        assert_eq!(row.delete_label, "Delete");
     }
 
     #[test]
