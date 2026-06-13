@@ -220,6 +220,56 @@ pub fn topic_card_view_model(
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ForumAdminBusyAction {
+    Edit,
+    Save,
+    Delete,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ForumAdminBusySurface {
+    Category,
+    Topic,
+}
+
+impl ForumAdminBusySurface {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Category => "category",
+            Self::Topic => "topic",
+        }
+    }
+}
+
+impl ForumAdminBusyAction {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Edit => "edit",
+            Self::Save => "save",
+            Self::Delete => "delete",
+        }
+    }
+}
+
+pub fn forum_admin_busy_key(
+    surface: ForumAdminBusySurface,
+    action: ForumAdminBusyAction,
+    item_id: Option<&str>,
+) -> String {
+    match item_id {
+        Some(item_id) if !item_id.trim().is_empty() => {
+            format!(
+                "{}:{}:{}",
+                surface.as_str(),
+                action.as_str(),
+                item_id.trim()
+            )
+        }
+        _ => format!("{}:{}", surface.as_str(), action.as_str()),
+    }
+}
+
 fn render_count_label(template: &str, value: i32) -> String {
     template.replace("{count}", value.to_string().as_str())
 }
@@ -235,6 +285,26 @@ fn item_busy(busy_key: Option<&str>, item_id: &str) -> bool {
 pub enum ForumAdminFormError {
     CategoryRequired,
     TopicRequired,
+}
+
+#[derive(Clone, Debug)]
+pub struct ForumAdminFormErrorLabels {
+    pub category_required: String,
+    pub topic_required: String,
+}
+
+pub fn forum_admin_form_error_message(
+    error: ForumAdminFormError,
+    labels: &ForumAdminFormErrorLabels,
+) -> String {
+    match error {
+        ForumAdminFormError::CategoryRequired => labels.category_required.clone(),
+        ForumAdminFormError::TopicRequired => labels.topic_required.clone(),
+    }
+}
+
+pub fn forum_admin_transport_error_message(base: &str, err: impl std::fmt::Display) -> String {
+    format!("{}: {err}", base.trim_end_matches(':'))
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -573,6 +643,59 @@ mod tests {
         assert_eq!(topic_status_class("pending"), "warning");
         assert_eq!(topic_status_class("closed"), "muted");
         assert_eq!(topic_status_class("other"), "default");
+    }
+
+    #[test]
+    fn builds_typed_busy_keys_for_admin_surfaces() {
+        assert_eq!(
+            forum_admin_busy_key(
+                ForumAdminBusySurface::Category,
+                ForumAdminBusyAction::Edit,
+                Some(" category-1 "),
+            ),
+            "category:edit:category-1"
+        );
+        assert_eq!(
+            forum_admin_busy_key(
+                ForumAdminBusySurface::Topic,
+                ForumAdminBusyAction::Delete,
+                Some("topic-1"),
+            ),
+            "topic:delete:topic-1"
+        );
+        assert_eq!(
+            forum_admin_busy_key(
+                ForumAdminBusySurface::Category,
+                ForumAdminBusyAction::Save,
+                None,
+            ),
+            "category:save"
+        );
+    }
+
+    #[test]
+    fn maps_form_and_transport_error_messages() {
+        let labels = ForumAdminFormErrorLabels {
+            category_required: "Category required".to_string(),
+            topic_required: "Topic required".to_string(),
+        };
+
+        assert_eq!(
+            forum_admin_form_error_message(ForumAdminFormError::CategoryRequired, &labels),
+            "Category required"
+        );
+        assert_eq!(
+            forum_admin_form_error_message(ForumAdminFormError::TopicRequired, &labels),
+            "Topic required"
+        );
+        assert_eq!(
+            forum_admin_transport_error_message("Failed to save category", "boom"),
+            "Failed to save category: boom"
+        );
+        assert_eq!(
+            forum_admin_transport_error_message("Failed to save category:", "boom"),
+            "Failed to save category: boom"
+        );
     }
 
     #[test]
