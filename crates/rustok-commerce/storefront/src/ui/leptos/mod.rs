@@ -337,18 +337,8 @@ fn PaymentCollectionCard(
 ) -> impl IntoView {
     let locale = use_context::<UiRouteContext>().unwrap_or_default().locale;
 
-    let (collection_id, collection_status) = payment_collection
-        .map(|collection| (collection.id, collection.status))
-        .unwrap_or_else(|| {
-            (
-                t(
-                    locale.as_deref(),
-                    "commerce.payment.emptyId",
-                    "not attached",
-                ),
-                t(locale.as_deref(), "commerce.payment.emptyStatus", "pending"),
-            )
-        });
+    let view_model =
+        core::build_payment_collection_view_model(payment_collection, locale.as_deref());
 
     view! {
         <article class="rounded-2xl border border-dashed border-border p-5">
@@ -359,7 +349,7 @@ fn PaymentCollectionCard(
                 {t(locale.as_deref(), "commerce.payment.moduleOwnership", "Payment collection details stay in payment-owned UI; commerce only shows checkout orchestration handoff state.")}
             </p>
             <div class="mt-4 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                {format!("{} · {}", collection_id, collection_status)}
+                {format!("{} · {}", view_model.collection_id, view_model.status)}
             </div>
         </article>
     }
