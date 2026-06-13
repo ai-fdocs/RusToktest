@@ -89,18 +89,36 @@ for (const marker of [
   "prepare_ship_order_command",
   "prepare_deliver_order_command",
   "prepare_cancel_order_command",
+  "localized_order_status",
+  "order_status_badge",
+  "summarize_order_lines",
+  "format_order_caption",
+  "summarize_order_header",
+  "summarize_order_timeline",
+  "action_hint",
+  "text_or_dash",
 ]) {
   assertContains(core, marker, `${corePath}: expected core-owned FFA helper ${marker}`);
 }
 
 assertContains(ui, "use crate::core::{", `${uiPath}: Leptos adapter must import core-owned helpers`);
 assertContains(ui, "use crate::transport;", `${uiPath}: Leptos adapter must call the module-owned transport facade`);
+assertContains(ui, "action_hint", `${uiPath}: UI must consume core-owned presentation helpers`);
+assertContains(ui, "use crate::helpers::{apply_order_detail, clear_order_detail, handle_action_result};", `${uiPath}: Leptos-specific helpers should stay limited to signal/side-effect helpers`);
 for (const marker of [
   "order_list_request",
   "prepare_mark_paid_command",
   "prepare_ship_order_command",
   "prepare_deliver_order_command",
   "prepare_cancel_order_command",
+  "localized_order_status",
+  "order_status_badge",
+  "summarize_order_lines",
+  "format_order_caption",
+  "summarize_order_header",
+  "summarize_order_timeline",
+  "action_hint",
+  "text_or_dash",
 ]) {
   assertContains(ui, marker, `${uiPath}: UI must use core-owned order action helper ${marker}`);
 }
