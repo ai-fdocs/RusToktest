@@ -24,7 +24,8 @@
     "verify:ai:admin-boundary": "node scripts/verify/verify-ai-admin-boundary.mjs",
     "verify:tenant:admin-boundary": "node scripts/verify/verify-tenant-admin-boundary.mjs",
     "verify:region:admin-boundary": "node scripts/verify/verify-region-admin-boundary.mjs",
-    "verify:product:admin-boundary": "node scripts/verify/verify-product-admin-boundary.mjs"
+    "verify:product:admin-boundary": "node scripts/verify/verify-product-admin-boundary.mjs",
+    "test:verify:product:admin-boundary": "node scripts/verify/verify-product-admin-boundary.test.mjs"
   },
   "dependencies": {
     "sharp": "^0.34.5"
