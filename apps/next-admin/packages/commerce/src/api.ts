@@ -9,7 +9,9 @@ import type {
   AdminCartPromotionInput,
   OrderChange,
   OrderChangeList,
-  ExchangeDifferenceRefundInput
+  ExchangeDifferenceRefundInput,
+  CreateReturnDecisionInput,
+  ReturnDecisionResponse
 } from './types';
 
 export type GqlOpts = {
@@ -177,6 +179,48 @@ query CommerceAdminOrderChange($tenantId: UUID!, $id: UUID!) {
     metadata
     createdAt
     updatedAt
+  }
+}`;
+
+const CREATE_ORDER_RETURN_DECISION_MUTATION = `
+mutation CommerceAdminCreateOrderReturnDecision($tenantId: UUID!, $orderId: UUID!, $input: CreateReturnDecisionInputObject!) {
+  createOrderReturnDecision(tenantId: $tenantId, orderId: $orderId, input: $input) {
+    action
+    metadata
+    orderReturn {
+      id
+      orderId
+      status
+      resolutionType
+      refundId
+      orderChangeId
+      metadata
+      createdAt
+      updatedAt
+      completedAt
+      cancelledAt
+    }
+    refund {
+      id
+      status
+      currencyCode
+      amount
+      reason
+      metadata
+      createdAt
+      updatedAt
+    }
+    orderChange {
+      id
+      orderId
+      changeType
+      status
+      description
+      preview
+      metadata
+      createdAt
+      updatedAt
+    }
   }
 }`;
 
@@ -457,4 +501,26 @@ export async function cancelOrderChange(
   );
 
   return response.cancelOrderChange;
+}
+
+export async function createOrderReturnDecision(
+  opts: GqlOpts,
+  orderId: string,
+  input: CreateReturnDecisionInput
+): Promise<ReturnDecisionResponse> {
+  if (!opts.token || !opts.tenantSlug || !opts.tenantId) {
+    throw new Error('Sign in again to manage return decisions.');
+  }
+
+  const response = await graphqlRequest<
+    { tenantId: string; orderId: string; input: CreateReturnDecisionInput },
+    { createOrderReturnDecision: ReturnDecisionResponse }
+  >(
+    CREATE_ORDER_RETURN_DECISION_MUTATION,
+    { tenantId: opts.tenantId, orderId, input },
+    opts.token,
+    opts.tenantSlug
+  );
+
+  return response.createOrderReturnDecision;
 }
