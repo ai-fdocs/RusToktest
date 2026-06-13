@@ -5,7 +5,8 @@ use rustok_api::UiRouteContext;
 
 use crate::i18n::t;
 use crate::model::{
-    StorefrontCheckoutCompletion, StorefrontCheckoutWorkspace, StorefrontCommerceData,
+    StorefrontCheckoutCompletion, StorefrontCheckoutPaymentCollection, StorefrontCheckoutWorkspace,
+    StorefrontCommerceData,
 };
 use crate::{core, transport};
 
@@ -228,9 +229,10 @@ fn CheckoutWorkspace(
         }.into_any(),
         Some(cart_id) => {
             let cart_href = format!("{cart_base_href}?cart_id={cart_id}");
-            match checkout.and_then(|workspace| workspace.cart) {
-                Some(cart) => {
+            match checkout.and_then(|workspace| workspace.cart.map(|cart| (cart, workspace.payment_collection))) {
+                Some((cart, payment_collection)) => {
                     let cart_id = cart.id.clone();
+                    let cart_status = cart.status.clone();
                     let create_pending_locale = locale.clone();
                     let create_action_locale = locale.clone();
                     let complete_pending_locale = locale.clone();
@@ -255,9 +257,11 @@ fn CheckoutWorkspace(
                         }}
                         <div class="mt-6 rounded-2xl border border-dashed border-border px-4 py-3 text-sm text-muted-foreground">
                             {format!(
-                                "{}: {}",
+                                "{}: {} · {}: {}",
                                 t(locale.as_deref(), "commerce.checkout.cart.id", "Cart"),
-                                cart_id
+                                cart_id,
+                                t(locale.as_deref(), "commerce.checkout.cart.status", "Cart status"),
+                                cart_status
                             )}
                             <span class="ml-2">
                                 {t(locale.as_deref(), "commerce.checkout.cart.moduleOwnership", "Cart totals, line items and adjustments stay in the cart module workspace.")}
@@ -305,6 +309,9 @@ fn CheckoutWorkspace(
                                 }}
                             </button>
                         </div>
+                        <div class="mt-6">
+                            <PaymentCollectionCard payment_collection />
+                        </div>
                     </article>
                 }.into_any()
                 },
@@ -325,6 +332,39 @@ fn CheckoutWorkspace(
 }
 
 #[component]
+fn PaymentCollectionCard(
+    payment_collection: Option<StorefrontCheckoutPaymentCollection>,
+) -> impl IntoView {
+    let locale = use_context::<UiRouteContext>().unwrap_or_default().locale;
+
+    let (collection_id, collection_status) = payment_collection
+        .map(|collection| (collection.id, collection.status))
+        .unwrap_or_else(|| {
+            (
+                t(
+                    locale.as_deref(),
+                    "commerce.payment.emptyId",
+                    "not attached",
+                ),
+                t(locale.as_deref(), "commerce.payment.emptyStatus", "pending"),
+            )
+        });
+
+    view! {
+        <article class="rounded-2xl border border-dashed border-border p-5">
+            <div class="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                {t(locale.as_deref(), "commerce.payment.badge", "payment collection")}
+            </div>
+            <p class="mt-2 text-sm text-muted-foreground">
+                {t(locale.as_deref(), "commerce.payment.moduleOwnership", "Payment collection details stay in payment-owned UI; commerce only shows checkout orchestration handoff state.")}
+            </p>
+            <div class="mt-4 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                {format!("{} · {}", collection_id, collection_status)}
+            </div>
+        </article>
+    }
+}
+#[component]
 fn CheckoutCompletionCard(result: StorefrontCheckoutCompletion) -> impl IntoView {
     let locale = use_context::<UiRouteContext>().unwrap_or_default().locale;
 
@@ -337,6 +377,12 @@ fn CheckoutCompletionCard(result: StorefrontCheckoutCompletion) -> impl IntoView
             <p class="mt-2 text-sm text-muted-foreground">
                 {t(locale.as_deref(), "commerce.checkout.result.moduleOwnership", "Order, payment, fulfillment and adjustment details remain in their module-owned workspaces; commerce shows only the aggregate checkout outcome.")}
             </p>
+            <div class="mt-4 grid gap-3 md:grid-cols-2">
+                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.orderStatus", "Order status") value=result.order_status />
+                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.collectionStatus", "Collection status") value=result.payment_collection_status />
+                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.fulfillments", "Fulfillments") value=result.fulfillment_count.to_string() />
+                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.locale", "Resolved locale") value=result.context_locale />
+            </div>
         </article>
     }
 }

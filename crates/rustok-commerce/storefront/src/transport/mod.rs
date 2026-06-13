@@ -2,8 +2,10 @@ mod graphql_adapter;
 mod native_server_adapter;
 
 use crate::api::ApiError;
-use crate::core::{CartCommandRequest, FetchCommerceRequest};
-use crate::model::{StorefrontCheckoutCompletion, StorefrontCommerceData};
+use crate::core::{CartCommandRequest, FetchCommerceRequest, SelectShippingOptionRequest};
+use crate::model::{
+    StorefrontCheckoutCompletion, StorefrontCheckoutPaymentCollection, StorefrontCommerceData,
+};
 
 pub async fn fetch_storefront_commerce(
     request: FetchCommerceRequest,
@@ -19,12 +21,23 @@ pub async fn fetch_storefront_commerce(
 
 pub async fn create_storefront_payment_collection(
     request: CartCommandRequest,
-) -> Result<(), ApiError> {
+) -> Result<StorefrontCheckoutPaymentCollection, ApiError> {
     match native_server_adapter::create_storefront_payment_collection(request.clone()).await {
-        Ok(_) => Ok(()),
-        Err(_) => graphql_adapter::create_storefront_payment_collection(request)
-            .await
-            .map(|_| ()),
+        Ok(collection) => Ok(collection),
+        Err(_) => graphql_adapter::create_storefront_payment_collection(request).await,
+    }
+}
+
+#[allow(dead_code)]
+pub async fn select_storefront_shipping_option(
+    request: SelectShippingOptionRequest,
+) -> Result<(), ApiError> {
+    match native_server_adapter::select_storefront_shipping_option(request.clone()).await {
+        Ok(()) => Ok(()),
+        Err(error) if should_fallback_to_graphql(&error) => {
+            graphql_adapter::select_storefront_shipping_option(request).await
+        }
+        Err(error) => Err(error),
     }
 }
 

@@ -1,3 +1,5 @@
+use crate::model::StorefrontCheckoutCart;
+
 pub const SELECTED_CART_QUERY_KEY: &str = "cart_id";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -15,6 +17,16 @@ pub struct FetchCommerceRequest {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct CartCommandRequest {
     pub cart_id: String,
+}
+
+#[allow(dead_code)]
+#[derive(Clone, Debug)]
+pub struct SelectShippingOptionRequest {
+    pub cart: StorefrontCheckoutCart,
+    pub shipping_profile_slug: String,
+    pub seller_id: Option<String>,
+    pub seller_scope: Option<String>,
+    pub shipping_option_id: Option<String>,
 }
 
 pub fn build_storefront_route_state(
@@ -39,6 +51,23 @@ pub fn build_fetch_commerce_request(
 pub fn build_cart_command_request(cart_id: String) -> CartCommandRequest {
     CartCommandRequest {
         cart_id: normalize_required(cart_id),
+    }
+}
+
+#[allow(dead_code)]
+pub fn build_select_shipping_option_request(
+    cart: StorefrontCheckoutCart,
+    shipping_profile_slug: String,
+    seller_id: Option<String>,
+    seller_scope: Option<String>,
+    shipping_option_id: Option<String>,
+) -> SelectShippingOptionRequest {
+    SelectShippingOptionRequest {
+        cart,
+        shipping_profile_slug: normalize_required(shipping_profile_slug),
+        seller_id: normalize_optional(seller_id),
+        seller_scope: normalize_optional(seller_scope),
+        shipping_option_id: normalize_optional(shipping_option_id),
     }
 }
 
