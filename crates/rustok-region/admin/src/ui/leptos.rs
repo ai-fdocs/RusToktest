@@ -393,9 +393,8 @@ pub fn RegionAdmin() -> impl IntoView {
 
             match result {
                 Ok(detail) => {
-                    let detail_id = detail.region.id.clone();
-                    apply_region_detail(
-                        &detail,
+                    apply_region_save_success_view_model(
+                        crate::core::region_admin_save_success(detail),
                         set_editing_id,
                         set_selected,
                         set_name,
@@ -406,11 +405,8 @@ pub fn RegionAdmin() -> impl IntoView {
                         set_country_tax_policies,
                         set_countries,
                         set_metadata,
-                    );
-                    set_refresh_nonce.update(|value| *value += 1);
-                    apply_region_route_query_update(
+                        set_refresh_nonce,
                         &submit_query_writer,
-                        crate::core::region_admin_saved_query_update(&detail_id),
                     );
                 }
                 Err(err) => set_error.set(Some(crate::core::error_with_context(
@@ -676,6 +672,41 @@ fn apply_region_route_query_update(
 }
 
 #[allow(clippy::too_many_arguments)]
+fn apply_region_save_success_view_model(
+    view_model: RegionAdminSaveSuccessViewModel,
+    set_editing_id: WriteSignal<Option<String>>,
+    set_selected: WriteSignal<Option<RegionDetail>>,
+    set_name: WriteSignal<String>,
+    set_currency_code: WriteSignal<String>,
+    set_tax_provider_id: WriteSignal<String>,
+    set_tax_rate: WriteSignal<String>,
+    set_tax_included: WriteSignal<bool>,
+    set_country_tax_policies: WriteSignal<String>,
+    set_countries: WriteSignal<String>,
+    set_metadata: WriteSignal<String>,
+    set_refresh_nonce: WriteSignal<u64>,
+    query_writer: &leptos_ui_routing::RouteQueryWriter,
+) {
+    set_selected.set(view_model.selected);
+    apply_region_editor_form_state(
+        view_model.form_state,
+        set_editing_id,
+        set_name,
+        set_currency_code,
+        set_tax_provider_id,
+        set_tax_rate,
+        set_tax_included,
+        set_country_tax_policies,
+        set_countries,
+        set_metadata,
+    );
+    if view_model.refresh_list {
+        set_refresh_nonce.update(|value| *value += 1);
+    }
+    apply_region_route_query_update(query_writer, view_model.route_update);
+}
+
+#[allow(clippy::too_many_arguments)]
 fn apply_region_open_detail_view_model(
     view_model: RegionAdminOpenDetailViewModel,
     set_editing_id: WriteSignal<Option<String>>,
@@ -704,35 +735,6 @@ fn apply_region_open_detail_view_model(
         set_metadata,
     );
     set_error.set(view_model.error);
-}
-
-#[allow(clippy::too_many_arguments)]
-fn apply_region_detail(
-    detail: &RegionDetail,
-    set_editing_id: WriteSignal<Option<String>>,
-    set_selected: WriteSignal<Option<RegionDetail>>,
-    set_name: WriteSignal<String>,
-    set_currency_code: WriteSignal<String>,
-    set_tax_provider_id: WriteSignal<String>,
-    set_tax_rate: WriteSignal<String>,
-    set_tax_included: WriteSignal<bool>,
-    set_country_tax_policies: WriteSignal<String>,
-    set_countries: WriteSignal<String>,
-    set_metadata: WriteSignal<String>,
-) {
-    set_selected.set(Some(detail.clone()));
-    apply_region_editor_form_state(
-        RegionAdminEditorFormState::from_detail(detail),
-        set_editing_id,
-        set_name,
-        set_currency_code,
-        set_tax_provider_id,
-        set_tax_rate,
-        set_tax_included,
-        set_country_tax_policies,
-        set_countries,
-        set_metadata,
-    );
 }
 
 #[allow(clippy::too_many_arguments)]

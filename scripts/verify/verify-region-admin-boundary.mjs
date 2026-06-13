@@ -82,6 +82,8 @@ for (const marker of [
   "RegionAdminRouteQueryUpdate",
   "RegionAdminDetailPanelViewModel",
   "RegionAdminOpenDetailViewModel",
+  "RegionAdminSaveSuccessViewModel",
+  "region_admin_save_success",
   "region_admin_open_detail_success",
   "region_admin_open_detail_error",
 ]) {
@@ -112,7 +114,7 @@ assertContains(api, "RegionService", `${apiPath}: native adapter must own servic
 
 assertContains(implementationPlan, "FFA slice #31", `${implementationPlanPath}: local plan must record slice #31`);
 assertContains(implementationPlan, "verify-region-admin-boundary.mjs", `${implementationPlanPath}: local plan must mention the fast boundary guardrail`);
-assertContains(registry, "slice #33", `${registryPath}: central readiness board must record slice #33`);
+assertContains(registry, "slice #34", `${registryPath}: central readiness board must record slice #34`);
 assertContains(registry, "verify-region-admin-boundary.mjs", `${registryPath}: central readiness board must mention the fast boundary guardrail`);
 
 if (failures.length > 0) {

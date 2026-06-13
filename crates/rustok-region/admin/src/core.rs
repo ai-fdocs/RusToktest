@@ -299,6 +299,26 @@ impl RegionAdminEditorFormState {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegionAdminSaveSuccessViewModel {
+    pub selected: Option<RegionDetail>,
+    pub form_state: RegionAdminEditorFormState,
+    pub route_update: Option<RegionAdminRouteQueryUpdate>,
+    pub refresh_list: bool,
+}
+
+pub fn region_admin_save_success(detail: RegionDetail) -> RegionAdminSaveSuccessViewModel {
+    let route_update = region_admin_saved_query_update(detail.region.id.as_str());
+    let form_state = RegionAdminEditorFormState::from_detail(&detail);
+
+    RegionAdminSaveSuccessViewModel {
+        selected: Some(detail),
+        form_state,
+        route_update,
+        refresh_list: true,
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct RegionAdminOpenDetailViewModel {
     pub selected: Option<RegionDetail>,
     pub form_state: RegionAdminEditorFormState,
@@ -1349,6 +1369,43 @@ mod tests {
         );
         assert_eq!(view_model.countries_placeholder, "Countries (BY, RU, KZ)");
         assert_eq!(view_model.metadata_placeholder, "Metadata JSON");
+    }
+
+    #[test]
+    fn admin_save_success_view_model_prepares_form_refresh_and_route_update() {
+        let detail = RegionDetail {
+            region: crate::model::RegionRecord {
+                id: "region-eu".to_string(),
+                tenant_id: "tenant-1".to_string(),
+                name: "Europe".to_string(),
+                currency_code: "EUR".to_string(),
+                tax_provider_id: Some("vat".to_string()),
+                tax_rate: "20".to_string(),
+                tax_included: true,
+                country_tax_policies_pretty: "[]".to_string(),
+                countries: vec!["DE".to_string(), "FR".to_string()],
+                metadata_pretty: "{}".to_string(),
+                created_at: "2026-06-13T00:00:00Z".to_string(),
+                updated_at: "2026-06-13T00:00:00Z".to_string(),
+            },
+        };
+
+        let view_model = region_admin_save_success(detail);
+
+        assert!(view_model.selected.is_some());
+        assert_eq!(
+            view_model.form_state.editing_id,
+            Some("region-eu".to_string())
+        );
+        assert_eq!(view_model.form_state.countries, "DE, FR");
+        assert_eq!(
+            view_model.route_update,
+            Some(RegionAdminRouteQueryUpdate::ReplaceSelected {
+                key: "region_id",
+                region_id: "region-eu".to_string(),
+            })
+        );
+        assert!(view_model.refresh_list);
     }
 
     #[test]
