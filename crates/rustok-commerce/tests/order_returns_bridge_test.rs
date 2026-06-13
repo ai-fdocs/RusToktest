@@ -471,3 +471,367 @@ async fn commerce_post_order_decision_creates_return_bound_claim_change() {
         serde_json::json!(decision.order_return.id.to_string())
     );
 }
+
+#[tokio::test]
+async fn commerce_apply_exchange_order_change_with_explicit_refund() {
+    use rustok_commerce::{
+        CreateReturnDecisionInput, PostOrderOrchestrationService, ReturnDecisionInput,
+        ReturnExchangeDecisionInput, ExchangeDifferenceRefundInput,
+    };
+    use rustok_payment::dto::{
+        AuthorizePaymentInput, CapturePaymentInput, CreatePaymentCollectionInput,
+    };
+    use rustok_payment::services::PaymentService;
+
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    support::ensure_commerce_schema(&db).await;
+
+    let tenant_id = Uuid::new_v4();
+    let actor_id = Uuid::new_v4();
+    let order_service = OrderService::new(db.clone(), mock_transactional_event_bus());
+    let payment_service = PaymentService::new(db.clone());
+
+    let order = order_service
+        .create_order(
+            tenant_id,
+            actor_id,
+            CreateOrderInput {
+                customer_id: Some(Uuid::new_v4()),
+                currency_code: "usd".to_string(),
+                shipping_total: Decimal::ZERO,
+                line_items: vec![CreateOrderLineItemInput {
+                    product_id: None,
+                    variant_id: None,
+                    shipping_profile_slug: "default".to_string(),
+                    seller_id: None,
+                    sku: Some("RET-EXCHANGE-2".to_string()),
+                    title: "Exchange Return Candidate 2".to_string(),
+                    quantity: 1,
+                    unit_price: Decimal::new(3300, 2),
+                    metadata: serde_json::json!({"slot":4}),
+                }],
+                adjustments: Vec::new(),
+                tax_lines: Vec::new(),
+                metadata: serde_json::json!({"source":"commerce-apply-exchange-test"}),
+            },
+        )
+        .await
+        .unwrap();
+
+    let collection = payment_service
+        .create_collection(
+            tenant_id,
+            CreatePaymentCollectionInput {
+                cart_id: None,
+                order_id: Some(order.id),
+                customer_id: order.customer_id,
+                currency_code: "usd".to_string(),
+                amount: order.total_amount,
+                metadata: serde_json::json!({"source":"commerce-apply-exchange-test"}),
+            },
+        )
+        .await
+        .unwrap();
+
+    payment_service
+        .authorize_collection(
+            tenant_id,
+            collection.id,
+            AuthorizePaymentInput {
+                provider_id: Some("manual".to_string()),
+                provider_payment_id: Some("exchange-refund-payment".to_string()),
+                amount: Some(order.total_amount),
+                metadata: serde_json::json!({}),
+            },
+        )
+        .await
+        .unwrap();
+
+    payment_service
+        .capture_collection(
+            tenant_id,
+            collection.id,
+            CapturePaymentInput {
+                amount: Some(order.total_amount),
+                metadata: serde_json::json!({}),
+            },
+        )
+        .await
+        .unwrap();
+
+    let orchestration = PostOrderOrchestrationService::new(db.clone(), mock_transactional_event_bus());
+    let decision = orchestration
+        .create_return_decision(
+            tenant_id,
+            actor_id,
+            order.id,
+            CreateReturnDecisionInput {
+                return_request: CreateOrderReturnInput {
+                    reason: Some("wrong-size".to_string()),
+                    note: None,
+                    items: Vec::new(),
+                    metadata: serde_json::json!({"source":"commerce-apply-exchange-test"}),
+                },
+                decision: ReturnDecisionInput {
+                    action: "exchange".to_string(),
+                    refund: None,
+                    exchange: Some(ReturnExchangeDecisionInput {
+                        description: Some("Exchange for another size".to_string()),
+                        preview: serde_json::json!({"remove":["old-line"],"add":["new-line"]}),
+                        metadata: serde_json::json!({"operator":"returns-desk"}),
+                    }),
+                    claim: None,
+                    metadata: serde_json::json!({"flow":"exchange"}),
+                },
+            },
+        )
+        .await
+        .unwrap();
+
+    let change = decision.order_change.expect("change created");
+
+    let result = orchestration
+        .apply_exchange_order_change(
+            tenant_id,
+            order.id,
+            change.id,
+            Some(ExchangeDifferenceRefundInput {
+                amount: Decimal::new(1000, 2),
+                reason: Some("Exchange size price diff".to_string()),
+                metadata: serde_json::json!({}),
+            }),
+            serde_json::json!({"operator":"returns-desk"}),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(result.order_change.status, "applied");
+    let refund = result.refund.expect("refund created");
+    assert_eq!(refund.amount, Decimal::new(1000, 2));
+    assert_eq!(refund.reason.as_deref(), Some("Exchange size price diff"));
+}
+
+#[tokio::test]
+async fn commerce_apply_exchange_order_change_with_automated_refund() {
+    use rustok_commerce::{
+        CreateReturnDecisionInput, PostOrderOrchestrationService, ReturnDecisionInput,
+        ReturnExchangeDecisionInput,
+    };
+    use rustok_payment::dto::{
+        AuthorizePaymentInput, CapturePaymentInput, CreatePaymentCollectionInput,
+    };
+    use rustok_payment::services::PaymentService;
+
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    support::ensure_commerce_schema(&db).await;
+
+    let tenant_id = Uuid::new_v4();
+    let actor_id = Uuid::new_v4();
+    let order_service = OrderService::new(db.clone(), mock_transactional_event_bus());
+    let payment_service = PaymentService::new(db.clone());
+
+    let order = order_service
+        .create_order(
+            tenant_id,
+            actor_id,
+            CreateOrderInput {
+                customer_id: Some(Uuid::new_v4()),
+                currency_code: "usd".to_string(),
+                shipping_total: Decimal::ZERO,
+                line_items: vec![CreateOrderLineItemInput {
+                    product_id: None,
+                    variant_id: None,
+                    shipping_profile_slug: "default".to_string(),
+                    seller_id: None,
+                    sku: Some("RET-EXCHANGE-3".to_string()),
+                    title: "Exchange Return Candidate 3".to_string(),
+                    quantity: 1,
+                    unit_price: Decimal::new(3300, 2),
+                    metadata: serde_json::json!({"slot":4}),
+                }],
+                adjustments: Vec::new(),
+                tax_lines: Vec::new(),
+                metadata: serde_json::json!({"source":"commerce-auto-exchange-test"}),
+            },
+        )
+        .await
+        .unwrap();
+
+    let collection = payment_service
+        .create_collection(
+            tenant_id,
+            CreatePaymentCollectionInput {
+                cart_id: None,
+                order_id: Some(order.id),
+                customer_id: order.customer_id,
+                currency_code: "usd".to_string(),
+                amount: order.total_amount,
+                metadata: serde_json::json!({"source":"commerce-auto-exchange-test"}),
+            },
+        )
+        .await
+        .unwrap();
+
+    payment_service
+        .authorize_collection(
+            tenant_id,
+            collection.id,
+            AuthorizePaymentInput {
+                provider_id: Some("manual".to_string()),
+                provider_payment_id: Some("exchange-auto-refund-payment".to_string()),
+                amount: Some(order.total_amount),
+                metadata: serde_json::json!({}),
+            },
+        )
+        .await
+        .unwrap();
+
+    payment_service
+        .capture_collection(
+            tenant_id,
+            collection.id,
+            CapturePaymentInput {
+                amount: Some(order.total_amount),
+                metadata: serde_json::json!({}),
+            },
+        )
+        .await
+        .unwrap();
+
+    let orchestration = PostOrderOrchestrationService::new(db.clone(), mock_transactional_event_bus());
+    let decision = orchestration
+        .create_return_decision(
+            tenant_id,
+            actor_id,
+            order.id,
+            CreateReturnDecisionInput {
+                return_request: CreateOrderReturnInput {
+                    reason: Some("wrong-size".to_string()),
+                    note: None,
+                    items: Vec::new(),
+                    metadata: serde_json::json!({"source":"commerce-auto-exchange-test"}),
+                },
+                decision: ReturnDecisionInput {
+                    action: "exchange".to_string(),
+                    refund: None,
+                    exchange: Some(ReturnExchangeDecisionInput {
+                        description: Some("Exchange for another size".to_string()),
+                        preview: serde_json::json!({
+                            "remove":["old-line"],
+                            "add":["new-line"],
+                            "difference_refund_amount": "15.50",
+                            "difference_refund_reason": "Exchange automated size price diff"
+                        }),
+                        metadata: serde_json::json!({"operator":"returns-desk"}),
+                    }),
+                    claim: None,
+                    metadata: serde_json::json!({"flow":"exchange"}),
+                },
+            },
+        )
+        .await
+        .unwrap();
+
+    let change = decision.order_change.expect("change created");
+
+    let result = orchestration
+        .apply_exchange_order_change(
+            tenant_id,
+            order.id,
+            change.id,
+            None, // Use automated extraction!
+            serde_json::json!({"operator":"returns-desk"}),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(result.order_change.status, "applied");
+    let refund = result.refund.expect("automated refund created");
+    assert_eq!(refund.amount, Decimal::new(1550, 2));
+    assert_eq!(refund.reason.as_deref(), Some("Exchange automated size price diff"));
+}
+
+#[tokio::test]
+async fn commerce_apply_claim_order_change() {
+    use rustok_commerce::{
+        CreateReturnDecisionInput, PostOrderOrchestrationService, ReturnDecisionInput,
+        ReturnClaimDecisionInput,
+    };
+
+    let db = Database::connect("sqlite::memory:").await.unwrap();
+    support::ensure_commerce_schema(&db).await;
+
+    let tenant_id = Uuid::new_v4();
+    let actor_id = Uuid::new_v4();
+    let order_service = OrderService::new(db.clone(), mock_transactional_event_bus());
+
+    let order = order_service
+        .create_order(
+            tenant_id,
+            actor_id,
+            CreateOrderInput {
+                customer_id: Some(Uuid::new_v4()),
+                currency_code: "usd".to_string(),
+                shipping_total: Decimal::ZERO,
+                line_items: vec![CreateOrderLineItemInput {
+                    product_id: None,
+                    variant_id: None,
+                    shipping_profile_slug: "default".to_string(),
+                    seller_id: None,
+                    sku: Some("RET-CLAIM-2".to_string()),
+                    title: "Claim Return Candidate 2".to_string(),
+                    quantity: 1,
+                    unit_price: Decimal::new(2700, 2),
+                    metadata: serde_json::json!({"slot":5}),
+                }],
+                adjustments: Vec::new(),
+                tax_lines: Vec::new(),
+                metadata: serde_json::json!({"source":"commerce-apply-claim-test"}),
+            },
+        )
+        .await
+        .unwrap();
+
+    let orchestration = PostOrderOrchestrationService::new(db.clone(), mock_transactional_event_bus());
+    let decision = orchestration
+        .create_return_decision(
+            tenant_id,
+            actor_id,
+            order.id,
+            CreateReturnDecisionInput {
+                return_request: CreateOrderReturnInput {
+                    reason: Some("damaged".to_string()),
+                    note: Some("claim for damaged item".to_string()),
+                    items: Vec::new(),
+                    metadata: serde_json::json!({"source":"commerce-apply-claim-test"}),
+                },
+                decision: ReturnDecisionInput {
+                    action: "claim".to_string(),
+                    refund: None,
+                    exchange: None,
+                    claim: Some(ReturnClaimDecisionInput {
+                        description: Some("Claim free replacement".to_string()),
+                        preview: serde_json::json!({"claim_type":"damaged_item"}),
+                        metadata: serde_json::json!({"operator":"claims-desk"}),
+                    }),
+                    metadata: serde_json::json!({"flow":"claim"}),
+                },
+            },
+        )
+        .await
+        .unwrap();
+
+    let change = decision.order_change.expect("claim change created");
+
+    let result = orchestration
+        .apply_claim_order_change(
+            tenant_id,
+            change.id,
+            serde_json::json!({"operator":"claims-desk"}),
+        )
+        .await
+        .unwrap();
+
+    assert_eq!(result.order_change.status, "applied");
+    assert!(result.refund.is_none());
+}

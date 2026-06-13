@@ -1009,8 +1009,16 @@ pub struct CreateOrderChangeInputObject {
 }
 
 #[derive(InputObject)]
+pub struct ExchangeDifferenceRefundInputObject {
+    pub amount: String,
+    pub reason: Option<String>,
+    pub metadata: Option<String>,
+}
+
+#[derive(InputObject)]
 pub struct ApplyOrderChangeInputObject {
     pub metadata: Option<String>,
+    pub difference_refund: Option<ExchangeDifferenceRefundInputObject>,
 }
 
 #[derive(InputObject)]

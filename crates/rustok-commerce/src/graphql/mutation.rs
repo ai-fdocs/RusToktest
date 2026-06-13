@@ -20,10 +20,10 @@ use crate::{
         is_shipping_option_compatible_with_profiles, normalize_shipping_profile_slug,
     },
     CartService, CatalogService, CheckoutService, CreateReturnDecisionInput, CustomerService,
-    FulfillmentOrchestrationService, FulfillmentService, OrderService, PaymentService,
-    PostOrderOrchestrationService, PricingService, ReturnClaimDecisionInput, ReturnDecisionInput,
-    ReturnExchangeDecisionInput, ReturnRefundDecisionInput, ShippingProfileService,
-    StoreContextService,
+    ExchangeDifferenceRefundInput, FulfillmentOrchestrationService, FulfillmentService,
+    OrderService, PaymentService, PostOrderOrchestrationError, PostOrderOrchestrationService,
+    PricingService, ReturnClaimDecisionInput, ReturnDecisionInput, ReturnExchangeDecisionInput,
+    ReturnRefundDecisionInput, ShippingProfileService, StoreContextService,
 };
 
 use super::{require_commerce_permission, types::*, MODULE_SLUG};
@@ -1209,17 +1209,63 @@ impl CommerceMutation {
 
         let db = ctx.data::<sea_orm::DatabaseConnection>()?;
         let event_bus = ctx.data::<rustok_outbox::TransactionalEventBus>()?;
-        let item = OrderService::new(db.clone(), event_bus.clone())
-            .apply_order_change(
-                tenant_id,
-                id,
-                crate::dto::ApplyOrderChangeInput {
-                    metadata: parse_optional_metadata(input.metadata.as_deref())?,
-                },
-            )
+        let order_service = OrderService::new(db.clone(), event_bus.clone());
+        let orchestration_service = PostOrderOrchestrationService::new(db.clone(), event_bus.clone());
+
+        // Fetch the order change to inspect its change_type
+        let order_change = order_service
+            .get_order_change(tenant_id, id)
             .await?;
 
-        Ok(item.into())
+        let result = match order_change.change_type.as_str() {
+            "exchange" => {
+                let difference_refund = if let Some(diff) = input.difference_refund {
+                    let amount = Decimal::from_str(&diff.amount)
+                        .map_err(|e| FieldError::new(format!("invalid difference refund amount: {e}")))?;
+                    let metadata = parse_optional_metadata(diff.metadata.as_deref())?;
+                    Some(ExchangeDifferenceRefundInput {
+                        amount,
+                        reason: diff.reason,
+                        metadata,
+                    })
+                } else {
+                    None
+                };
+                let metadata = parse_optional_metadata(input.metadata.as_deref())?;
+                orchestration_service
+                    .apply_exchange_order_change(
+                        tenant_id,
+                        order_change.order_id,
+                        id,
+                        difference_refund,
+                        metadata,
+                    )
+                    .await
+                    .map_err(|err| FieldError::new(err.to_string()))?
+                    .order_change
+            }
+            "claim" => {
+                let metadata = parse_optional_metadata(input.metadata.as_deref())?;
+                orchestration_service
+                    .apply_claim_order_change(tenant_id, id, metadata)
+                    .await
+                    .map_err(|err| FieldError::new(err.to_string()))?
+                    .order_change
+            }
+            _ => {
+                order_service
+                    .apply_order_change(
+                        tenant_id,
+                        id,
+                        crate::dto::ApplyOrderChangeInput {
+                            metadata: parse_optional_metadata(input.metadata.as_deref())?,
+                        },
+                    )
+                    .await?
+            }
+        };
+
+        Ok(result.into())
     }
 
     async fn cancel_order_change(
