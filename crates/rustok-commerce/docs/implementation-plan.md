@@ -2,12 +2,12 @@
 
 ## Execution checkpoint
 
-- Current phase: storefront FFA transport adapter split + next-admin host registration and parity hardening
-- Last checkpoint: Created and registered the `@rustok/commerce-admin` Next.js package under `apps/next-admin/packages/commerce`, establishing GraphQL client adapters for shipping profiles, cart promotions, and post-order change operator flows, and registered navigation items dynamically in the `next-admin` host.
-- Next step: Implement administrative page templates in `@rustok/commerce-admin` package that invoke these transport-neutral GraphQL client functions.
+- Current phase: next-admin commerce operator templates and post-order parity hardening
+- Last checkpoint: Extended the `@rustok/commerce-admin` Next.js package with a return-decision operator template and GraphQL adapter on top of `createOrderReturnDecision`, alongside the existing shipping-profile, cart-promotion, and order-change templates.
+- Next step: Harden the Next admin operator UX with richer validation/result summaries and add targeted type/lint evidence once local package dependencies are installed.
 - Open blockers: None.
-- Hand-off notes for next agent: After each post-order operator UI/page addition, update this checkpoint block and central registry evidence.
-- Last updated at (UTC): 2026-06-13T04:36:00Z
+- Hand-off notes for next agent: After each post-order operator UI/page addition, update this checkpoint block and central registry evidence; keep the Next host route as a thin auth/options adapter only.
+- Last updated at (UTC): 2026-06-13T17:35:27Z
 
 
 ## FFA/FBA status

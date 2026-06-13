@@ -97,3 +97,73 @@ export type ExchangeDifferenceRefundInput = {
   reason?: string | null;
   metadata?: string | null;
 };
+
+export type OrderReturnSummary = {
+  id: string;
+  orderId: string;
+  status: string;
+  resolutionType: string | null;
+  refundId: string | null;
+  orderChangeId: string | null;
+  metadata: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+};
+
+export type RefundSummary = {
+  id: string;
+  status: string;
+  currencyCode: string;
+  amount: string;
+  reason: string | null;
+  metadata: string;
+  createdAt: string | null;
+  updatedAt: string | null;
+};
+
+export type CreateReturnDecisionItemInput = {
+  lineItemId: string;
+  quantity: number;
+  reason?: string | null;
+  note?: string | null;
+  metadata?: string | null;
+};
+
+export type CreateReturnDecisionInput = {
+  returnRequest: {
+    reason?: string | null;
+    note?: string | null;
+    items?: CreateReturnDecisionItemInput[] | null;
+    metadata?: string | null;
+  };
+  decision: {
+    action: string;
+    refund?: {
+      paymentCollectionId?: string | null;
+      amount?: string | null;
+      reason?: string | null;
+      metadata?: string | null;
+    } | null;
+    exchange?: {
+      description?: string | null;
+      preview?: string | null;
+      metadata?: string | null;
+    } | null;
+    claim?: {
+      description?: string | null;
+      preview?: string | null;
+      metadata?: string | null;
+    } | null;
+    metadata?: string | null;
+  };
+};
+
+export type ReturnDecisionResponse = {
+  action: string;
+  orderReturn: OrderReturnSummary;
+  refund: RefundSummary | null;
+  orderChange: OrderChange | null;
+  metadata: string;
+};

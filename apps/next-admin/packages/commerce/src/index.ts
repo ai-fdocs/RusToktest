@@ -24,6 +24,11 @@ export const commerceNavItems: NavItem[] = [
         title: 'Order Changes',
         url: '/dashboard/commerce/order-changes',
         i18nKey: 'orderChanges'
+      },
+      {
+        title: 'Return Decisions',
+        url: '/dashboard/commerce/return-decisions',
+        i18nKey: 'returnDecisions'
       }
     ],
     access: { role: 'manager' }
@@ -42,3 +47,4 @@ export * from './api';
 export * from './components/ShippingProfilesTemplate';
 export * from './components/CartPromotionsTemplate';
 export * from './components/OrderChangesTemplate';
+export * from './components/ReturnDecisionsTemplate';
