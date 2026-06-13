@@ -1176,6 +1176,10 @@ pub(crate) fn text_or_none(value: String) -> Option<String> {
     }
 }
 
+pub(crate) fn parse_product_admin_inventory_quantity_input(value: &str) -> i32 {
+    value.trim().parse().unwrap_or(0)
+}
+
 pub(crate) fn status_badge(status: &str) -> &'static str {
     match status {
         "ACTIVE" => "border-emerald-200 bg-emerald-50 text-emerald-700",
@@ -1704,6 +1708,16 @@ mod tests {
         assert_eq!(
             text_or_none(" active ".to_string()),
             Some("active".to_string())
+        );
+    }
+
+    #[test]
+    fn product_admin_inventory_quantity_input_parsing_is_core_owned() {
+        assert_eq!(parse_product_admin_inventory_quantity_input(" 42 "), 42);
+        assert_eq!(parse_product_admin_inventory_quantity_input(""), 0);
+        assert_eq!(
+            parse_product_admin_inventory_quantity_input("not-a-number"),
+            0
         );
     }
 

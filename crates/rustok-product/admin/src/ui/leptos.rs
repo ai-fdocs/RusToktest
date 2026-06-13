@@ -21,13 +21,13 @@ use crate::core::{
     build_product_admin_status_mutation_command,
     build_product_admin_status_mutation_result_view_model,
     build_selected_product_summary_view_model, empty_product_admin_editor_form_state,
-    primary_catalog_currency, product_admin_clear_product_query_intent,
-    product_admin_list_actions_disabled, product_admin_open_product_query_intent,
-    product_admin_saved_product_query_intent, shipping_profile_choice_label, text_or_none,
-    ProductAdminDeleteOutcome, ProductAdminDraftForm, ProductAdminEditorFormState,
-    ProductAdminErrorCopy, ProductAdminListStateKind, ProductAdminPricingPreviewState,
-    ProductAdminRouteQueryIntent, ProductAdminSaveMode, ProductAdminStatusMutationOutcome,
-    ProductAdminStatusTarget, SelectedProductSummaryViewModel,
+    parse_product_admin_inventory_quantity_input, primary_catalog_currency,
+    product_admin_clear_product_query_intent, product_admin_list_actions_disabled,
+    product_admin_open_product_query_intent, product_admin_saved_product_query_intent,
+    shipping_profile_choice_label, text_or_none, ProductAdminDeleteOutcome, ProductAdminDraftForm,
+    ProductAdminEditorFormState, ProductAdminErrorCopy, ProductAdminListStateKind,
+    ProductAdminPricingPreviewState, ProductAdminRouteQueryIntent, ProductAdminSaveMode,
+    ProductAdminStatusMutationOutcome, ProductAdminStatusTarget, SelectedProductSummaryViewModel,
 };
 use crate::i18n::t;
 use crate::model::{ProductAdminBootstrap, ProductDetail, ProductPricingDetail};
@@ -699,7 +699,9 @@ pub fn ProductAdmin() -> impl IntoView {
                                         _ => ().into_any(),
                                     }}
                                 </select>
-                                <input type="number" class="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" placeholder=editor_copy.inventory_quantity_placeholder.clone() prop:value=move || inventory_quantity.get().to_string() on:input=move |ev| set_inventory_quantity.set(event_target_value(&ev).parse().unwrap_or(0)) />
+                                <input type="number" class="rounded-xl border border-border bg-background px-3 py-2 text-sm text-foreground outline-none transition focus:border-primary" placeholder=editor_copy.inventory_quantity_placeholder.clone() prop:value=move || inventory_quantity.get().to_string() on:input=move |ev| set_inventory_quantity.set(parse_product_admin_inventory_quantity_input(
+                                    &event_target_value(&ev),
+                                )) />
                             </div>
                             <label class="flex items-center gap-2 text-sm text-muted-foreground">
                                 <input type="checkbox" prop:checked=move || publish_now.get() on:change=move |ev| set_publish_now.set(event_target_checked(&ev)) />
