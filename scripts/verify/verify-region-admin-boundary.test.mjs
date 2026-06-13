@@ -95,23 +95,21 @@ ${omitGuardrail ? "" : "- Fast guardrail: scripts/verify/verify-region-admin-bou
 function registrySource({ staleSlice = false, omitGuardrail = false } = {}) {
   return `
 | Module slug | UI surfaces | FFA status | FBA status | Structural shape | Source plan |
-| \`region\` | admin + storefront | \`in_progress\` | \`not_started\` | \`core_transport_ui\` | ${staleSlice ? "slice #37" : "slice #38"}; ${omitGuardrail ? "" : "scripts/verify/verify-region-admin-boundary.mjs"} |
+| \`region\` | admin + storefront | \`in_progress\` | \`not_started\` | \`core_transport_ui\` | ${staleSlice ? "slice #38" : "slice #39"}; ${omitGuardrail ? "" : "scripts/verify/verify-region-admin-boundary.mjs"} |
 `;
 }
 
-function packageJsonSource({ omitPackageScript = false } = {}) {
-  return JSON.stringify(
-    {
-      scripts: omitPackageScript
-        ? {}
-        : {
-            "test:verify:region:admin-boundary":
-              "node scripts/verify/verify-region-admin-boundary.test.mjs",
-          },
-    },
-    null,
-    2,
-  );
+function packageJsonSource({ omitPackageScript = false, omitAggregateRegionTest = false } = {}) {
+  const scripts = omitPackageScript
+    ? {}
+    : {
+        "test:verify:region:admin-boundary":
+          "node scripts/verify/verify-region-admin-boundary.test.mjs",
+        "test:verify:ffa:ui:migration": omitAggregateRegionTest
+          ? "node scripts/verify/verify-ffa-ui-migration-contract.test.mjs"
+          : "node scripts/verify/verify-ffa-ui-migration-contract.test.mjs && npm run test:verify:region:admin-boundary",
+      };
+  return JSON.stringify({ scripts }, null, 2);
 }
 
 function verifierTestSource() {
@@ -183,7 +181,7 @@ test("region admin boundary verifier rejects missing route writer core helper", 
 test("region admin boundary verifier rejects stale central readiness board", () => {
   withTempFixture({ staleSlice: true }, (result) => {
     assert.notEqual(result.status, 0, "Expected stale registry fixture to fail");
-    assert.match(result.stderr, /central readiness board must record slice #38/);
+    assert.match(result.stderr, /central readiness board must record slice #39/);
   });
 });
 
@@ -191,5 +189,13 @@ test("region admin boundary verifier rejects missing package fixture script", ()
   withTempFixture({ omitPackageScript: true }, (result) => {
     assert.notEqual(result.status, 0, "Expected missing package script fixture to fail");
     assert.match(result.stderr, /package scripts must expose region boundary fixture tests/);
+  });
+});
+
+
+test("region admin boundary verifier rejects aggregate test script without region fixtures", () => {
+  withTempFixture({ omitAggregateRegionTest: true }, (result) => {
+    assert.notEqual(result.status, 0, "Expected aggregate script fixture to fail");
+    assert.match(result.stderr, /aggregate FFA fixture tests must include region boundary fixtures/);
   });
 });

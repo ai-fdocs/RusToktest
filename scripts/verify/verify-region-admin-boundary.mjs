@@ -127,9 +127,11 @@ assertContains(api, "RegionService", `${apiPath}: native adapter must own servic
 
 assertContains(implementationPlan, "FFA slice #31", `${implementationPlanPath}: local plan must record slice #31`);
 assertContains(implementationPlan, "verify-region-admin-boundary.mjs", `${implementationPlanPath}: local plan must mention the fast boundary guardrail`);
-assertContains(registry, "slice #38", `${registryPath}: central readiness board must record slice #38`);
+assertContains(registry, "slice #39", `${registryPath}: central readiness board must record slice #39`);
 assertContains(registry, "verify-region-admin-boundary.mjs", `${registryPath}: central readiness board must mention the fast boundary guardrail`);
 assertContains(packageJson, "test:verify:region:admin-boundary", `${packagePath}: package scripts must expose region boundary fixture tests`);
+assertContains(packageJson, "test:verify:ffa:ui:migration", `${packagePath}: package scripts must expose aggregate FFA fixture tests`);
+assertContains(packageJson, "npm run test:verify:region:admin-boundary", `${packagePath}: aggregate FFA fixture tests must include region boundary fixtures`);
 assertContains(verifierTest, "region admin boundary verifier passes canonical fixture", `${verifierTestPath}: fixture tests must include canonical pass case`);
 assertContains(verifierTest, "rejects stale central readiness board", `${verifierTestPath}: fixture tests must include docs sync negative case`);
 
