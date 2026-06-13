@@ -10,7 +10,8 @@ use crate::core::{
     RegionAdminEditorLabels, RegionAdminListHeaderLabels, RegionAdminListLabels,
     RegionAdminListStateLabels, RegionAdminListStateViewModel, RegionAdminPolicyLabels,
     RegionAdminRawSectionLabels, RegionAdminRouteQueryIntent, RegionAdminRouteQueryUpdate,
-    RegionAdminShellLabels, REGION_ADMIN_SELECTED_QUERY_KEY,
+    RegionAdminSaveMode, RegionAdminShellLabels, RegionRequiredFieldLabels,
+    REGION_ADMIN_SELECTED_QUERY_KEY,
 };
 use crate::i18n::t;
 use crate::model::RegionDetail;
@@ -60,25 +61,27 @@ pub fn RegionAdmin() -> impl IntoView {
         move |_| async move { crate::transport::fetch_regions().await },
     );
 
-    let required_name_label = t(
-        ui_locale.as_deref(),
-        "region.error.nameRequired",
-        "Name is required.",
-    );
-    let required_currency_label = t(
-        ui_locale.as_deref(),
-        "region.error.currencyRequired",
-        "Currency code is required.",
-    );
+    let required_field_labels = RegionRequiredFieldLabels {
+        name: t(
+            ui_locale.as_deref(),
+            "region.error.nameRequired",
+            "Name is required.",
+        ),
+        currency_code: t(
+            ui_locale.as_deref(),
+            "region.error.currencyRequired",
+            "Currency code is required.",
+        ),
+        countries: t(
+            ui_locale.as_deref(),
+            "region.error.countriesRequired",
+            "At least one country code is required.",
+        ),
+    };
     let locale_unavailable_label = t(
         ui_locale.as_deref(),
         "region.error.localeUnavailable",
         "Host locale is unavailable.",
-    );
-    let required_countries_label = t(
-        ui_locale.as_deref(),
-        "region.error.countriesRequired",
-        "At least one country code is required.",
     );
     let load_region_error_label = t(
         ui_locale.as_deref(),
@@ -378,22 +381,22 @@ pub fn RegionAdmin() -> impl IntoView {
         });
 
         if let Some(missing_field) = crate::core::missing_required_region_field(&payload) {
-            let error = match missing_field {
-                crate::core::RegionRequiredField::Name => required_name_label.clone(),
-                crate::core::RegionRequiredField::CurrencyCode => required_currency_label.clone(),
-                crate::core::RegionRequiredField::Countries => required_countries_label.clone(),
-            };
-            set_error.set(Some(error));
+            set_error.set(Some(crate::core::region_required_field_message(
+                missing_field,
+                &required_field_labels,
+            )));
             return;
         }
-        let editing_region_id = editing_id.get_untracked();
+        let save_mode = crate::core::region_admin_save_mode(editing_id.get_untracked().as_deref());
         let save_region_error_label = save_region_error_label.clone();
         set_busy.set(true);
         set_error.set(None);
         spawn_local(async move {
-            let result = match editing_region_id {
-                Some(region_id) => crate::transport::update_region(region_id, payload).await,
-                None => crate::transport::create_region(payload).await,
+            let result = match save_mode {
+                RegionAdminSaveMode::Create => crate::transport::create_region(payload).await,
+                RegionAdminSaveMode::Update { region_id } => {
+                    crate::transport::update_region(region_id, payload).await
+                }
             };
 
             match result {

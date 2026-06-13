@@ -22,6 +22,24 @@ pub enum RegionRequiredField {
     Countries,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RegionRequiredFieldLabels {
+    pub name: String,
+    pub currency_code: String,
+    pub countries: String,
+}
+
+pub fn region_required_field_message(
+    field: RegionRequiredField,
+    labels: &RegionRequiredFieldLabels,
+) -> String {
+    match field {
+        RegionRequiredField::Name => labels.name.clone(),
+        RegionRequiredField::CurrencyCode => labels.currency_code.clone(),
+        RegionRequiredField::Countries => labels.countries.clone(),
+    }
+}
+
 pub fn optional_ui_text(value: &str) -> Option<String> {
     normalize_ui_text(value)
 }
@@ -105,6 +123,18 @@ pub fn missing_required_region_field(input: &RegionDraft) -> Option<RegionRequir
     } else {
         None
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum RegionAdminSaveMode {
+    Create,
+    Update { region_id: String },
+}
+
+pub fn region_admin_save_mode(editing_id: Option<&str>) -> RegionAdminSaveMode {
+    optional_ui_text(editing_id.unwrap_or_default())
+        .map(|region_id| RegionAdminSaveMode::Update { region_id })
+        .unwrap_or(RegionAdminSaveMode::Create)
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -651,6 +681,43 @@ mod tests {
         assert_eq!(
             missing_required_region_field(&draft),
             Some(RegionRequiredField::Name)
+        );
+    }
+
+    #[test]
+    fn required_region_field_message_maps_validation_copy_without_ui_runtime() {
+        let labels = RegionRequiredFieldLabels {
+            name: "Name is required.".to_string(),
+            currency_code: "Currency code is required.".to_string(),
+            countries: "At least one country code is required.".to_string(),
+        };
+
+        assert_eq!(
+            region_required_field_message(RegionRequiredField::Name, &labels),
+            "Name is required."
+        );
+        assert_eq!(
+            region_required_field_message(RegionRequiredField::CurrencyCode, &labels),
+            "Currency code is required."
+        );
+        assert_eq!(
+            region_required_field_message(RegionRequiredField::Countries, &labels),
+            "At least one country code is required."
+        );
+    }
+
+    #[test]
+    fn admin_save_mode_normalizes_editing_id_without_ui_runtime() {
+        assert_eq!(region_admin_save_mode(None), RegionAdminSaveMode::Create);
+        assert_eq!(
+            region_admin_save_mode(Some("   ")),
+            RegionAdminSaveMode::Create
+        );
+        assert_eq!(
+            region_admin_save_mode(Some(" region-eu ")),
+            RegionAdminSaveMode::Update {
+                region_id: "region-eu".to_string(),
+            }
         );
     }
 
