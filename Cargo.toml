@@ -26,6 +26,7 @@ members = [
     "crates/rustok-region/admin",
     "crates/rustok-region/storefront",
     "crates/rustok-order/admin",
+    "crates/rustok-order/storefront",
     "crates/rustok-pricing/admin",
     "crates/rustok-pricing/storefront",
     "crates/rustok-channel/admin",
@@ -192,6 +193,7 @@ rustok-pricing = { path = "crates/rustok-pricing" }
 rustok-tax = { path = "crates/rustok-tax" }
 rustok-inventory = { path = "crates/rustok-inventory" }
 rustok-order = { path = "crates/rustok-order" }
+rustok-order-storefront = { path = "crates/rustok-order/storefront" }
 rustok-payment = { path = "crates/rustok-payment" }
 rustok-payment-storefront = { path = "crates/rustok-payment/storefront" }
 rustok-fulfillment = { path = "crates/rustok-fulfillment" }

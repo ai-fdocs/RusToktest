@@ -5,6 +5,8 @@ use rustok_api::UiRouteContext;
 use rustok_cart_storefront::core::CartCheckoutHandoffLabels;
 use rustok_cart_storefront::CartCheckoutHandoffCard;
 use rustok_fulfillment_storefront::FulfillmentShippingHandoffNotice;
+use rustok_order_storefront::core::{OrderCheckoutResultData, OrderCheckoutResultLabels};
+use rustok_order_storefront::OrderCheckoutResultCard;
 use rustok_payment_storefront::core::{PaymentCollectionCardData, PaymentCollectionCardLabels};
 use rustok_payment_storefront::PaymentCollectionCard;
 
@@ -257,7 +259,7 @@ fn CheckoutWorkspace(
                         </div>
                         {move || {
                             completion.get().map(|result| {
-                                view! { <CheckoutCompletionCard result /> }
+                                view! { <OrderCheckoutResultCard result=order_checkout_result_data(result) labels=order_checkout_result_labels(locale.as_deref()) /> }
                             })
                         }}
                         <CartCheckoutHandoffCard
@@ -362,28 +364,21 @@ fn payment_collection_card_labels(locale: Option<&str>) -> PaymentCollectionCard
     }
 }
 
-#[component]
-fn CheckoutCompletionCard(result: StorefrontCheckoutCompletion) -> impl IntoView {
-    let locale = use_context::<UiRouteContext>().unwrap_or_default().locale;
-
-    view! {
-        <article class="mt-6 rounded-2xl border border-primary/30 bg-primary/5 p-5">
-            <div class="text-xs font-medium uppercase tracking-[0.18em] text-primary">
-                {t(locale.as_deref(), "commerce.checkout.result.badge", "checkout result")}
-            </div>
-            <h4 class="mt-2 text-base font-semibold text-card-foreground">{result.order_id}</h4>
-            <p class="mt-2 text-sm text-muted-foreground">
-                {t(locale.as_deref(), "commerce.checkout.result.moduleOwnership", "Order, payment, fulfillment and adjustment details remain in their module-owned workspaces; commerce shows only the aggregate checkout outcome.")}
-            </p>
-            <div class="mt-4 grid gap-3 md:grid-cols-2">
-                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.orderStatus", "Order status") value=result.order_status />
-                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.collectionStatus", "Collection status") value=result.payment_collection_status />
-                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.fulfillments", "Fulfillments") value=result.fulfillment_count.to_string() />
-                <MetricCard title=t(locale.as_deref(), "commerce.checkout.result.locale", "Resolved locale") value=result.context_locale />
-            </div>
-        </article>
+fn order_checkout_result_data(result: StorefrontCheckoutCompletion) -> OrderCheckoutResultData {
+    OrderCheckoutResultData {
+        order_id: result.order_id,
+        order_status: result.order_status,
     }
 }
+
+fn order_checkout_result_labels(locale: Option<&str>) -> OrderCheckoutResultLabels {
+    OrderCheckoutResultLabels {
+        badge: t(locale, "commerce.checkout.result.badge", "checkout result"),
+        module_ownership: t(locale, "commerce.checkout.result.moduleOwnership", "Order, payment, fulfillment and adjustment details remain in their module-owned workspaces; commerce shows only the aggregate checkout outcome."),
+        order_status_label: t(locale, "commerce.checkout.result.orderStatus", "Order status"),
+    }
+}
+
 #[component]
 fn SurfaceRail() -> impl IntoView {
     let route_context = use_context::<UiRouteContext>().unwrap_or_default();

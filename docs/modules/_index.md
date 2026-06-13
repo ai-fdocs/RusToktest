@@ -115,6 +115,7 @@
 - `rustok-commerce` storefront UI: [README](../../crates/rustok-commerce/storefront/README.md)
 - `rustok-fulfillment` storefront UI: [README](../../crates/rustok-fulfillment/storefront/README.md)
 - `rustok-payment` storefront UI: [README](../../crates/rustok-payment/storefront/README.md)
+- `rustok-order` storefront UI: [README](../../crates/rustok-order/storefront/README.md)
 - `rustok-forum` storefront UI: [README](../../crates/rustok-forum/storefront/README.md)
 - `rustok-pages` storefront UI: [README](../../crates/rustok-pages/storefront/README.md)
 - `rustok-pricing` storefront UI: [README](../../crates/rustok-pricing/storefront/README.md)
