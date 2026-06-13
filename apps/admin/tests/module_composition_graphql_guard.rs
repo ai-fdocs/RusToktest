@@ -701,7 +701,7 @@ fn module_composition_helpers_reference_single_canonical_mutation_and_request_ca
         ),
     ];
 
-    for (signature, canonical_mutation, foreign_mutations) in cases {
+    for &(signature, canonical_mutation, foreign_mutations) in cases {
         let helper_body = extract_function_block(&content, signature)
             .unwrap_or_else(|| panic!("helper signature not found: {signature}"));
 
@@ -1023,7 +1023,7 @@ fn module_graphql_mutation_constants_have_stable_operation_shapes() {
         ),
     ];
 
-    for (declaration, required_fragments, forbidden_fragments) in cases {
+    for &(declaration, required_fragments, forbidden_fragments) in cases {
         let mutation = extract_const_string_literal(&content, declaration)
             .unwrap_or_else(|| panic!("mutation declaration not found: {declaration}"));
 

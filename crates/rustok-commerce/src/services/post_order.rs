@@ -309,7 +309,45 @@ impl PostOrderOrchestrationService {
             )
             .await?;
 
-        let refund = if let Some(refund_input) = difference_refund {
+        let refund_input = match difference_refund {
+            Some(input) => Some(input),
+            None => {
+                let amount_val = order_change.preview.get("difference_refund_amount")
+                    .or_else(|| order_change.metadata.get("difference_refund_amount"))
+                    .or_else(|| order_change.preview.get("refund_amount"))
+                    .or_else(|| order_change.metadata.get("refund_amount"));
+                if let Some(val) = amount_val {
+                    let amount = if let Some(s) = val.as_str() {
+                        std::str::FromStr::from_str(s).ok()
+                    } else if let Some(n) = val.as_f64() {
+                        Decimal::from_f64_retain(n)
+                    } else if let Some(i) = val.as_i64() {
+                        Some(Decimal::from(i))
+                    } else {
+                        None
+                    };
+                    if let Some(amount) = amount {
+                        let reason = order_change.preview.get("difference_refund_reason")
+                            .or_else(|| order_change.metadata.get("difference_refund_reason"))
+                            .or_else(|| order_change.preview.get("refund_reason"))
+                            .or_else(|| order_change.metadata.get("refund_reason"))
+                            .and_then(|v| v.as_str())
+                            .map(|s| s.to_string());
+                        Some(ExchangeDifferenceRefundInput {
+                            amount,
+                            reason,
+                            metadata: serde_json::Value::Null,
+                        })
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            }
+        };
+
+        let refund = if let Some(refund_input) = refund_input {
             if refund_input.amount > Decimal::ZERO {
                 let payment_service = PaymentService::new(self.db.clone());
                 let collection_id =

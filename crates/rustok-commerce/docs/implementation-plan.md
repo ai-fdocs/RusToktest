@@ -2,12 +2,12 @@
 
 ## Execution checkpoint
 
-- Current phase: storefront FFA transport adapter split + FBA readiness hardening gate
-- Last checkpoint: corrective FFA-срез усилил module-owned UI boundaries: cart-summary/cart adjustments, payment details, order totals and fulfillment/shipping option detail rendering удалены из commerce storefront; эти детали остаются в `rustok-cart`, `rustok-payment`, `rustok-order` и `rustok-fulfillment`, а commerce storefront показывает только orchestration/handoff state. `storefront/src/core/` содержит только commerce-owned shell/context presentation и route/request/command construction (`presentation`, `requests`), transport остаётся split на `native_server_adapter`/`graphql_adapter`.
-- Next step: сначала зафиксировать FBA-readiness evidence для уже готовых ecommerce slices (service contract first, typed context/errors, explicit ports/events, transport adapters second), затем добавить end-to-end parity evidence для REST/GraphQL/native operator paths и только после этого расширять roadmap новыми marketplace/provider фазами.
-- Open blockers: OpenAPI contract test под default server features ранее блокировался существующими compile errors вне commerce (`rustok-pages-admin` Fn/FnOnce и server build/lifecycle/graphql ошибки); targeted `cargo test -p rustok-commerce-admin --features ssr` проходит.
-- Hand-off notes for next agent: После каждого returns/order-change инкремента обновлять этот блок и central readiness/registry evidence.
-- Last updated at (UTC): 2026-06-12T00:00:00Z
+- Current phase: storefront FFA transport adapter split + next-admin host registration and parity hardening
+- Last checkpoint: Created and registered the `@rustok/commerce-admin` Next.js package under `apps/next-admin/packages/commerce`, establishing GraphQL client adapters for shipping profiles, cart promotions, and post-order change operator flows, and registered navigation items dynamically in the `next-admin` host.
+- Next step: Implement administrative page templates in `@rustok/commerce-admin` package that invoke these transport-neutral GraphQL client functions.
+- Open blockers: None.
+- Hand-off notes for next agent: After each post-order operator UI/page addition, update this checkpoint block and central registry evidence.
+- Last updated at (UTC): 2026-06-13T04:36:00Z
 
 
 ## FFA/FBA status

@@ -27,7 +27,8 @@ use crate::{
         UpdateShippingOptionInput, UpdateShippingProfileInput,
     },
     storefront_shipping::normalize_shipping_profile_slug,
-    CatalogService, CreateReturnDecisionInput, FulfillmentOrchestrationError,
+    ApplyOrderChangeResult, CatalogService, CreateReturnDecisionInput,
+    ExchangeDifferenceRefundInput, FulfillmentOrchestrationError,
     FulfillmentOrchestrationService, FulfillmentService, OrderService, PaymentService,
     PostOrderOrchestrationError, PostOrderOrchestrationService, ReturnDecisionResponse,
     ShippingProfileService,
@@ -1217,15 +1218,22 @@ pub async fn show_order_change(
     Ok(Json(item))
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, ToSchema)]
+pub struct AdminApplyOrderChangeInput {
+    #[serde(default)]
+    pub metadata: serde_json::Value,
+    pub difference_refund: Option<ExchangeDifferenceRefundInput>,
+}
+
 /// Apply admin order change
 #[utoipa::path(
     post,
     path = "/admin/order-changes/{id}/apply",
     tag = "admin",
     params(("id" = Uuid, Path, description = "Order change ID")),
-    request_body = ApplyOrderChangeInput,
+    request_body = AdminApplyOrderChangeInput,
     responses(
-        (status = 200, description = "Order change applied", body = OrderChangeResponse),
+        (status = 200, description = "Order change applied", body = ApplyOrderChangeResult),
         (status = 401, description = "Unauthorized"),
         (status = 404, description = "Order change not found")
     )
@@ -1235,20 +1243,70 @@ pub async fn apply_order_change(
     tenant: TenantContext,
     auth: AuthContext,
     Path(id): Path<Uuid>,
-    Json(input): Json<ApplyOrderChangeInput>,
-) -> Result<Json<OrderChangeResponse>> {
+    Json(input): Json<AdminApplyOrderChangeInput>,
+) -> Result<Json<ApplyOrderChangeResult>> {
     ensure_permissions(
         &auth,
         &[Permission::ORDERS_UPDATE],
         "Permission denied: orders:update required",
     )?;
 
-    let item = OrderService::new(ctx.db.clone(), transactional_event_bus_from_context(&ctx))
-        .apply_order_change(tenant.id, id, input)
+    let db = ctx.db.clone();
+    let event_bus = transactional_event_bus_from_context(&ctx);
+    let order_service = OrderService::new(db.clone(), event_bus.clone());
+    let orchestration_service = PostOrderOrchestrationService::new(db.clone(), event_bus.clone());
+
+    let order_change = order_service
+        .get_order_change(tenant.id, id)
         .await
         .map_err(map_order_error)?;
 
-    Ok(Json(item))
+    let result = match order_change.change_type.as_str() {
+        "exchange" => {
+            orchestration_service
+                .apply_exchange_order_change(
+                    tenant.id,
+                    order_change.order_id,
+                    id,
+                    input.difference_refund,
+                    input.metadata,
+                )
+                .await
+                .map_err(|err| match err {
+                    PostOrderOrchestrationError::Order(e) => map_order_error(e),
+                    PostOrderOrchestrationError::Payment(e) => map_payment_error(e),
+                    PostOrderOrchestrationError::Validation(msg) => Error::BadRequest(msg),
+                })?
+        }
+        "claim" => {
+            orchestration_service
+                .apply_claim_order_change(tenant.id, id, input.metadata)
+                .await
+                .map_err(|err| match err {
+                    PostOrderOrchestrationError::Order(e) => map_order_error(e),
+                    PostOrderOrchestrationError::Payment(e) => map_payment_error(e),
+                    PostOrderOrchestrationError::Validation(msg) => Error::BadRequest(msg),
+                })?
+        }
+        _ => {
+            let item = order_service
+                .apply_order_change(
+                    tenant.id,
+                    id,
+                    ApplyOrderChangeInput {
+                        metadata: input.metadata,
+                    },
+                )
+                .await
+                .map_err(map_order_error)?;
+            ApplyOrderChangeResult {
+                order_change: item,
+                refund: None,
+            }
+        }
+    };
+
+    Ok(Json(result))
 }
 
 /// Cancel admin order change
