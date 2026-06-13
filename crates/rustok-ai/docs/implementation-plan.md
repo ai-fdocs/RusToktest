@@ -138,10 +138,10 @@
 
 - FFA status: `in_progress`
 - FBA status: `not_started`
-- Structural shape: `core_transport` for the first AI admin slice.
-- Evidence: `crates/rustok-ai/admin/src/core.rs` now owns Leptos-free request normalization and direct-job payload builders (`parse_csv`, `optional_text`, `alloy_task_payload`, `image_task_payload`, `product_task_payload`, `product_attributes_task_payload`, `blog_task_payload`), `admin/src/transport/mod.rs` owns the current facade over existing native server-function API calls, and `admin/src/lib.rs` remains the current Leptos adapter consuming `core` + `transport`.
+- Structural shape: `core_transport_ui` for the first AI admin slice.
+- Evidence: `crates/rustok-ai/admin/src/core.rs` now owns Leptos-free request normalization and direct-job payload builders (`parse_csv`, `optional_text`, `alloy_task_payload`, `image_task_payload`, `product_task_payload`, `product_attributes_task_payload`, `blog_task_payload`), `admin/src/transport/mod.rs` owns the current facade over existing native server-function API calls, `admin/src/ui/leptos.rs` is the explicit Leptos adapter consuming `core` + `transport`, and `admin/src/lib.rs` only wires/re-exports module layers.
 - Guardrail: `scripts/verify/verify-ai-admin-boundary.mjs` enforces the first core/transport slice and prevents moved request/payload helpers or raw `api::` calls from drifting back into the Leptos adapter.
-- Next step: continue by moving the large Leptos adapter into explicit `ui/leptos.rs` and then split native/GraphQL adapters behind `transport/` without removing the existing native server-function + GraphQL/Next.js parallel contract.
+- Next step: continue by splitting native/GraphQL adapters behind `transport/` without removing the existing native server-function + GraphQL/Next.js parallel contract.
 
 ## Проверка
 

@@ -38,26 +38,31 @@ function assertNotContains(text, pattern, description) {
 }
 
 const libPath = "crates/rustok-ai/admin/src/lib.rs";
+const uiPath = "crates/rustok-ai/admin/src/ui/leptos.rs";
 const corePath = "crates/rustok-ai/admin/src/core.rs";
 const transportModPath = "crates/rustok-ai/admin/src/transport/mod.rs";
 
-assertExists(libPath, `${libPath}: expected AI admin Leptos adapter file`);
+assertExists(libPath, `${libPath}: expected AI admin crate root file`);
+assertExists(uiPath, `${uiPath}: expected AI admin Leptos adapter file`);
 assertExists(corePath, `${corePath}: expected AI admin core slice file`);
 assertExists(transportModPath, `${transportModPath}: expected AI admin transport facade file`);
 
 const lib = readRepo(libPath);
+const ui = readRepo(uiPath);
 const core = readRepo(corePath);
 const transportMod = readRepo(transportModPath);
 
 assertContains(lib, "mod core;", `${libPath}: crate root must wire core`);
 assertContains(lib, "mod transport;", `${libPath}: crate root must wire transport facade`);
-assertContains(lib, "use crate::core::{", `${libPath}: Leptos adapter must import core-owned helpers`);
-assertContains(lib, "product_attributes_task_payload", `${libPath}: Leptos adapter must call core-owned payload builder`);
-assertNotContains(lib, "fn product_attributes_task_payload", `${libPath}: payload builder must not live in the Leptos adapter`);
-assertNotContains(lib, "fn parse_csv(value: String)", `${libPath}: CSV request normalization must not live in the Leptos adapter`);
-assertNotContains(lib, /t\(\s*locale,\s*locale,/, `${libPath}: i18n helper calls must not pass locale twice`);
-assertContains(lib, "transport::fetch_bootstrap", `${libPath}: Leptos adapter must call the AI transport facade`);
-assertNotContains(lib, /(^|[^A-Za-z0-9_])api::/, `${libPath}: Leptos adapter must not call the raw pre-FFA api module`);
+assertContains(lib, "mod ui;", `${libPath}: crate root must wire UI adapters`);
+assertContains(lib, "pub use ui::leptos::AiAdmin;", `${libPath}: crate root must re-export the Leptos adapter surface`);
+assertContains(ui, "use crate::core::{", `${uiPath}: Leptos adapter must import core-owned helpers`);
+assertContains(ui, "product_attributes_task_payload", `${uiPath}: Leptos adapter must call core-owned payload builder`);
+assertNotContains(ui, "fn product_attributes_task_payload", `${uiPath}: payload builder must not live in the Leptos adapter`);
+assertNotContains(ui, "fn parse_csv(value: String)", `${uiPath}: CSV request normalization must not live in the Leptos adapter`);
+assertNotContains(ui, /t\(\s*locale,\s*locale,/, `${uiPath}: i18n helper calls must not pass locale twice`);
+assertContains(ui, "transport::fetch_bootstrap", `${uiPath}: Leptos adapter must call the AI transport facade`);
+assertNotContains(ui, /(^|[^A-Za-z0-9_])api::/, `${uiPath}: Leptos adapter must not call the raw pre-FFA api module`);
 
 for (const marker of ["leptos::", "leptos_", "#[component]", "#[server]", "RwSignal", "LocalResource", "web_sys::"]) {
   assertNotContains(core, marker, `${corePath}: core must stay UI/runtime free (${marker})`);
