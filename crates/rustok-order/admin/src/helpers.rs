@@ -1,5 +1,6 @@
 use leptos::prelude::*;
 
+use crate::core::{order_detail_form_state, OrderAdminDetailFormState};
 use crate::model::OrderDetailEnvelope;
 
 #[allow(clippy::too_many_arguments)]
@@ -94,55 +95,16 @@ pub fn apply_order_detail(
     set_delivered_signature: WriteSignal<String>,
     set_cancel_reason: WriteSignal<String>,
 ) {
-    set_selected_id.set(Some(detail.order.id.clone()));
     set_selected.set(Some(detail.clone()));
-    set_payment_id.set(detail.order.payment_id.clone().unwrap_or_default());
-    set_payment_method.set(
-        detail
-            .order
-            .payment_method
-            .clone()
-            .unwrap_or_else(|| "manual".to_string()),
-    );
-    set_tracking_number.set(
-        detail
-            .order
-            .tracking_number
-            .clone()
-            .or_else(|| {
-                detail
-                    .fulfillment
-                    .as_ref()
-                    .and_then(|item| item.tracking_number.clone())
-            })
-            .unwrap_or_default(),
-    );
-    set_carrier.set(
-        detail
-            .order
-            .carrier
-            .clone()
-            .or_else(|| {
-                detail
-                    .fulfillment
-                    .as_ref()
-                    .and_then(|item| item.carrier.clone())
-            })
-            .unwrap_or_else(|| "manual".to_string()),
-    );
-    set_delivered_signature.set(detail.order.delivered_signature.clone().unwrap_or_default());
-    set_cancel_reason.set(
-        detail
-            .order
-            .cancellation_reason
-            .clone()
-            .or_else(|| {
-                detail
-                    .fulfillment
-                    .as_ref()
-                    .and_then(|item| item.cancellation_reason.clone())
-            })
-            .unwrap_or_default(),
+    apply_order_detail_form_state(
+        order_detail_form_state(detail),
+        set_selected_id,
+        set_payment_id,
+        set_payment_method,
+        set_tracking_number,
+        set_carrier,
+        set_delivered_signature,
+        set_cancel_reason,
     );
 }
 
@@ -157,12 +119,35 @@ pub fn clear_order_detail(
     set_delivered_signature: WriteSignal<String>,
     set_cancel_reason: WriteSignal<String>,
 ) {
-    set_selected_id.set(None);
     set_selected.set(None);
-    set_payment_id.set(String::new());
-    set_payment_method.set("manual".to_string());
-    set_tracking_number.set(String::new());
-    set_carrier.set("manual".to_string());
-    set_delivered_signature.set(String::new());
-    set_cancel_reason.set(String::new());
+    apply_order_detail_form_state(
+        OrderAdminDetailFormState::default(),
+        set_selected_id,
+        set_payment_id,
+        set_payment_method,
+        set_tracking_number,
+        set_carrier,
+        set_delivered_signature,
+        set_cancel_reason,
+    );
+}
+
+#[allow(clippy::too_many_arguments)]
+fn apply_order_detail_form_state(
+    state: OrderAdminDetailFormState,
+    set_selected_id: WriteSignal<Option<String>>,
+    set_payment_id: WriteSignal<String>,
+    set_payment_method: WriteSignal<String>,
+    set_tracking_number: WriteSignal<String>,
+    set_carrier: WriteSignal<String>,
+    set_delivered_signature: WriteSignal<String>,
+    set_cancel_reason: WriteSignal<String>,
+) {
+    set_selected_id.set(state.selected_id);
+    set_payment_id.set(state.payment_id);
+    set_payment_method.set(state.payment_method);
+    set_tracking_number.set(state.tracking_number);
+    set_carrier.set(state.carrier);
+    set_delivered_signature.set(state.delivered_signature);
+    set_cancel_reason.set(state.cancel_reason);
 }

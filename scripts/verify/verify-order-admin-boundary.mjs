@@ -41,6 +41,7 @@ function assertNotContains(text, pattern, description) {
 const libPath = "crates/rustok-order/admin/src/lib.rs";
 const corePath = "crates/rustok-order/admin/src/core.rs";
 const uiPath = "crates/rustok-order/admin/src/ui/leptos.rs";
+const helpersPath = "crates/rustok-order/admin/src/helpers.rs";
 const transportPath = "crates/rustok-order/admin/src/transport.rs";
 const apiPath = "crates/rustok-order/admin/src/api.rs";
 const implementationPlanPath = "crates/rustok-order/docs/implementation-plan.md";
@@ -50,6 +51,7 @@ for (const filePath of [
   libPath,
   corePath,
   uiPath,
+  helpersPath,
   transportPath,
   apiPath,
   implementationPlanPath,
@@ -97,6 +99,8 @@ for (const marker of [
   "summarize_order_timeline",
   "action_hint",
   "text_or_dash",
+  "OrderAdminDetailFormState",
+  "order_detail_form_state",
 ]) {
   assertContains(core, marker, `${corePath}: expected core-owned FFA helper ${marker}`);
 }
@@ -105,6 +109,7 @@ assertContains(ui, "use crate::core::{", `${uiPath}: Leptos adapter must import 
 assertContains(ui, "use crate::transport;", `${uiPath}: Leptos adapter must call the module-owned transport facade`);
 assertContains(ui, "action_hint", `${uiPath}: UI must consume core-owned presentation helpers`);
 assertContains(ui, "use crate::helpers::{apply_order_detail, clear_order_detail, handle_action_result};", `${uiPath}: Leptos-specific helpers should stay limited to signal/side-effect helpers`);
+assertContains(readRepo("crates/rustok-order/admin/src/helpers.rs"), "order_detail_form_state", `${helpersPath}: signal helpers must consume core-owned detail form-state mapping`);
 for (const marker of [
   "order_list_request",
   "prepare_mark_paid_command",
