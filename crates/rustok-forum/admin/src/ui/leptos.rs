@@ -8,13 +8,16 @@ use rustok_seo_admin_support::SeoEntityPanel;
 use rustok_seo_targets::{builtin_slug as seo_builtin_slug, SeoTargetSlug};
 
 use crate::core::{
-    category_card_view_model, category_sidebar_total_count, category_sidebar_view_model,
-    deleted_selection_matches, format_count, forum_admin_collection_state,
+    category_card_view_model, category_select_options, category_sidebar_total_count,
+    category_sidebar_view_model, deleted_selection_matches, format_count, forum_admin_busy_key,
+    forum_admin_collection_state, forum_admin_editing_thread_label, forum_admin_form_error_message,
     forum_admin_header_view_model, forum_admin_open_query_intent, forum_admin_reset_query_intent,
-    forum_admin_saved_query_intent, parse_tags, reply_card_view_model, reply_count_label,
+    forum_admin_saved_query_intent, forum_admin_topic_tag_count_label,
+    forum_admin_transport_error_message, parse_tags, reply_card_view_model, reply_count_label,
     result_item_count, selected_category_filter_label, selected_query_id, topic_card_view_model,
-    topic_category_filter, CategoryFormSnapshot, ForumAdminCategoryRenderLabels,
-    ForumAdminCollectionState, ForumAdminFormError, ForumAdminHeaderLabels, ForumAdminQuerySurface,
+    topic_category_filter, CategoryFormSnapshot, ForumAdminBusyAction, ForumAdminBusySurface,
+    ForumAdminCategoryRenderLabels, ForumAdminCollectionState, ForumAdminFormError,
+    ForumAdminFormErrorLabels, ForumAdminHeaderLabels, ForumAdminQuerySurface,
     ForumAdminRouteQueryIntent, ForumAdminRouteQueryOperation, ForumAdminTopicRenderLabels,
     TopicFormSnapshot,
 };
@@ -141,6 +144,11 @@ pub fn ForumAdmin() -> impl IntoView {
         "Failed to delete topic",
     );
 
+    let form_error_labels = ForumAdminFormErrorLabels {
+        category_required: category_required_error.clone(),
+        topic_required: topic_required_error.clone(),
+    };
+
     let (refresh_nonce, set_refresh_nonce) = signal(0_u64);
     let (error, set_error) = signal(Option::<String>::None);
     let (busy_key, set_busy_key) = signal(Option::<String>::None);
@@ -226,7 +234,11 @@ pub fn ForumAdmin() -> impl IntoView {
         let locale = category_locale.get_untracked();
         let load_category_error = load_category_error.clone();
         set_error.set(None);
-        set_busy_key.set(Some(format!("category:edit:{category_id}")));
+        set_busy_key.set(Some(forum_admin_busy_key(
+            ForumAdminBusySurface::Category,
+            ForumAdminBusyAction::Edit,
+            Some(category_id.as_str()),
+        )));
         spawn_local(async move {
             match transport::fetch_category(token_value, tenant_value, category_id.clone(), locale)
                 .await
@@ -254,7 +266,10 @@ pub fn ForumAdmin() -> impl IntoView {
                         set_category_position,
                         set_category_moderated,
                     );
-                    set_error.set(Some(format!("{}: {err}", load_category_error)));
+                    set_error.set(Some(forum_admin_transport_error_message(
+                        load_category_error.as_str(),
+                        err,
+                    )));
                 }
             }
             set_busy_key.set(None);
@@ -267,7 +282,11 @@ pub fn ForumAdmin() -> impl IntoView {
         let locale = topic_locale.get_untracked();
         let load_topic_error = load_topic_error.clone();
         set_error.set(None);
-        set_busy_key.set(Some(format!("topic:edit:{topic_id}")));
+        set_busy_key.set(Some(forum_admin_busy_key(
+            ForumAdminBusySurface::Topic,
+            ForumAdminBusyAction::Edit,
+            Some(topic_id.as_str()),
+        )));
         spawn_local(async move {
             match transport::fetch_topic(token_value, tenant_value, topic_id.clone(), locale).await
             {
@@ -292,7 +311,10 @@ pub fn ForumAdmin() -> impl IntoView {
                         set_topic_body_format,
                         set_topic_tags,
                     );
-                    set_error.set(Some(format!("{}: {err}", load_topic_error)));
+                    set_error.set(Some(forum_admin_transport_error_message(
+                        load_topic_error.as_str(),
+                        err,
+                    )));
                 }
             }
             set_busy_key.set(None);
@@ -332,6 +354,8 @@ pub fn ForumAdmin() -> impl IntoView {
 
     let category_query_writer = query_writer.clone();
     let topic_query_writer = query_writer.clone();
+    let category_form_error_labels = form_error_labels.clone();
+    let topic_form_error_labels = form_error_labels.clone();
     let submit_category = move |ev: SubmitEvent| {
         ev.prevent_default();
         set_error.set(None);
@@ -350,7 +374,10 @@ pub fn ForumAdmin() -> impl IntoView {
         let draft = match form.to_draft() {
             Ok(draft) => draft,
             Err(ForumAdminFormError::CategoryRequired) => {
-                set_error.set(Some(category_required_error.clone()));
+                set_error.set(Some(forum_admin_form_error_message(
+                    ForumAdminFormError::CategoryRequired,
+                    &category_form_error_labels,
+                )));
                 return;
             }
             Err(ForumAdminFormError::TopicRequired) => {
@@ -361,7 +388,11 @@ pub fn ForumAdmin() -> impl IntoView {
         let tenant_value = tenant.get_untracked();
         let editing_id = form.editing_id.clone();
         let save_category_error = save_category_error.clone();
-        set_busy_key.set(Some("category:save".to_string()));
+        set_busy_key.set(Some(forum_admin_busy_key(
+            ForumAdminBusySurface::Category,
+            ForumAdminBusyAction::Save,
+            None,
+        )));
         spawn_local(async move {
             let result = match editing_id {
                 Some(id) => transport::update_category(token_value, tenant_value, id, draft).await,
@@ -391,7 +422,10 @@ pub fn ForumAdmin() -> impl IntoView {
                         ),
                     );
                 }
-                Err(err) => set_error.set(Some(format!("{}: {err}", save_category_error))),
+                Err(err) => set_error.set(Some(forum_admin_transport_error_message(
+                    save_category_error.as_str(),
+                    err,
+                ))),
             }
             set_busy_key.set(None);
         });
@@ -414,7 +448,10 @@ pub fn ForumAdmin() -> impl IntoView {
         let draft = match form.to_draft() {
             Ok(draft) => draft,
             Err(ForumAdminFormError::TopicRequired) => {
-                set_error.set(Some(topic_required_error.clone()));
+                set_error.set(Some(forum_admin_form_error_message(
+                    ForumAdminFormError::TopicRequired,
+                    &topic_form_error_labels,
+                )));
                 return;
             }
             Err(ForumAdminFormError::CategoryRequired) => {
@@ -425,7 +462,11 @@ pub fn ForumAdmin() -> impl IntoView {
         let tenant_value = tenant.get_untracked();
         let editing_id = form.editing_id.clone();
         let save_topic_error = save_topic_error.clone();
-        set_busy_key.set(Some("topic:save".to_string()));
+        set_busy_key.set(Some(forum_admin_busy_key(
+            ForumAdminBusySurface::Topic,
+            ForumAdminBusyAction::Save,
+            None,
+        )));
         spawn_local(async move {
             let result = match editing_id {
                 Some(id) => transport::update_topic(token_value, tenant_value, id, draft).await,
@@ -451,7 +492,10 @@ pub fn ForumAdmin() -> impl IntoView {
                         forum_admin_saved_query_intent(ForumAdminQuerySurface::Topic, topic_id),
                     );
                 }
-                Err(err) => set_error.set(Some(format!("{}: {err}", save_topic_error))),
+                Err(err) => set_error.set(Some(forum_admin_transport_error_message(
+                    save_topic_error.as_str(),
+                    err,
+                ))),
             }
             set_busy_key.set(None);
         });
@@ -464,7 +508,11 @@ pub fn ForumAdmin() -> impl IntoView {
         let delete_category_error = delete_category_error.clone();
         let delete_category_query_writer = delete_category_query_writer.clone();
         set_error.set(None);
-        set_busy_key.set(Some(format!("category:delete:{category_id}")));
+        set_busy_key.set(Some(forum_admin_busy_key(
+            ForumAdminBusySurface::Category,
+            ForumAdminBusyAction::Delete,
+            Some(category_id.as_str()),
+        )));
         spawn_local(async move {
             match transport::delete_category(token_value, tenant_value, category_id.clone()).await {
                 Ok(()) => {
@@ -489,7 +537,10 @@ pub fn ForumAdmin() -> impl IntoView {
                     }
                     set_refresh_nonce.update(|value| *value += 1);
                 }
-                Err(err) => set_error.set(Some(format!("{}: {err}", delete_category_error))),
+                Err(err) => set_error.set(Some(forum_admin_transport_error_message(
+                    delete_category_error.as_str(),
+                    err,
+                ))),
             }
             set_busy_key.set(None);
         });
@@ -502,7 +553,11 @@ pub fn ForumAdmin() -> impl IntoView {
         let delete_topic_error = delete_topic_error.clone();
         let delete_topic_query_writer = delete_topic_query_writer.clone();
         set_error.set(None);
-        set_busy_key.set(Some(format!("topic:delete:{topic_id}")));
+        set_busy_key.set(Some(forum_admin_busy_key(
+            ForumAdminBusySurface::Topic,
+            ForumAdminBusyAction::Delete,
+            Some(topic_id.as_str()),
+        )));
         spawn_local(async move {
             match transport::delete_topic(token_value, tenant_value, topic_id.clone()).await {
                 Ok(()) => {
@@ -526,7 +581,10 @@ pub fn ForumAdmin() -> impl IntoView {
                     }
                     set_refresh_nonce.update(|value| *value += 1);
                 }
-                Err(err) => set_error.set(Some(format!("{}: {err}", delete_topic_error))),
+                Err(err) => set_error.set(Some(forum_admin_transport_error_message(
+                    delete_topic_error.as_str(),
+                    err,
+                ))),
             }
             set_busy_key.set(None);
         });
@@ -1278,12 +1336,8 @@ fn TopicsPage(
             filtered_category_label.as_str(),
         )
     });
-    let topic_form_tag_count = move || {
-        ready_template.replace(
-            "{count}",
-            parse_tags(tags.get().as_str()).len().to_string().as_str(),
-        )
-    };
+    let topic_form_tag_count =
+        move || forum_admin_topic_tag_count_label(tags.get().as_str(), ready_template.as_str());
     let sidebar_locale = ui_locale.clone();
     let topic_feed_locale = ui_locale.clone();
     let replies_locale = ui_locale.clone();
@@ -1329,10 +1383,11 @@ fn TopicsPage(
                     <SidebarStat
                         label=editing_thread_label.clone()
                         value=Signal::derive(move || {
-                            editing_id
-                                .get()
-                                .map(|_| open_inspector_label.clone())
-                                .unwrap_or_else(|| nothing_selected_label.clone())
+                            forum_admin_editing_thread_label(
+                                editing_id.get().as_deref(),
+                                open_inspector_label.as_str(),
+                                nothing_selected_label.as_str(),
+                            )
                         })
                     />
                 </div>
@@ -1403,7 +1458,10 @@ fn TopicsPage(
                                             on:change=move |ev| set_category_id.set(event_target_value(&ev))
                                         >
                                             <option value="">{choose_category_label.clone()}</option>
-                                            {items.into_iter().map(|item| view! { <option value=item.id>{item.name}</option> }).collect_view()}
+                                            {category_select_options(&items, category_id.get().as_str())
+                                                .into_iter()
+                                                .map(|option| view! { <option value=option.value selected=option.is_selected>{option.label}</option> })
+                                                .collect_view()}
                                         </select>
                                     }.into_any(),
                                     Err(err) => view! {

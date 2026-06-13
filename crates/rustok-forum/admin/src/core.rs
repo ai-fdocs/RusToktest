@@ -107,6 +107,43 @@ pub struct ForumAdminReplyCardViewModel {
     pub content_preview: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ForumAdminCategorySelectOption {
+    pub value: String,
+    pub label: String,
+    pub is_selected: bool,
+}
+
+pub fn category_select_options(
+    items: &[CategoryListItem],
+    selected_category_id: &str,
+) -> Vec<ForumAdminCategorySelectOption> {
+    items
+        .iter()
+        .map(|item| ForumAdminCategorySelectOption {
+            value: item.id.clone(),
+            label: item.name.clone(),
+            is_selected: item.id == selected_category_id,
+        })
+        .collect()
+}
+
+pub fn forum_admin_topic_tag_count_label(tags_raw: &str, ready_template: &str) -> String {
+    render_count_label(ready_template, parse_tags(tags_raw).len() as i32)
+}
+
+pub fn forum_admin_editing_thread_label(
+    editing_topic_id: Option<&str>,
+    open_inspector_label: &str,
+    nothing_selected_label: &str,
+) -> String {
+    if editing_topic_id.is_some() {
+        open_inspector_label.to_string()
+    } else {
+        nothing_selected_label.to_string()
+    }
+}
+
 pub fn category_sidebar_view_model(
     item: &CategoryListItem,
     active_category_id: &str,
@@ -220,6 +257,56 @@ pub fn topic_card_view_model(
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ForumAdminBusyAction {
+    Edit,
+    Save,
+    Delete,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ForumAdminBusySurface {
+    Category,
+    Topic,
+}
+
+impl ForumAdminBusySurface {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Category => "category",
+            Self::Topic => "topic",
+        }
+    }
+}
+
+impl ForumAdminBusyAction {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Edit => "edit",
+            Self::Save => "save",
+            Self::Delete => "delete",
+        }
+    }
+}
+
+pub fn forum_admin_busy_key(
+    surface: ForumAdminBusySurface,
+    action: ForumAdminBusyAction,
+    item_id: Option<&str>,
+) -> String {
+    match item_id {
+        Some(item_id) if !item_id.trim().is_empty() => {
+            format!(
+                "{}:{}:{}",
+                surface.as_str(),
+                action.as_str(),
+                item_id.trim()
+            )
+        }
+        _ => format!("{}:{}", surface.as_str(), action.as_str()),
+    }
+}
+
 fn render_count_label(template: &str, value: i32) -> String {
     template.replace("{count}", value.to_string().as_str())
 }
@@ -235,6 +322,26 @@ fn item_busy(busy_key: Option<&str>, item_id: &str) -> bool {
 pub enum ForumAdminFormError {
     CategoryRequired,
     TopicRequired,
+}
+
+#[derive(Clone, Debug)]
+pub struct ForumAdminFormErrorLabels {
+    pub category_required: String,
+    pub topic_required: String,
+}
+
+pub fn forum_admin_form_error_message(
+    error: ForumAdminFormError,
+    labels: &ForumAdminFormErrorLabels,
+) -> String {
+    match error {
+        ForumAdminFormError::CategoryRequired => labels.category_required.clone(),
+        ForumAdminFormError::TopicRequired => labels.topic_required.clone(),
+    }
+}
+
+pub fn forum_admin_transport_error_message(base: &str, err: impl std::fmt::Display) -> String {
+    format!("{}: {err}", base.trim_end_matches(':'))
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -576,6 +683,59 @@ mod tests {
     }
 
     #[test]
+    fn builds_typed_busy_keys_for_admin_surfaces() {
+        assert_eq!(
+            forum_admin_busy_key(
+                ForumAdminBusySurface::Category,
+                ForumAdminBusyAction::Edit,
+                Some(" category-1 "),
+            ),
+            "category:edit:category-1"
+        );
+        assert_eq!(
+            forum_admin_busy_key(
+                ForumAdminBusySurface::Topic,
+                ForumAdminBusyAction::Delete,
+                Some("topic-1"),
+            ),
+            "topic:delete:topic-1"
+        );
+        assert_eq!(
+            forum_admin_busy_key(
+                ForumAdminBusySurface::Category,
+                ForumAdminBusyAction::Save,
+                None,
+            ),
+            "category:save"
+        );
+    }
+
+    #[test]
+    fn maps_form_and_transport_error_messages() {
+        let labels = ForumAdminFormErrorLabels {
+            category_required: "Category required".to_string(),
+            topic_required: "Topic required".to_string(),
+        };
+
+        assert_eq!(
+            forum_admin_form_error_message(ForumAdminFormError::CategoryRequired, &labels),
+            "Category required"
+        );
+        assert_eq!(
+            forum_admin_form_error_message(ForumAdminFormError::TopicRequired, &labels),
+            "Topic required"
+        );
+        assert_eq!(
+            forum_admin_transport_error_message("Failed to save category", "boom"),
+            "Failed to save category: boom"
+        );
+        assert_eq!(
+            forum_admin_transport_error_message("Failed to save category:", "boom"),
+            "Failed to save category: boom"
+        );
+    }
+
+    #[test]
     fn selects_header_copy_for_categories_and_topics() {
         let labels = ForumAdminHeaderLabels {
             badge: "forum control room".to_string(),
@@ -879,6 +1039,42 @@ mod tests {
         assert_eq!(vm.slug, "support");
         assert_eq!(vm.topic_count, 2);
         assert!(vm.is_active);
+    }
+
+    #[test]
+    fn builds_category_select_options_and_topic_sidebar_labels() {
+        let options = category_select_options(&two_category_items(), "category-2");
+        assert_eq!(
+            options,
+            vec![
+                ForumAdminCategorySelectOption {
+                    value: "category-1".to_string(),
+                    label: "General".to_string(),
+                    is_selected: false,
+                },
+                ForumAdminCategorySelectOption {
+                    value: "category-2".to_string(),
+                    label: "Support".to_string(),
+                    is_selected: true,
+                },
+            ]
+        );
+        assert_eq!(
+            forum_admin_topic_tag_count_label(" rust, forum ,, ffa ", "{count} ready"),
+            "3 ready"
+        );
+        assert_eq!(
+            forum_admin_editing_thread_label(
+                Some("topic-1"),
+                "Open in inspector",
+                "Nothing selected",
+            ),
+            "Open in inspector"
+        );
+        assert_eq!(
+            forum_admin_editing_thread_label(None, "Open in inspector", "Nothing selected"),
+            "Nothing selected"
+        );
     }
 
     #[test]
