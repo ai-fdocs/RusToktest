@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PaymentCollectionCardData {
     pub id: String,
@@ -83,4 +85,19 @@ pub fn payment_collection_action_label(
     } else {
         labels.create_or_reuse.clone()
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct StorefrontCheckoutPaymentCollection {
+    pub id: String,
+    pub status: String,
+    pub currency_code: String,
+    pub amount: String,
+    pub authorized_amount: String,
+    pub captured_amount: String,
+    pub order_id: Option<String>,
+    pub provider_id: Option<String>,
+    pub payment_count: u64,
+    pub created_at: String,
+    pub updated_at: String,
 }

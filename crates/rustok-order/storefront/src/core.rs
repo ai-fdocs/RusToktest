@@ -1,3 +1,5 @@
+use serde::{Deserialize, Serialize};
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OrderCheckoutResultData {
     pub order_id: String,
@@ -67,4 +69,32 @@ pub fn order_checkout_action_label(busy: bool, labels: &OrderCheckoutActionLabel
     } else {
         labels.complete.clone()
     }
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct StorefrontCheckoutCompletion {
+    pub order_id: String,
+    pub order_status: String,
+    pub currency_code: String,
+    pub shipping_total: String,
+    pub adjustment_total: String,
+    pub total_amount: String,
+    pub adjustments: Vec<StorefrontCheckoutAdjustment>,
+    pub payment_collection_id: String,
+    pub payment_collection_status: String,
+    pub fulfillment_count: u64,
+    pub context_locale: String,
+    pub context_currency_code: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+pub struct StorefrontCheckoutAdjustment {
+    pub id: String,
+    pub line_item_id: Option<String>,
+    pub source_type: String,
+    pub source_id: Option<String>,
+    pub scope: Option<String>,
+    pub amount: String,
+    pub currency_code: String,
+    pub metadata: String,
 }

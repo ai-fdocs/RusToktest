@@ -25,9 +25,10 @@ use rustok_payment_storefront::{PaymentCollectionActionButton, PaymentCollection
 
 use crate::i18n::t;
 use crate::model::{
-    StorefrontCheckoutCompletion, StorefrontCheckoutPaymentCollection, StorefrontCheckoutWorkspace,
+    StorefrontCheckoutPaymentCollection, StorefrontCheckoutWorkspace,
     StorefrontCommerceData,
 };
+use rustok_order_storefront::core::StorefrontCheckoutCompletion;
 use crate::{core, transport};
 
 #[component]
@@ -75,7 +76,7 @@ pub fn CommerceView() -> impl IntoView {
             set_action_error.set(None);
             set_completion.set(None);
             spawn_local(async move {
-                match transport::create_storefront_payment_collection(request).await {
+                match rustok_payment_storefront::transport::create_storefront_payment_collection(request).await {
                     Ok(_) => set_refresh_nonce.update(|value| *value += 1),
                     Err(err) => set_action_error.set(Some(core::error_with_context(
                         action_error_label.as_str(),
@@ -129,7 +130,7 @@ pub fn CommerceView() -> impl IntoView {
             set_action_busy.set(true);
             set_action_error.set(None);
             spawn_local(async move {
-                match transport::complete_storefront_checkout(request).await {
+                match rustok_order_storefront::transport::complete_storefront_checkout(request).await {
                     Ok(result) => {
                         set_completion.set(Some(result));
                         set_refresh_nonce.update(|value| *value += 1);
