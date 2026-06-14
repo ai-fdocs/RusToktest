@@ -585,6 +585,21 @@ pub fn prepare_blog_post_archive_command(
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BlogPostSaveResultViewModel {
+    pub refresh_posts: bool,
+    pub apply_returned_post_to_form: bool,
+    pub selected_post_query_value: Option<String>,
+}
+
+pub fn blog_post_save_result_view(returned_post_id: &str) -> BlogPostSaveResultViewModel {
+    BlogPostSaveResultViewModel {
+        refresh_posts: true,
+        apply_returned_post_to_form: true,
+        selected_post_query_value: Some(returned_post_id.to_string()),
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BlogPostMutationResultViewModel {
     pub refresh_posts: bool,
     pub apply_returned_post_to_form: bool,
@@ -856,6 +871,15 @@ mod tests {
         let delete = prepare_blog_post_delete_command("post-4".to_string());
         assert_eq!(delete.post_id, "post-4");
         assert_eq!(delete.busy_key, "delete:post-4");
+    }
+
+    #[test]
+    fn save_result_view_model_maps_apply_refresh_and_query_policy() {
+        let view = blog_post_save_result_view("post-1");
+
+        assert!(view.refresh_posts);
+        assert!(view.apply_returned_post_to_form);
+        assert_eq!(view.selected_post_query_value, Some("post-1".to_string()));
     }
 
     #[test]
