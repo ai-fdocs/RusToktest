@@ -80,7 +80,7 @@
 
 | Модуль | Текущая роль | Статус | Единообразный следующий шаг | Источник evidence |
 |---|---|---|---|---|
-| `page_builder` | reference provider для `preview/tree/properties/publish` | `in_progress` | Довести capability handlers и contract tests до `boundary_ready`, не меняя provider/consumer metadata format | `crates/rustok-page-builder/contracts/page-builder-fba-registry.json`, `crates/rustok-page-builder/docs/implementation-plan.md` |
+| `page_builder` | reference provider для `preview/tree/properties/publish` | `in_progress` | Продолжить после первого migration slice: `PageBuilderCapabilityService` уже принимает `PortContext`, следующий шаг — capability handlers и contract tests до `boundary_ready` без смены provider/consumer metadata format | `crates/rustok-page-builder/contracts/page-builder-fba-registry.json`, `crates/rustok-page-builder/docs/implementation-plan.md` |
 | `pages` | первый consumer reference provider-а `page_builder` | `in_progress` | Заменить synthetic Wave 0 evidence фактическими tenant before/after snapshots и smoke/trace packet | `crates/rustok-pages/docs/implementation-plan.md`, registry page-builder |
 | `commerce` | umbrella orchestration/readiness-hardening для ecommerce slices | `in_progress` | Выравнивать checkout/post-order boundaries под тот же шаблон: owner-module ports, typed errors/context, events и отсутствие rules в transport/UI | `crates/rustok-commerce/docs/implementation-plan.md` |
 | `forum` | deferred consumer candidate для `page_builder` | `not_started` | Не повышать статус до появления local consumer evidence; держать запись как deferred в provider registry | `crates/rustok-page-builder/contracts/page-builder-fba-registry.json` |
