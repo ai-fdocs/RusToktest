@@ -248,21 +248,27 @@ pub fn BlogAdmin() -> impl IntoView {
 
             match result {
                 Ok(post) => {
-                    let post_id = post.id.clone();
-                    apply_post_to_form(
-                        set_editing_post_id,
-                        set_title,
-                        set_slug,
-                        set_excerpt,
-                        set_body,
-                        set_locale,
-                        set_body_format,
-                        set_tags_input,
-                        set_publish_now,
-                        &post,
-                    );
-                    set_refresh_nonce.update(|value| *value += 1);
-                    submit_query_writer.replace_value(AdminQueryKey::PostId.as_str(), post_id);
+                    let result_view = core::blog_post_save_result_view(post.id.as_str());
+                    if result_view.apply_returned_post_to_form {
+                        apply_post_to_form(
+                            set_editing_post_id,
+                            set_title,
+                            set_slug,
+                            set_excerpt,
+                            set_body,
+                            set_locale,
+                            set_body_format,
+                            set_tags_input,
+                            set_publish_now,
+                            &post,
+                        );
+                    }
+                    if result_view.refresh_posts {
+                        set_refresh_nonce.update(|value| *value += 1);
+                    }
+                    if let Some(post_id) = result_view.selected_post_query_value {
+                        submit_query_writer.replace_value(AdminQueryKey::PostId.as_str(), post_id);
+                    }
                 }
                 Err(err) => {
                     set_submit_error.set(Some(WritePathIssue::with_context(
